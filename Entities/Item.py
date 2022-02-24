@@ -67,6 +67,7 @@ class Item(pygame.sprite.Sprite):
             x = 0
             y = base_image.get_rect().h - tsurf.get_rect().h / 1.5
             w = image_surface.get_rect().w
+            h = image_surface.get_rect().h + tsurf.get_rect().h / 1.5
 
             if text_position == "center":
                 x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
@@ -74,10 +75,12 @@ class Item(pygame.sprite.Sprite):
                 x = (image_surface.get_rect().w - tsurf.get_rect().w )
                 y = base_image.get_rect().h - tsurf.get_rect().h
                 w = w + tsurf.get_rect().w / 1.5
+            elif text_position == "count_item":
+                w = base_image.get_rect().w  * 2
+                x = base_image.get_rect().w + (base_image.get_rect().w / 2 - tsurf.get_rect().w / 2)
+                y = base_image.get_rect().h / 2 - tsurf.get_rect().h / 2
 
-            tempSurface = pygame.Surface(
-                [w, image_surface.get_rect().h + tsurf.get_rect().h / 1.5],
-                pygame.SRCALPHA, 32)
+            tempSurface = pygame.Surface(([w, h]), pygame.SRCALPHA, 32)
             tempSurface = tempSurface.convert_alpha()
             tempSurface.blit(image_surface, (0, 0))
             tempSurface.blit(tsurf, (x, y))

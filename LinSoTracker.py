@@ -14,7 +14,7 @@ def main():
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("Tahoma", 18)
 
-    tracker = Tracker(template_name="oot64keysanity")
+    tracker = Tracker(template_name="oot3Dkeysanity")
     os.environ['SDL_VIDEO_CENTERED'] = '1'
     def update_fps():
         fps = str(int(clock.get_fps()))

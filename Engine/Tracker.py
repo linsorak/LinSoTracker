@@ -4,6 +4,7 @@ from zipfile import ZipFile
 
 import pygame
 
+from Entities.CountItem import CountItem
 from Entities.EvolutionItem import EvolutionItem
 from Entities.IncrementalItem import IncrementalItem
 from Entities.Item import Item
@@ -61,53 +62,64 @@ class Tracker:
     def init_items(self):
         self.kinds = []
         for item in self.tracker_json_data[3]["Items"]:
+            item_image = self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
+                                                                        column=item["SheetPositions"]["column"])
             if item["Kind"] not in self.kinds:
                 self.kinds.append(item["Kind"])
 
-            if item["Kind"] == "EvolutionItem":
-                item_image = self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
-                                                                            column=item["SheetPositions"]["column"])
-                next_items_list = []
-                for next_item in item["NextItems"]:
-                    temp_item = {}
-                    temp_item["Name"] = next_item["Name"]
-                    temp_item["Image"] = self.items_sheet_data.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"], column=next_item["SheetPositions"]["column"])
-                    temp_item["Label"] = next_item["Label"]
-                    next_items_list.append(temp_item)
-                print(temp_item)
-                item = EvolutionItem(name=item["Name"],
-                                     image=item_image,
-                                     position=(item["Positions"]["x"], item["Positions"]["y"]),
-                                     enable=item["isActive"],
-                                     opacity_disable=item["OpacityDisable"],
-                                     hint=item["Hint"],
-                                     next_items=next_items_list,
-                                     label=item["Label"],
-                                     label_center=item["LabelCenter"])
-                self.items.add(item)
-
-            elif item["Kind"] == "IncrementalItem":
+            if item["Kind"] == "CountItem":
                 print(item)
-                item_image = self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
-                                                                            column=item["SheetPositions"]["column"])
-                item = IncrementalItem(name=item["Name"],
-                                       image=item_image,
-                                       position=(item["Positions"]["x"], item["Positions"]["y"]),
-                                       enable=item["isActive"],
-                                       opacity_disable=item["OpacityDisable"],
-                                       hint = item["Hint"],
-                                       increments=item["Increment"])
+                item = CountItem(name=item["Name"],
+                                 image=item_image,
+                                 position=(item["Positions"]["x"], item["Positions"]["y"]),
+                                 enable=item["isActive"],
+                                 hint = item["Hint"],
+                                 opacity_disable=item["OpacityDisable"],
+                                 min_value=item["valueMin"],
+                                 max_value=item["valueMax"],
+                                 value_increase=item["valueIncrease"],
+                                 value_start=item["valueStart"])
                 self.items.add(item)
 
-            elif item["Kind"] == "Item":
-                item_image = self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"], column=item["SheetPositions"]["column"])
-                item = Item(name=item["Name"],
-                            image=item_image,
-                            position=(item["Positions"]["x"], item["Positions"]["y"]),
-                            enable=item["isActive"],
-                            hint = item["Hint"],
-                            opacity_disable=item["OpacityDisable"])
-                self.items.add(item)
+            # if item["Kind"] == "EvolutionItem":
+            #     next_items_list = []
+            #     for next_item in item["NextItems"]:
+            #         temp_item = {}
+            #         temp_item["Name"] = next_item["Name"]
+            #         temp_item["Image"] = self.items_sheet_data.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"], column=next_item["SheetPositions"]["column"])
+            #         temp_item["Label"] = next_item["Label"]
+            #         next_items_list.append(temp_item)
+            #     print(temp_item)
+            #     item = EvolutionItem(name=item["Name"],
+            #                          image=item_image,
+            #                          position=(item["Positions"]["x"], item["Positions"]["y"]),
+            #                          enable=item["isActive"],
+            #                          opacity_disable=item["OpacityDisable"],
+            #                          hint=item["Hint"],
+            #                          next_items=next_items_list,
+            #                          label=item["Label"],
+            #                          label_center=item["LabelCenter"])
+            #     self.items.add(item)
+            #
+            # elif item["Kind"] == "IncrementalItem":
+            #     print(item)
+            #     item = IncrementalItem(name=item["Name"],
+            #                            image=item_image,
+            #                            position=(item["Positions"]["x"], item["Positions"]["y"]),
+            #                            enable=item["isActive"],
+            #                            opacity_disable=item["OpacityDisable"],
+            #                            hint = item["Hint"],
+            #                            increments=item["Increment"])
+            #     self.items.add(item)
+            #
+            # elif item["Kind"] == "Item":
+            #     item = Item(name=item["Name"],
+            #                 image=item_image,
+            #                 position=(item["Positions"]["x"], item["Positions"]["y"]),
+            #                 enable=item["isActive"],
+            #                 hint = item["Hint"],
+            #                 opacity_disable=item["OpacityDisable"])
+            #     self.items.add(item)
 
         print(self.kinds)
 
