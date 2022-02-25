@@ -4,10 +4,13 @@ from zipfile import ZipFile
 
 import pygame
 
+from Entities.CheckItem import CheckItem
 from Entities.CountItem import CountItem
 from Entities.EvolutionItem import EvolutionItem
+from Entities.GoModeItem import GoModeItem
 from Entities.IncrementalItem import IncrementalItem
 from Entities.Item import Item
+from Entities.LabelItem import LabelItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
 from Tools.ImageSheet import ImageSheet
@@ -30,15 +33,12 @@ class Tracker:
         self.init_tracker()
         self.core_service.set_json_data(self.tracker_json_data)
         self.core_service.set_tracker_temp_path(self.resources_path)
-        # pygame.display.set_mode((self.tracker_json_data[1]["Datas"]["Dimensions"]["width"], self.tracker_json_data[1]["Datas"]["Dimensions"]["height"]))
-        print(self.tracker_json_data[1]["Datas"]["Background"])
         self.init_items()
 
     def extract_data(self):
         filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
         self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
         self.core_service.create_directory(self.resources_path)
-        print(self.resources_path)
         if os.path.isfile(filename):
             zip = ZipFile(filename)
             zip.extractall(self.resources_path)
@@ -67,8 +67,39 @@ class Tracker:
             if item["Kind"] not in self.kinds:
                 self.kinds.append(item["Kind"])
 
-            if item["Kind"] == "CountItem":
-                print(item)
+            print(item["Name"])
+
+            if item["Kind"] == "GoModeItem":
+                background_glow = self.bank.addImage(os.path.join(self.resources_path, item["BackgroundGlow"]))
+                item = GoModeItem(name=item["Name"],
+                                  image=item_image,
+                                  position=(item["Positions"]["x"], item["Positions"]["y"]),
+                                  enable=item["isActive"],
+                                  hint = item["Hint"],
+                                  opacity_disable=item["OpacityDisable"],
+                                  background_glow=background_glow)
+                self.items.add(item)
+            elif item["Kind"] == "CheckItem":
+                check_image = self.items_sheet_data.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
+                                                                            column=item["CheckImageSheetPositions"]["column"])
+                item = CheckItem(name=item["Name"],
+                                 image=item_image,
+                                 position=(item["Positions"]["x"], item["Positions"]["y"]),
+                                 enable=item["isActive"],
+                                 hint = item["Hint"],
+                                 opacity_disable=item["OpacityDisable"],
+                                 check_image=check_image)
+                self.items.add(item)
+            elif item["Kind"] == "LabelItem":
+                item = LabelItem(name=item["Name"],
+                                 image=item_image,
+                                 position=(item["Positions"]["x"], item["Positions"]["y"]),
+                                 enable=item["isActive"],
+                                 hint = item["Hint"],
+                                 opacity_disable=item["OpacityDisable"],
+                                 label_list=item["LabelList"])
+                self.items.add(item)
+            elif item["Kind"] == "CountItem":
                 item = CountItem(name=item["Name"],
                                  image=item_image,
                                  position=(item["Positions"]["x"], item["Positions"]["y"]),
@@ -80,55 +111,54 @@ class Tracker:
                                  value_increase=item["valueIncrease"],
                                  value_start=item["valueStart"])
                 self.items.add(item)
+            elif item["Kind"] == "EvolutionItem":
+                next_items_list = []
+                for next_item in item["NextItems"]:
+                    temp_item = {}
+                    temp_item["Name"] = next_item["Name"]
+                    temp_item["Image"] = self.items_sheet_data.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"], column=next_item["SheetPositions"]["column"])
+                    temp_item["Label"] = next_item["Label"]
+                    next_items_list.append(temp_item)
 
-            # if item["Kind"] == "EvolutionItem":
-            #     next_items_list = []
-            #     for next_item in item["NextItems"]:
-            #         temp_item = {}
-            #         temp_item["Name"] = next_item["Name"]
-            #         temp_item["Image"] = self.items_sheet_data.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"], column=next_item["SheetPositions"]["column"])
-            #         temp_item["Label"] = next_item["Label"]
-            #         next_items_list.append(temp_item)
-            #     print(temp_item)
-            #     item = EvolutionItem(name=item["Name"],
-            #                          image=item_image,
-            #                          position=(item["Positions"]["x"], item["Positions"]["y"]),
-            #                          enable=item["isActive"],
-            #                          opacity_disable=item["OpacityDisable"],
-            #                          hint=item["Hint"],
-            #                          next_items=next_items_list,
-            #                          label=item["Label"],
-            #                          label_center=item["LabelCenter"])
-            #     self.items.add(item)
-            #
-            # elif item["Kind"] == "IncrementalItem":
-            #     print(item)
-            #     item = IncrementalItem(name=item["Name"],
-            #                            image=item_image,
-            #                            position=(item["Positions"]["x"], item["Positions"]["y"]),
-            #                            enable=item["isActive"],
-            #                            opacity_disable=item["OpacityDisable"],
-            #                            hint = item["Hint"],
-            #                            increments=item["Increment"])
-            #     self.items.add(item)
-            #
-            # elif item["Kind"] == "Item":
-            #     item = Item(name=item["Name"],
-            #                 image=item_image,
-            #                 position=(item["Positions"]["x"], item["Positions"]["y"]),
-            #                 enable=item["isActive"],
-            #                 hint = item["Hint"],
-            #                 opacity_disable=item["OpacityDisable"])
-            #     self.items.add(item)
+                item = EvolutionItem(name=item["Name"],
+                                     image=item_image,
+                                     position=(item["Positions"]["x"], item["Positions"]["y"]),
+                                     enable=item["isActive"],
+                                     opacity_disable=item["OpacityDisable"],
+                                     hint=item["Hint"],
+                                     next_items=next_items_list,
+                                     label=item["Label"],
+                                     label_center=item["LabelCenter"])
+                self.items.add(item)
 
-        print(self.kinds)
+            elif item["Kind"] == "IncrementalItem":
+                item = IncrementalItem(name=item["Name"],
+                                       image=item_image,
+                                       position=(item["Positions"]["x"], item["Positions"]["y"]),
+                                       enable=item["isActive"],
+                                       opacity_disable=item["OpacityDisable"],
+                                       hint = item["Hint"],
+                                       increments=item["Increment"])
+                self.items.add(item)
+            elif item["Kind"] == "Item":
+                item = Item(name=item["Name"],
+                            image=item_image,
+                            position=(item["Positions"]["x"], item["Positions"]["y"]),
+                            enable=item["isActive"],
+                            hint = item["Hint"],
+                            opacity_disable=item["OpacityDisable"])
+                self.items.add(item)
 
     def click(self, mouse_position, button):
-        print(button)
         if button == 1:
             for item in self.items:
                 if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(), element_dimension=(item.get_rect().w, item.get_rect().h)):
                     item.left_click()
+
+        if button == 2:
+            for item in self.items:
+                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(), element_dimension=(item.get_rect().w, item.get_rect().h)):
+                    item.wheel_click()
 
         if button == 3:
             for item in self.items:
@@ -140,5 +170,8 @@ class Tracker:
         # pass
         screen.blit(self.background_image, (0, 0))
         self.items.draw(screen)
-        # self.items.update()
-        # screen.blit(self.items_sheet, (50, 50))
+
+        for item in self.items:
+            if type(item) == GoModeItem:
+                item.draw()
+                break

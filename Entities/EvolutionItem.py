@@ -51,6 +51,7 @@ class EvolutionItem(Item):
             else:
                 color_category = "Normal"
 
+
             self.image = self.get_drawing_text(font=font,
                                                color_category=color_category,
                                                text=next_item["Label"],
@@ -58,11 +59,14 @@ class EvolutionItem(Item):
                                                base_image=self.image,
                                                image_surface=next_item["Image"],
                                                text_position=position)
+            if self.hint_show:
+                self.image = self.update_hint(self.image)
+
         elif self.enable:
             self.image = self.get_drawing_text(font=font,
                                                color_category="Normal",
                                                text=self.label,
                                                font_path=font_path,
                                                base_image=self.image,
-                                               image_surface=self.colored_image,
+                                               image_surface=self.image,
                                                text_position=position)

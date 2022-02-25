@@ -2,10 +2,6 @@ import os
 from sys import platform
 import tempfile
 
-import numpy as np
-import pygame
-
-
 class Singleton(type):
     _instances = {}
 
@@ -51,7 +47,6 @@ class CoreService(metaclass=Singleton):
         self.json_data = value
 
     def get_json_data(self):
-        print(self.json_data)
         return self.json_data
 
 

@@ -1,8 +1,5 @@
 import os.path
 
-import pygame
-from pygame import Rect
-
 from Entities.Item import Item
 
 
@@ -52,5 +49,5 @@ class IncrementalItem(Item):
                                                text=self.increments[self.increments_position],
                                                font_path=font_path,
                                                base_image=self.image,
-                                               image_surface=self.colored_image,
+                                               image_surface=self.image,
                                                text_position="left")

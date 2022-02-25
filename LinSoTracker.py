@@ -2,17 +2,23 @@ import os
 
 import pygame
 
+from Engine.MainMenu import MainMenu
 from Engine.Tracker import Tracker
 from Tools.CoreService import CoreService
 
 
 def main():
     core_service = CoreService()
+    menu = MainMenu()
+    dimension = menu.get_dimension()
     pygame.init()
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode(dimension)
     pygame.display.set_caption(core_service.get_window_title())
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("Tahoma", 18)
+
+    menu.initialization()
+    pygame.display.set_icon(menu.get_icon())
 
     tracker = Tracker(template_name="oot3Dkeysanity")
     os.environ['SDL_VIDEO_CENTERED'] = '1'
@@ -34,9 +40,11 @@ def main():
                 mouse_position = pygame.mouse.get_pos()
 
             if event.type == pygame.MOUSEBUTTONUP: #and event.button == 1:
+                # pass
                 tracker.click(mouse_position, event.button)
 
         clock.tick(30)
+        # menu.draw(screen)
         tracker.draw(screen)
         pygame.display.update()
 

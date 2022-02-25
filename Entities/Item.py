@@ -1,3 +1,5 @@
+import os
+
 import pygame
 
 from Tools import ptext
@@ -8,6 +10,7 @@ class Item(pygame.sprite.Sprite):
     def __init__(self, name, position, image, opacity_disable, hint, enable=True):
         pygame.sprite.Sprite.__init__(self)
         self.hint = hint
+        self.hint_show = False
         self.name = name
         self.opacity_disable = opacity_disable
         self.enable = enable
@@ -28,13 +31,35 @@ class Item(pygame.sprite.Sprite):
     def get_rect(self):
         return self.rect
 
+    def alpha_image(self, image):
+        transparent_image = image.copy()
+        transparent_image.fill((255, 255, 255, 255 * self.opacity_disable), special_flags=pygame.BLEND_RGBA_MULT)
+        return transparent_image
+
     def update(self):
         if not self.enable:
-            transparent_image = self.grey_image.copy()
-            transparent_image.fill((255, 255, 255, 255 * self.opacity_disable), special_flags=pygame.BLEND_RGBA_MULT)
-            self.image = transparent_image
+            # transparent_image = self.grey_image.copy()
+            # transparent_image.fill((255, 255, 255, 255 * self.opacity_disable), special_flags=pygame.BLEND_RGBA_MULT)
+            self.image = self.alpha_image(self.grey_image)
         else:
             self.image = self.colored_image
+
+        if self.hint_show:
+            self.image = self.update_hint(self.image)
+
+    def update_hint(self, image):
+        # self.update()
+        font = self.core_service.get_font("hintFont")
+        font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+        image = self.get_drawing_text(font=font,
+                                           color_category="Normal",
+                                           text=self.hint,
+                                           font_path=font_path,
+                                           base_image=image,
+                                           image_surface=image,
+                                           text_position="hint")
+        return image
+
 
     def left_click(self):
         if self.enable:
@@ -48,7 +73,13 @@ class Item(pygame.sprite.Sprite):
         self.update()
 
     def wheel_click(self):
-        pass
+        if self.hint is not None:
+            if self.hint_show:
+                self.hint_show = False
+            else:
+                self.hint_show = True
+
+            self.update()
 
     def generate_text(self, text, font_name, color, font_size):
         tempSurface = pygame.Surface((400, 400)).convert_alpha()
@@ -68,6 +99,8 @@ class Item(pygame.sprite.Sprite):
             y = base_image.get_rect().h - tsurf.get_rect().h / 1.5
             w = image_surface.get_rect().w
             h = image_surface.get_rect().h + tsurf.get_rect().h / 1.5
+            pos_x = 0
+            pos_y = 0
 
             if text_position == "center":
                 x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
@@ -79,11 +112,24 @@ class Item(pygame.sprite.Sprite):
                 w = base_image.get_rect().w  * 2
                 x = base_image.get_rect().w + (base_image.get_rect().w / 2 - tsurf.get_rect().w / 2)
                 y = base_image.get_rect().h / 2 - tsurf.get_rect().h / 2
+            elif text_position == "hint":
+                x = base_image.get_rect().w - tsurf.get_rect().w
+                y = 0
+                h = image_surface.get_rect().h
+            elif text_position == "label":
+                x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
+                y = image_surface.get_rect().h - (tsurf.get_rect().h / 5)
+                h = image_surface.get_rect().h + tsurf.get_rect().h
+                if tsurf.get_rect().w > image_surface.get_rect().w:
+                    pos_x = image_surface.get_rect().w - tsurf.get_rect().w
+                    w = tsurf.get_rect().w - pos_x
+                    x = x - pos_x
 
             tempSurface = pygame.Surface(([w, h]), pygame.SRCALPHA, 32)
             tempSurface = tempSurface.convert_alpha()
-            tempSurface.blit(image_surface, (0, 0))
+            tempSurface.blit(image_surface, (pos_x * -1, pos_y))
             tempSurface.blit(tsurf, (x, y))
+            self.rect = pygame.Rect(self.position[0] + pos_x, self.position[1], self.image.get_rect().width, self.image.get_rect().height)
         else:
             tempSurface = pygame.Surface(
                 [image_surface.get_rect().w, image_surface.get_rect().h],
