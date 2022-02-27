@@ -1,6 +1,10 @@
 import os
+import sys
 from sys import platform
 import tempfile
+
+import pygame
+
 
 class Singleton(type):
     _instances = {}
@@ -17,8 +21,14 @@ class CoreService(metaclass=Singleton):
         self.version = "2.0b"
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
-
+        self.zoom = 2
         self.app_path = os.path.abspath(os.path.dirname(__file__)).replace("{}{}".format(os.sep, "Tools"), os.sep)
+
+        if getattr(sys, 'frozen', False):
+            self.app_path = os.path.dirname(sys.executable)
+        elif __file__:
+            self.app_path = os.path.dirname(__file__).replace("Tools", "")
+        print(self.app_path)
 
         if platform == "win32":
             #path = os.path.join(os.getenv('APPDATA'),appName)
@@ -49,10 +59,17 @@ class CoreService(metaclass=Singleton):
     def get_json_data(self):
         return self.json_data
 
-
     def get_font(self, session):
         return self.json_data[2]["Fonts"][session]
 
+    def zoom_image(self, image):
+        return pygame.transform.smoothscale(image, (image.get_rect().w * self.zoom, image.get_rect().h * self.zoom))
+
+    @staticmethod
+    def set_image_transparent(opacity_disable, image):
+        transparent_image = image.copy()
+        transparent_image.fill((255, 255, 255, 255 * opacity_disable), special_flags=pygame.BLEND_RGBA_MULT)
+        return transparent_image
 
     @staticmethod
     def convert_to_gs(surf):

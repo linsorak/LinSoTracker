@@ -13,7 +13,7 @@ class Singleton(type):
 
 class Bank(metaclass=Singleton):
     def __init__(self):
-        self.coreService = CoreService()
+        self.core_service = CoreService()
         self.bank = {}
     def addImage(self, path):
         if path in self.bank:
@@ -22,4 +22,14 @@ class Bank(metaclass=Singleton):
             imageTemp = pygame.image.load(path).convert_alpha()
             self.bank[path] = imageTemp
             return imageTemp
+
+    def addZoomImage(self, path):
+        if path in self.bank:
+            return self.core_service.zoom_image(self.bank[path])
+        else:
+            imageTemp = self.core_service.zoom_image(pygame.image.load(path).convert_alpha())
+            self.bank[path] = imageTemp
+            return imageTemp
+
+
 

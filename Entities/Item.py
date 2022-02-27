@@ -32,9 +32,7 @@ class Item(pygame.sprite.Sprite):
         return self.rect
 
     def alpha_image(self, image):
-        transparent_image = image.copy()
-        transparent_image.fill((255, 255, 255, 255 * self.opacity_disable), special_flags=pygame.BLEND_RGBA_MULT)
-        return transparent_image
+        return self.core_service.set_image_transparent(image=image, opacity_disable=self.opacity_disable)
 
     def update(self):
         if not self.enable:
@@ -84,7 +82,7 @@ class Item(pygame.sprite.Sprite):
     def generate_text(self, text, font_name, color, font_size):
         tempSurface = pygame.Surface((400, 400)).convert_alpha()
         tsurf, tpos = ptext.draw(str(text), (0, 0), fontname=font_name, antialias=True,
-                                 owidth=3, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=tempSurface)
+                                 owidth=2, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=tempSurface)
         return tsurf, tpos
 
     def get_name(self):
@@ -93,7 +91,7 @@ class Item(pygame.sprite.Sprite):
     def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position):
         if text is not None:
             color = (font["Colors"][color_category]["r"], font["Colors"][color_category]["g"], font["Colors"][color_category]["b"])
-            tsurf, tpos = self.generate_text(text=text, font_name=font_path, font_size=font["Size"],
+            tsurf, tpos = self.generate_text(text=text, font_name=font_path, font_size=font["Size"] * self.core_service.zoom,
                                              color=color)
             x = 0
             y = base_image.get_rect().h - tsurf.get_rect().h / 1.5

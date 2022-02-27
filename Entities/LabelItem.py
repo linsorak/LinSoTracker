@@ -14,12 +14,7 @@ class LabelItem(Item):
         Item.update(self)
         font = self.core_service.get_font("labelItemFont")
         font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
-
-        if self.label_count == len(self.label_list) - 1:
-            color_category = "Max"
-        else:
-            color_category = "Normal"
-
+        color_category = "Normal"
         self.image = self.get_drawing_text(font=font,
                                            color_category=color_category,
                                            text=self.label_list[self.label_count],

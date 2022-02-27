@@ -31,8 +31,10 @@ class GoModeItem(Item):
             self.rect = pygame.Rect(self.position[0] + pos_x, self.position[1] + pos_y, self.colored_image.get_rect().width,
                                     self.colored_image.get_rect().height)
         else:
-            self.rect = pygame.Rect(self.position[0], self.position[1] , self.image.get_rect().width,
-                                    self.image.get_rect().height)
+            self.image =  pygame.Surface(([self.colored_image.get_rect().w, self.colored_image.get_rect().h]), pygame.SRCALPHA, 32)
+            self.image = self.image.convert_alpha()
+            self.rect = pygame.Rect(self.position[0], self.position[1] , self.colored_image.get_rect().width,
+                                    self.colored_image.get_rect().height)
 
     def draw(self):
         self.update()
