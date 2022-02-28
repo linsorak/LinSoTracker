@@ -19,11 +19,11 @@ class Menu:
                       widget_font_size=20)
 
         self.menu = pygame_menu.Menu('Options', dimensions[0], dimensions[1], theme=theme)
-        self.menu.add.selector('Zoom :', [('Normal x1', 1),
-                                          ('Middle x1.25', 1.25),
-                                          ('Middle x1.5', 1.5),
-                                          ('Middle x1.75', 1.75),
-                                          ('Max x2', 2)], onchange=self.change_zoom)
+        self.menu.add.selector('Zoom :', [('x1', 1),
+                                          ('x1.25', 1.25),
+                                          ('x1.5', 1.5),
+                                          ('x1.75', 1.75),
+                                          ('x2', 2)], onchange=self.change_zoom)
         self.menu.add.button('Save tracker state', self.save)
         self.menu.add.button('Load tracker state', self.load)
         self.menu.add.button('Discord', self.open_discord)

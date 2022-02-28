@@ -1,2 +1,2 @@
 conda activate pygameDev
-pyinstaller LinSoTracker.py -F --noconsole
+pyinstaller --noconfirm --onefile --windowed --icon "D:/DevPerso/LinSoTracker/icon.ico"  "D:/DevPerso/LinSoTracker/LinSoTracker.py"

@@ -43,6 +43,8 @@ class EvolutionItem(Item):
         if self.label_center:
             position = "center"
 
+        print(len(self.next_items))
+
         if self.next_item_index >= 0:
             next_item = self.next_items[self.next_item_index]          
             
@@ -50,7 +52,6 @@ class EvolutionItem(Item):
                 color_category = "Max"
             else:
                 color_category = "Normal"
-
 
             self.image = self.get_drawing_text(font=font,
                                                color_category=color_category,
@@ -63,8 +64,12 @@ class EvolutionItem(Item):
                 self.image = self.update_hint(self.image)
 
         elif self.enable:
+            color_category = "Normal"
+            if len(self.next_items) == 0:
+                color_category = "Max"
+
             self.image = self.get_drawing_text(font=font,
-                                               color_category="Normal",
+                                               color_category=color_category,
                                                text=self.label,
                                                font_path=font_path,
                                                base_image=self.image,
