@@ -9,6 +9,7 @@ import pygame_menu
 from pygame.rect import Rect
 
 from Engine.FadeAnimation import FadeAnimation, FadeMode
+from Engine.Menu import Menu
 from Engine.Tracker import Tracker
 from Tools import ptext
 from Tools.Bank import Bank
@@ -48,6 +49,18 @@ class MainMenu:
         self.init_menu()
         self.process_templates_list()
         self.loaded_tracker = None
+        self.btn_paypal = None
+        self.btn_discord = None
+        self.init_btns()
+
+    def init_btns(self):
+        dimensions = self.get_dimension()
+        btn_paypal_w = 125
+        btn_paypal_h = 50
+        self.btn_paypal = Rect(0, dimensions[1] - btn_paypal_h, btn_paypal_w, btn_paypal_h)
+        btn_discord_w = 105
+        btn_discord_h = 70
+        self.btn_discord = Rect(dimensions[0] - btn_discord_w, dimensions[1] - btn_discord_h, btn_discord_w, btn_discord_h)
 
     def extract_data(self):
         filename = os.path.join(self.core_service.get_app_path(), "tracker.data")
@@ -234,6 +247,16 @@ class MainMenu:
                 if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=self.right_arrow_positions, element_dimension=(self.arrow_right.get_rect().w, self.arrow_right.get_rect().h)):
                     if self.current_page < self.max_pages:
                         self.current_page += 1
+
+                if self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                   element_positons=(self.btn_discord.left, self.btn_discord.top) ,
+                                                   element_dimension=(self.btn_discord.w, self.btn_discord.h)):
+                    Menu.open_discord()
+
+                if self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                   element_positons=(self.btn_paypal.left, self.btn_paypal.top) ,
+                                                   element_dimension=(self.btn_paypal.w, self.btn_paypal.h)):
+                    Menu.open_paypal()
 
                 for menu in self.menu_content:
                     if self.core_service.is_on_element(mouse_positions=mouse_position,
