@@ -2,6 +2,7 @@ import json
 from tkinter import filedialog
 from typing import Tuple, Any
 
+import pygame
 import pygame_menu
 from pygame_menu import Theme
 import webbrowser
@@ -80,6 +81,10 @@ class Menu:
             return json.load(f)
         else:
             return None
+
+    def events(self, events):
+        if self.menu.is_enabled():
+            self.menu.update(events)
 
     @staticmethod
     def open_discord():

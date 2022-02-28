@@ -1,8 +1,5 @@
-import os
-
 import pygame
-import pygame_menu
-
+import tkinter as tk
 from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
 
@@ -25,7 +22,8 @@ def main():
 
     while loop:
         screen.fill((0, 0, 0))
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        for event in events:
             if event.type == pygame.QUIT:
                 loop = False
 
@@ -41,10 +39,12 @@ def main():
 
         clock.tick(30)
         main_menu.draw(screen)
-
+        main_menu.events(events)
         pygame.display.update()
 
     pygame.quit()
 
 if __name__ == '__main__':
+    root = tk.Tk()
+    root.destroy()
     main()

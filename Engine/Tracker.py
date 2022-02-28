@@ -229,3 +229,6 @@ class Tracker:
         if button == pygame.K_ESCAPE:
             if not self.menu.get_menu().is_enabled():
                 self.menu.active(screen)
+
+    def events(self, events):
+        self.menu.events(events)

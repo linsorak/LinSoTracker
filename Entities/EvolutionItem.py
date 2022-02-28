@@ -43,8 +43,6 @@ class EvolutionItem(Item):
         if self.label_center:
             position = "center"
 
-        print(len(self.next_items))
-
         if self.next_item_index >= 0:
             next_item = self.next_items[self.next_item_index]          
             

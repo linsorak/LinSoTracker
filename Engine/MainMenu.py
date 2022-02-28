@@ -297,3 +297,7 @@ class MainMenu:
     def keyup(self, button, screen):
         if self.loaded_tracker:
             self.loaded_tracker.keyup(button, screen)
+
+    def events(self, events):
+        if self.loaded_tracker:
+            self.loaded_tracker.events(events)
