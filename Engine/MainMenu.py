@@ -5,6 +5,7 @@ import os
 from zipfile import ZipFile
 
 import pygame
+import pygame_menu
 from pygame.rect import Rect
 
 from Engine.FadeAnimation import FadeAnimation, FadeMode
@@ -42,7 +43,6 @@ class MainMenu:
         self.core_service = CoreService()
         self.bank = Bank()
         self.template_directory = os.path.join(self.core_service.get_app_path(), "templates")
-        print(self.template_directory)
         self.template_list = []
         self.extract_data()
         self.init_menu()
@@ -96,7 +96,7 @@ class MainMenu:
     def draw(self, screen):
         if not self.loaded_tracker:
             screen.blit(self.background_image, (0, 0))
-            self.draw_text(text="LinSoTracker BETA Version",
+            self.draw_text(text="{} v{} - Developped by LinSoraK#7235".format(self.core_service.app_name, self.core_service.version),
                            font_name=self.font_data["path"],
                            color=self.font_data["color_normal"],
                            font_size=self.font_data["size"],
@@ -219,11 +219,6 @@ class MainMenu:
             self.template_list.append(template_data)
 
         self.max_pages = int(len(self.template_list) / 3) + self.current_page
-            # print(data[0])
-            # bytes_io = io.BytesIO(file_data)
-            #
-            # surface = pygame.image.load(bytes_io)
-            # print(surface)
 
     def draw_text(self, text, font_name, color, font_size, surface, position, outline=2):
         return ptext.draw(str(text), position, fontname=font_name, antialias=True,
@@ -243,7 +238,7 @@ class MainMenu:
                 for menu in self.menu_content:
                     if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                        element_positons=menu["positions"], element_dimension=menu["dimensions"]):
-                        # print(menu["template"]["filename"])
+
                         self.set_tracker(menu["template"]["filename"])
         else:
             self.loaded_tracker.click(mouse_position, button)
@@ -272,9 +267,10 @@ class MainMenu:
                     self.illustration = None
                     self.moved_tracker = None
                     self.fade_engine.reset()
-        else:
-            pass
-            # self.loaded_tracker.mouse_position()
 
     def set_tracker(self, tracker_name):
         self.loaded_tracker = Tracker(tracker_name)
+
+    def keyup(self, button, screen):
+        if self.loaded_tracker:
+            self.loaded_tracker.keyup(button, screen)

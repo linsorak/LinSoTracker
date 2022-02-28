@@ -6,12 +6,12 @@ from Entities.Item import Item
 
 
 class EvolutionItem(Item):
-    def __init__(self, name, image, position, enable, opacity_disable, hint, next_items, label, label_center):
+    def __init__(self, id, name, image, position, enable, opacity_disable, hint, next_items, label, label_center):
         self.label_center = label_center
         self.label = label
         self.next_item_index = -1
         self.next_items = next_items
-        Item.__init__(self, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable, hint=hint)
+        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable, hint=hint)
 
     def left_click(self):
         if self.enable:
@@ -70,3 +70,12 @@ class EvolutionItem(Item):
                                                base_image=self.image,
                                                image_surface=self.image,
                                                text_position=position)
+
+    def get_data(self):
+        data = Item.get_data(self)
+        data["next_item_index"] = self.next_item_index
+        return data
+
+    def set_data(self, datas):
+        self.next_item_index = datas["next_item_index"]
+        Item.set_data(self, datas)

@@ -4,10 +4,10 @@ from Entities.Item import Item
 
 
 class LabelItem(Item):
-    def __init__(self, name, position, image, opacity_disable, hint, enable, label_list):
+    def __init__(self, id, name, position, image, opacity_disable, hint, enable, label_list):
         self.label_count = 0
         self.label_list = label_list
-        Item.__init__(self, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable,
+        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable,
                       hint=hint)
 
     def update(self):
@@ -30,3 +30,12 @@ class LabelItem(Item):
             self.label_count = 0
 
         self.update()
+
+    def get_data(self):
+        data = Item.get_data(self)
+        data["label_count"] = self.label_count
+        return data
+
+    def set_data(self, datas):
+        self.label_count = datas["label_count"]
+        Item.set_data(self, datas)

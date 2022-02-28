@@ -2,9 +2,7 @@ import os
 import sys
 from sys import platform
 import tempfile
-
 import pygame
-
 
 class Singleton(type):
     _instances = {}
@@ -21,22 +19,21 @@ class CoreService(metaclass=Singleton):
         self.version = "2.0b"
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
-        self.zoom = 2
+        self.zoom = 1
         self.app_path = os.path.abspath(os.path.dirname(__file__)).replace("{}{}".format(os.sep, "Tools"), os.sep)
 
         if getattr(sys, 'frozen', False):
             self.app_path = os.path.dirname(sys.executable)
         elif __file__:
             self.app_path = os.path.dirname(__file__).replace("Tools", "")
-        print(self.app_path)
 
         if platform == "win32":
-            #path = os.path.join(os.getenv('APPDATA'),appName)
             self.temp_path = os.path.join(self.temp_path, self.app_name)
         else:
             self.temp_path = os.path.expanduser(os.path.join(self.temp_path, self.app_name))
 
         self.create_directory(path=self.temp_path)
+
 
     def get_temp_path(self):
         return self.temp_path
@@ -64,6 +61,11 @@ class CoreService(metaclass=Singleton):
 
     def zoom_image(self, image):
         return pygame.transform.smoothscale(image, (image.get_rect().w * self.zoom, image.get_rect().h * self.zoom))
+
+
+    @staticmethod
+    def setgamewindowcenter(x=500, y=100):
+        os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x, y)
 
     @staticmethod
     def set_image_transparent(opacity_disable, image):

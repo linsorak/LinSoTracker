@@ -7,8 +7,9 @@ from Tools.CoreService import CoreService
 
 
 class Item(pygame.sprite.Sprite):
-    def __init__(self, name, position, image, opacity_disable, hint, enable=True):
+    def __init__(self, id, name, position, image, opacity_disable, hint, enable=True):
         pygame.sprite.Sprite.__init__(self)
+        self.id = id
         self.hint = hint
         self.hint_show = False
         self.name = name
@@ -136,3 +137,18 @@ class Item(pygame.sprite.Sprite):
             tempSurface.blit(image_surface, (0, 0))
 
         return tempSurface
+
+    def get_data(self):
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "enable": self.enable,
+            "hint_show": self.hint_show
+        }
+        return data
+
+    def set_data(self, datas):
+        self.enable = datas["enable"]
+        self.hint_show = datas["hint_show"]
+        self.update()
+

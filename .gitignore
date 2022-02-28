@@ -9,3 +9,4 @@ tracker
 build
 dist
 __pycache__
+data.json

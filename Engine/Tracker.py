@@ -4,6 +4,7 @@ from zipfile import ZipFile
 
 import pygame
 
+from Engine.Menu import Menu
 from Entities.CheckItem import CheckItem
 from Entities.CountItem import CountItem
 from Entities.EvolutionItem import EvolutionItem
@@ -28,6 +29,7 @@ class Tracker:
         self.items = pygame.sprite.Group()
         self.template_name = template_name
         self.core_service = CoreService()
+        self.menu = []
         self.bank = Bank()
         self.extract_data()
         self.init_tracker()
@@ -55,20 +57,20 @@ class Tracker:
         w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
         h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
         pygame.display.set_mode((w, h))
+        self.core_service.setgamewindowcenter(w, h)
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
 
         json_data_item_sheet = self.tracker_json_data[1]["Datas"]["ItemSheet"]
         json_data_item_sheet_dimensions = self.tracker_json_data[1]["Datas"]["ItemSheetDimensions"]
         self.items_sheet = self.bank.addImage(os.path.join(self.resources_path, json_data_item_sheet))
         self.items_sheet_data = ImageSheet(self.items_sheet, json_data_item_sheet_dimensions["width"], json_data_item_sheet_dimensions["height"])
+        self.menu = Menu((w, h), self)
 
     def init_items(self):
-        self.kinds = []
         for item in self.tracker_json_data[3]["Items"]:
+            id = len(self.items)
             item_image = self.core_service.zoom_image(self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
                                                                         column=item["SheetPositions"]["column"]))
-            if item["Kind"] not in self.kinds:
-                self.kinds.append(item["Kind"])
 
             if item["Kind"] == "GoModeItem":
                 background_glow = self.bank.addZoomImage(os.path.join(self.resources_path, item["BackgroundGlow"]))
@@ -78,7 +80,8 @@ class Tracker:
                                   enable=item["isActive"],
                                   hint = item["Hint"],
                                   opacity_disable=item["OpacityDisable"],
-                                  background_glow=background_glow)
+                                  background_glow=background_glow,
+                                  id=id)
                 self.items.add(item)
             elif item["Kind"] == "CheckItem":
                 check_image = self.core_service.zoom_image(self.items_sheet_data.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
@@ -89,7 +92,8 @@ class Tracker:
                                  enable=item["isActive"],
                                  hint = item["Hint"],
                                  opacity_disable=item["OpacityDisable"],
-                                 check_image=check_image)
+                                 check_image=check_image,
+                                 id=id)
                 self.items.add(item)
             elif item["Kind"] == "LabelItem":
                 item = LabelItem(name=item["Name"],
@@ -98,7 +102,8 @@ class Tracker:
                                  enable=item["isActive"],
                                  hint = item["Hint"],
                                  opacity_disable=item["OpacityDisable"],
-                                 label_list=item["LabelList"])
+                                 label_list=item["LabelList"],
+                                 id=id)
                 self.items.add(item)
             elif item["Kind"] == "CountItem":
                 item = CountItem(name=item["Name"],
@@ -110,7 +115,8 @@ class Tracker:
                                  min_value=item["valueMin"],
                                  max_value=item["valueMax"],
                                  value_increase=item["valueIncrease"],
-                                 value_start=item["valueStart"])
+                                 value_start=item["valueStart"],
+                                 id=id)
                 self.items.add(item)
             elif item["Kind"] == "EvolutionItem":
                 next_items_list = []
@@ -129,7 +135,8 @@ class Tracker:
                                      hint=item["Hint"],
                                      next_items=next_items_list,
                                      label=item["Label"],
-                                     label_center=item["LabelCenter"])
+                                     label_center=item["LabelCenter"],
+                                     id=id)
                 self.items.add(item)
 
             elif item["Kind"] == "IncrementalItem":
@@ -139,7 +146,8 @@ class Tracker:
                                        enable=item["isActive"],
                                        opacity_disable=item["OpacityDisable"],
                                        hint = item["Hint"],
-                                       increments=item["Increment"])
+                                       increments=item["Increment"],
+                                       id=id)
                 self.items.add(item)
             elif item["Kind"] == "Item":
                 item = Item(name=item["Name"],
@@ -147,7 +155,8 @@ class Tracker:
                             position=(item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom),
                             enable=item["isActive"],
                             hint = item["Hint"],
-                            opacity_disable=item["OpacityDisable"])
+                            opacity_disable=item["OpacityDisable"],
+                            id=id)
                 self.items.add(item)
 
     def click(self, mouse_position, button):
@@ -167,8 +176,44 @@ class Tracker:
                     item.right_click()
 
 
+    def save_data(self):
+        datas = []
+        datas.append({
+            "template_name": self.template_name
+        })
+
+        datas_items = []
+        for item in self.items:
+            datas_items.append(item.get_data())
+
+        datas.append({
+            "items": datas_items
+        })
+        return datas
+
+    def load_data(self, datas):
+        if datas[0]["template_name"] == self.template_name:
+            for data in datas[1]["items"]:
+                for item in self.items:
+                    if data["name"] == item.name and data["id"] == item.id:
+                        item.set_data(data)
+                        break
+
+
+    def change_zoom(self, value):
+        datas = self.save_data()
+        self.core_service.zoom = value
+        self.items = pygame.sprite.Group()
+        json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
+        self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
+        w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
+        h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
+        pygame.display.set_mode((w, h))
+        self.init_items()
+        self.menu.get_menu().resize(width=w, height=h)
+        # self.load_data(datas)
+
     def draw(self, screen):
-        # pass
         screen.blit(self.background_image, (0, 0))
         self.items.draw(screen)
 
@@ -176,3 +221,11 @@ class Tracker:
             if type(item) == GoModeItem:
                 item.draw()
                 break
+
+        if self.menu.get_menu().is_enabled():
+            self.menu.get_menu().mainloop(screen)
+
+    def keyup(self, button, screen):
+        if button == pygame.K_ESCAPE:
+            if not self.menu.get_menu().is_enabled():
+                self.menu.active(screen)

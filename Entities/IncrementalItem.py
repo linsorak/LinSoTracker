@@ -4,10 +4,10 @@ from Entities.Item import Item
 
 
 class IncrementalItem(Item):
-    def __init__(self, name, image, position, enable, opacity_disable, increments, hint):
+    def __init__(self, id, name, image, position, enable, opacity_disable, increments, hint):
         self.increments_position = -1
         self.increments = increments
-        Item.__init__(self, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable, hint=hint)
+        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable, hint=hint)
 
     def left_click(self):
         if self.enable:
@@ -51,3 +51,12 @@ class IncrementalItem(Item):
                                                base_image=self.image,
                                                image_surface=self.image,
                                                text_position="left")
+
+    def get_data(self):
+        data = Item.get_data(self)
+        data["increments_position"] = self.increments_position
+        return data
+
+    def set_data(self, datas):
+        self.increments_position = datas["increments_position"]
+        Item.set_data(self, datas)
