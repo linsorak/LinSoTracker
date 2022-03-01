@@ -7,7 +7,8 @@ class CheckItem(Item):
     def __init__(self, id, name, position, image, opacity_disable, hint, check_image, enable=True):
         self.check_image = check_image
         self.check = False
-        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable,
+        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
+                      opacity_disable=opacity_disable,
                       hint=hint)
 
     def right_click(self):

@@ -1,14 +1,13 @@
 import json
+import webbrowser
 from tkinter import filedialog
 from typing import Tuple, Any
 
-import pygame
 import pygame_menu
 from pygame_menu import Theme
-import webbrowser
 
 
-class Menu:
+class Menu():
     def __init__(self, dimensions, tracker):
         self.tracker = tracker
         theme = Theme(background_color=(0, 0, 0, 50),  # transparent background
@@ -27,11 +26,12 @@ class Menu:
                                           ('x2', 2)], onchange=self.change_zoom)
         self.menu.add.button('Save tracker state', self.save)
         self.menu.add.button('Load tracker state', self.load)
+        self.menu.add.button('Back to main menu', self.back_menu)
         self.menu.add.button('Discord', self.open_discord)
         self.menu.add.button('Pay me a coffee ? :)', self.open_paypal)
         self.menu.add.button('Close menu', self.menu.disable)
         self.menu.disable()
-        
+
     def active(self, screen):
         self.menu.resize(width=screen.get_rect().w, height=screen.get_rect().h)
         self.menu.enable()
@@ -66,7 +66,8 @@ class Menu:
     def save_file(self, data):
         file = filedialog.asksaveasfile(mode='w',
                                         title="LinSoTracker loading save",
-                                        defaultextension=".trackersave",filetypes=[("LinSoTracker Save", ".trackersave")])
+                                        defaultextension=".trackersave",
+                                        filetypes=[("LinSoTracker Save", ".trackersave")])
         if file:
             json.dump(data, file, ensure_ascii=False, indent=4)
             file.close()
@@ -85,6 +86,13 @@ class Menu:
     def events(self, events):
         if self.menu.is_enabled():
             self.menu.update(events)
+
+    def back_menu(self):
+        self.tracker.back_main_menu()
+        self.menu.disable()
+
+    def set_tracker(self, tracker):
+        self.tracker = tracker
 
     @staticmethod
     def open_discord():

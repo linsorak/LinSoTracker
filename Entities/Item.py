@@ -22,9 +22,9 @@ class Item(pygame.sprite.Sprite):
         self.core_service.convert_to_gs(self.grey_image)
 
         self.image = self.colored_image
-        self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width, self.image.get_rect().height)
+        self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width,
+                                self.image.get_rect().height)
         self.update()
-
 
     def get_position(self):
         return self.position
@@ -51,14 +51,13 @@ class Item(pygame.sprite.Sprite):
         font = self.core_service.get_font("hintFont")
         font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
         image = self.get_drawing_text(font=font,
-                                           color_category="Normal",
-                                           text=self.hint,
-                                           font_path=font_path,
-                                           base_image=image,
-                                           image_surface=image,
-                                           text_position="hint")
+                                      color_category="Normal",
+                                      text=self.hint,
+                                      font_path=font_path,
+                                      base_image=image,
+                                      image_surface=image,
+                                      text_position="hint")
         return image
-
 
     def left_click(self):
         if self.enable:
@@ -91,8 +90,10 @@ class Item(pygame.sprite.Sprite):
 
     def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position):
         if text is not None:
-            color = (font["Colors"][color_category]["r"], font["Colors"][color_category]["g"], font["Colors"][color_category]["b"])
-            tsurf, tpos = self.generate_text(text=text, font_name=font_path, font_size=font["Size"] * self.core_service.zoom,
+            color = (font["Colors"][color_category]["r"], font["Colors"][color_category]["g"],
+                     font["Colors"][color_category]["b"])
+            tsurf, tpos = self.generate_text(text=text, font_name=font_path,
+                                             font_size=font["Size"] * self.core_service.zoom,
                                              color=color)
             x = 0
             y = base_image.get_rect().h - tsurf.get_rect().h / 1.5
@@ -104,11 +105,11 @@ class Item(pygame.sprite.Sprite):
             if text_position == "center":
                 x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
             elif text_position == "right":
-                x = (image_surface.get_rect().w - tsurf.get_rect().w )
+                x = (image_surface.get_rect().w - tsurf.get_rect().w)
                 y = base_image.get_rect().h - tsurf.get_rect().h
                 w = w + tsurf.get_rect().w / 1.5
             elif text_position == "count_item":
-                w = base_image.get_rect().w  * 2
+                w = base_image.get_rect().w * 2
                 x = base_image.get_rect().w + (base_image.get_rect().w / 2 - tsurf.get_rect().w / 2)
                 y = base_image.get_rect().h / 2 - tsurf.get_rect().h / 2
             elif text_position == "hint":
@@ -128,7 +129,8 @@ class Item(pygame.sprite.Sprite):
             tempSurface = tempSurface.convert_alpha()
             tempSurface.blit(image_surface, (pos_x * -1, pos_y))
             tempSurface.blit(tsurf, (x, y))
-            self.rect = pygame.Rect(self.position[0] + pos_x, self.position[1], self.image.get_rect().width, self.image.get_rect().height)
+            self.rect = pygame.Rect(self.position[0] + pos_x, self.position[1], self.image.get_rect().width,
+                                    self.image.get_rect().height)
         else:
             tempSurface = pygame.Surface(
                 [image_surface.get_rect().w, image_surface.get_rect().h],
@@ -151,4 +153,3 @@ class Item(pygame.sprite.Sprite):
         self.enable = datas["enable"]
         self.hint_show = datas["hint_show"]
         self.update()
-

@@ -25,9 +25,5 @@ class ImageSheet:
     def getImageWithRowAndColumn(self, row, column):
         startX = self.itemWidth * (column - 1)
         startY = self.itemHeight * (row - 1)
-        return self.sheet.subsurface((startX, startY, self.itemWidth, self.itemHeight))
-        # x = column - 1
-        # y = self.countItemsHeight * (row - 1)
-        # index = x + y
-        # return self.images[index]
-        # pass
+        return self.sheet.subsurface((startX, startY, self.itemWidth,
+                                      self.itemHeight))

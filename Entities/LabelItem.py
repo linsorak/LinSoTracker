@@ -7,7 +7,8 @@ class LabelItem(Item):
     def __init__(self, id, name, position, image, opacity_disable, hint, enable, label_list):
         self.label_count = 0
         self.label_list = label_list
-        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable,
+        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
+                      opacity_disable=opacity_disable,
                       hint=hint)
 
     def update(self):

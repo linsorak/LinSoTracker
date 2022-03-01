@@ -7,7 +7,8 @@ class IncrementalItem(Item):
     def __init__(self, id, name, image, position, enable, opacity_disable, increments, hint):
         self.increments_position = -1
         self.increments = increments
-        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable, hint=hint)
+        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
+                      opacity_disable=opacity_disable, hint=hint)
 
     def left_click(self):
         if self.enable:
@@ -30,7 +31,6 @@ class IncrementalItem(Item):
             else:
                 self.enable = False
         self.update()
-
 
     def update(self):
         Item.update(self)

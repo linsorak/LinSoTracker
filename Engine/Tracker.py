@@ -18,7 +18,8 @@ from Tools.ImageSheet import ImageSheet
 
 
 class Tracker:
-    def __init__(self, template_name):
+    def __init__(self, template_name, main_menu):
+        self.main_menu = main_menu
         self.kinds = None
         self.test_img = None
         self.items_sheet_data = None
@@ -52,7 +53,6 @@ class Tracker:
             with open(filename, 'r') as file:
                 self.tracker_json_data = json.load(file)
 
-
         json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
         w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
         h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
@@ -63,34 +63,40 @@ class Tracker:
         json_data_item_sheet = self.tracker_json_data[1]["Datas"]["ItemSheet"]
         json_data_item_sheet_dimensions = self.tracker_json_data[1]["Datas"]["ItemSheetDimensions"]
         self.items_sheet = self.bank.addImage(os.path.join(self.resources_path, json_data_item_sheet))
-        self.items_sheet_data = ImageSheet(self.items_sheet, json_data_item_sheet_dimensions["width"], json_data_item_sheet_dimensions["height"])
+        self.items_sheet_data = ImageSheet(self.items_sheet, json_data_item_sheet_dimensions["width"],
+                                           json_data_item_sheet_dimensions["height"])
         self.menu = Menu((w, h), self)
+        self.menu.set_tracker(self)
 
     def init_items(self):
         for item in self.tracker_json_data[3]["Items"]:
             id = len(self.items)
-            item_image = self.core_service.zoom_image(self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
-                                                                        column=item["SheetPositions"]["column"]))
+            item_image = self.core_service.zoom_image(
+                self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
+                                                               column=item["SheetPositions"]["column"]))
 
             if item["Kind"] == "GoModeItem":
                 background_glow = self.bank.addZoomImage(os.path.join(self.resources_path, item["BackgroundGlow"]))
                 item = GoModeItem(name=item["Name"],
                                   image=item_image,
-                                  position=(item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom),
+                                  position=(item["Positions"]["x"] * self.core_service.zoom,
+                                            item["Positions"]["y"] * self.core_service.zoom),
                                   enable=item["isActive"],
-                                  hint = item["Hint"],
+                                  hint=item["Hint"],
                                   opacity_disable=item["OpacityDisable"],
                                   background_glow=background_glow,
                                   id=id)
                 self.items.add(item)
             elif item["Kind"] == "CheckItem":
-                check_image = self.core_service.zoom_image(self.items_sheet_data.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
-                                                                            column=item["CheckImageSheetPositions"]["column"]))
+                check_image = self.core_service.zoom_image(
+                    self.items_sheet_data.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
+                                                                   column=item["CheckImageSheetPositions"]["column"]))
                 item = CheckItem(name=item["Name"],
                                  image=item_image,
-                                 position=(item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom),
+                                 position=(item["Positions"]["x"] * self.core_service.zoom,
+                                           item["Positions"]["y"] * self.core_service.zoom),
                                  enable=item["isActive"],
-                                 hint = item["Hint"],
+                                 hint=item["Hint"],
                                  opacity_disable=item["OpacityDisable"],
                                  check_image=check_image,
                                  id=id)
@@ -98,9 +104,10 @@ class Tracker:
             elif item["Kind"] == "LabelItem":
                 item = LabelItem(name=item["Name"],
                                  image=item_image,
-                                 position=(item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom),
+                                 position=(item["Positions"]["x"] * self.core_service.zoom,
+                                           item["Positions"]["y"] * self.core_service.zoom),
                                  enable=item["isActive"],
-                                 hint = item["Hint"],
+                                 hint=item["Hint"],
                                  opacity_disable=item["OpacityDisable"],
                                  label_list=item["LabelList"],
                                  id=id)
@@ -108,9 +115,10 @@ class Tracker:
             elif item["Kind"] == "CountItem":
                 item = CountItem(name=item["Name"],
                                  image=item_image,
-                                 position=(item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom),
+                                 position=(item["Positions"]["x"] * self.core_service.zoom,
+                                           item["Positions"]["y"] * self.core_service.zoom),
                                  enable=item["isActive"],
-                                 hint = item["Hint"],
+                                 hint=item["Hint"],
                                  opacity_disable=item["OpacityDisable"],
                                  min_value=item["valueMin"],
                                  max_value=item["valueMax"],
@@ -123,13 +131,16 @@ class Tracker:
                 for next_item in item["NextItems"]:
                     temp_item = {}
                     temp_item["Name"] = next_item["Name"]
-                    temp_item["Image"] = self.core_service.zoom_image(self.items_sheet_data.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"], column=next_item["SheetPositions"]["column"]))
+                    temp_item["Image"] = self.core_service.zoom_image(
+                        self.items_sheet_data.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"],
+                                                                       column=next_item["SheetPositions"]["column"]))
                     temp_item["Label"] = next_item["Label"]
                     next_items_list.append(temp_item)
 
                 item = EvolutionItem(name=item["Name"],
                                      image=item_image,
-                                     position=(item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom),
+                                     position=(item["Positions"]["x"] * self.core_service.zoom,
+                                               item["Positions"]["y"] * self.core_service.zoom),
                                      enable=item["isActive"],
                                      opacity_disable=item["OpacityDisable"],
                                      hint=item["Hint"],
@@ -142,19 +153,21 @@ class Tracker:
             elif item["Kind"] == "IncrementalItem":
                 item = IncrementalItem(name=item["Name"],
                                        image=item_image,
-                                       position=(item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom),
+                                       position=(item["Positions"]["x"] * self.core_service.zoom,
+                                                 item["Positions"]["y"] * self.core_service.zoom),
                                        enable=item["isActive"],
                                        opacity_disable=item["OpacityDisable"],
-                                       hint = item["Hint"],
+                                       hint=item["Hint"],
                                        increments=item["Increment"],
                                        id=id)
                 self.items.add(item)
             elif item["Kind"] == "Item":
                 item = Item(name=item["Name"],
                             image=item_image,
-                            position=(item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom),
+                            position=(item["Positions"]["x"] * self.core_service.zoom,
+                                      item["Positions"]["y"] * self.core_service.zoom),
                             enable=item["isActive"],
-                            hint = item["Hint"],
+                            hint=item["Hint"],
                             opacity_disable=item["OpacityDisable"],
                             id=id)
                 self.items.add(item)
@@ -162,19 +175,21 @@ class Tracker:
     def click(self, mouse_position, button):
         if button == 1:
             for item in self.items:
-                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(), element_dimension=(item.get_rect().w, item.get_rect().h)):
+                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
+                                                   element_dimension=(item.get_rect().w, item.get_rect().h)):
                     item.left_click()
 
         if button == 2:
             for item in self.items:
-                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(), element_dimension=(item.get_rect().w, item.get_rect().h)):
+                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
+                                                   element_dimension=(item.get_rect().w, item.get_rect().h)):
                     item.wheel_click()
 
         if button == 3:
             for item in self.items:
-                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(), element_dimension=(item.get_rect().w, item.get_rect().h)):
+                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
+                                                   element_dimension=(item.get_rect().w, item.get_rect().h)):
                     item.right_click()
-
 
     def save_data(self):
         datas = []
@@ -198,7 +213,6 @@ class Tracker:
                     if data["name"] == item.name and data["id"] == item.id:
                         item.set_data(data)
                         break
-
 
     def change_zoom(self, value):
         datas = self.save_data()
@@ -232,3 +246,6 @@ class Tracker:
 
     def events(self, events):
         self.menu.events(events)
+
+    def back_main_menu(self):
+        self.main_menu.reset_tracker()

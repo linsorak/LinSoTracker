@@ -1,8 +1,10 @@
 import os
 import sys
-from sys import platform
 import tempfile
+from sys import platform
+
 import pygame
+
 
 class Singleton(type):
     _instances = {}
@@ -11,6 +13,7 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
+
 
 class CoreService(metaclass=Singleton):
     def __init__(self):
@@ -34,13 +37,12 @@ class CoreService(metaclass=Singleton):
 
         self.create_directory(path=self.temp_path)
 
-
     def get_temp_path(self):
         return self.temp_path
 
     def set_tracker_temp_path(self, value):
         self.tracker_temp_path = value
-        
+
     def get_tracker_temp_path(self):
         return self.tracker_temp_path
 
@@ -61,7 +63,6 @@ class CoreService(metaclass=Singleton):
 
     def zoom_image(self, image):
         return pygame.transform.smoothscale(image, (image.get_rect().w * self.zoom, image.get_rect().h * self.zoom))
-
 
     @staticmethod
     def setgamewindowcenter(x=500, y=100):
@@ -90,6 +91,7 @@ class CoreService(metaclass=Singleton):
 
     @staticmethod
     def is_on_element(mouse_positions, element_positons, element_dimension):
-        return ((mouse_positions[0] >= element_positons[0]) & (mouse_positions[0]  <= (element_positons[0] + element_dimension[0])) &
-            (mouse_positions[1] >= element_positons[1]) & (mouse_positions[1] <= (element_positons[1] + element_dimension[1])))
-
+        return ((mouse_positions[0] >= element_positons[0]) & (
+                    mouse_positions[0] <= (element_positons[0] + element_dimension[0])) &
+                (mouse_positions[1] >= element_positons[1]) & (
+                            mouse_positions[1] <= (element_positons[1] + element_dimension[1])))

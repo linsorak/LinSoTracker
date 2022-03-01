@@ -1,7 +1,5 @@
 import os
 
-import pygame
-
 from Entities.Item import Item
 
 
@@ -11,7 +9,8 @@ class EvolutionItem(Item):
         self.label = label
         self.next_item_index = -1
         self.next_items = next_items
-        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable, hint=hint)
+        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
+                      opacity_disable=opacity_disable, hint=hint)
 
     def left_click(self):
         if self.enable:
@@ -44,8 +43,8 @@ class EvolutionItem(Item):
             position = "center"
 
         if self.next_item_index >= 0:
-            next_item = self.next_items[self.next_item_index]          
-            
+            next_item = self.next_items[self.next_item_index]
+
             if self.next_item_index == len(self.next_items) - 1:
                 color_category = "Max"
             else:

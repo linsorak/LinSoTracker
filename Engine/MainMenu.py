@@ -5,7 +5,6 @@ import os
 from zipfile import ZipFile
 
 import pygame
-import pygame_menu
 from pygame.rect import Rect
 
 from Engine.FadeAnimation import FadeAnimation, FadeMode
@@ -60,7 +59,8 @@ class MainMenu:
         self.btn_paypal = Rect(0, dimensions[1] - btn_paypal_h, btn_paypal_w, btn_paypal_h)
         btn_discord_w = 105
         btn_discord_h = 70
-        self.btn_discord = Rect(dimensions[0] - btn_discord_w, dimensions[1] - btn_discord_h, btn_discord_w, btn_discord_h)
+        self.btn_discord = Rect(dimensions[0] - btn_discord_w, dimensions[1] - btn_discord_h, btn_discord_w,
+                                btn_discord_h)
 
     def extract_data(self):
         filename = os.path.join(self.core_service.get_app_path(), "tracker.data")
@@ -95,8 +95,10 @@ class MainMenu:
         self.font_data = {
             "path": os.path.join(self.resources_path, session_font["Name"]),
             "size": session_font["Size"],
-            "color_normal": (session_font_color["Normal"]["r"], session_font_color["Normal"]["g"], session_font_color["Normal"]["b"]),
-            "color_error": (session_font_color["Error"]["r"], session_font_color["Error"]["g"], session_font_color["Error"]["b"])
+            "color_normal": (
+            session_font_color["Normal"]["r"], session_font_color["Normal"]["g"], session_font_color["Normal"]["b"]),
+            "color_error": (
+            session_font_color["Error"]["r"], session_font_color["Error"]["g"], session_font_color["Error"]["b"])
         }
 
     def get_dimension(self):
@@ -109,7 +111,8 @@ class MainMenu:
     def draw(self, screen):
         if not self.loaded_tracker:
             screen.blit(self.background_image, (0, 0))
-            self.draw_text(text="{} v{} - Developped by LinSoraK#7235".format(self.core_service.app_name, self.core_service.version),
+            self.draw_text(text="{} v{} - Developped by LinSoraK#7235".format(self.core_service.app_name,
+                                                                              self.core_service.version),
                            font_name=self.font_data["path"],
                            color=self.font_data["color_normal"],
                            font_size=self.font_data["size"],
@@ -127,7 +130,6 @@ class MainMenu:
                 self.core_service.convert_to_gs(r_arrow)
                 r_arrow = self.core_service.set_image_transparent(image=r_arrow, opacity_disable=0.6)
 
-
             x_left_arrow = screen.get_rect().w - (l_arrow.get_rect().w * 5)
             y_left_arrow = screen.get_rect().h - (l_arrow.get_rect().h * 3.5)
             x_right_arrow = screen.get_rect().w - (l_arrow.get_rect().w * 1.5)
@@ -141,12 +143,12 @@ class MainMenu:
             temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
             temp_surface = temp_surface.convert_alpha()
             pages, pos_pages = self.draw_text(text="{}/{}".format(self.current_page, self.max_pages),
-                                                   font_name=self.font_data["path"],
-                                                   color=self.font_data["color_normal"],
-                                                   font_size=self.font_data["size"],
-                                                   surface=temp_surface,
-                                                   position=(0, 0),
-                                                   outline=1)
+                                              font_name=self.font_data["path"],
+                                              color=self.font_data["color_normal"],
+                                              font_size=self.font_data["size"],
+                                              surface=temp_surface,
+                                              position=(0, 0),
+                                              outline=1)
             space_between_arrow = x_right_arrow - x_left_arrow
             x_pages = (space_between_arrow / 2 - pages.get_rect().w / 2) + x_left_arrow + (l_arrow.get_rect().w / 2)
             y_pages = (l_arrow.get_rect().h / 2) - (pages.get_rect().h / 2) + y_left_arrow
@@ -172,48 +174,51 @@ class MainMenu:
                 title_y = content_y + 6
                 screen.blit(self.content, (content_x, content_y))
                 screen.blit(self.template_list[i]["icon"], (icon_x, icon_y))
-                surf_title, pos_title = self.draw_text(text=self.template_list[i]["information"]["Informations"]["Name"],
-                                                       font_name=self.font_data["path"],
-                                                       color=self.font_data["color_normal"],
-                                                       font_size=self.font_data["size"],
-                                                       surface=screen,
-                                                       position=(title_x, title_y),
-                                                       outline=1)
+                surf_title, pos_title = self.draw_text(
+                    text=self.template_list[i]["information"]["Informations"]["Name"],
+                    font_name=self.font_data["path"],
+                    color=self.font_data["color_normal"],
+                    font_size=self.font_data["size"],
+                    surface=screen,
+                    position=(title_x, title_y),
+                    outline=1)
                 author_x = title_x
                 author_y = title_y + surf_title.get_rect().h + 2
-                surf_author, pos_author = self.draw_text(text="Author : {}".format(self.template_list[i]["information"]["Informations"]["Creator"]),
-                                                         font_name=self.font_data["path"],
-                                                         color=self.font_data["color_normal"],
-                                                         font_size=self.font_data["size"] - 4,
-                                                         surface=screen,
-                                                         position=(author_x, author_y),
-                                                         outline=1)
+                surf_author, pos_author = self.draw_text(
+                    text="Author : {}".format(self.template_list[i]["information"]["Informations"]["Creator"]),
+                    font_name=self.font_data["path"],
+                    color=self.font_data["color_normal"],
+                    font_size=self.font_data["size"] - 4,
+                    surface=screen,
+                    position=(author_x, author_y),
+                    outline=1)
                 version_x = title_x
                 version_y = author_y + surf_author.get_rect().h + 2
-                surf_author, pos_author = self.draw_text(text="Version : {}".format(self.template_list[i]["information"]["Informations"]["Version"]),
-                                                         font_name=self.font_data["path"],
-                                                         color=self.font_data["color_normal"],
-                                                         font_size=self.font_data["size"] - 4,
-                                                         surface=screen,
-                                                         position=(version_x, version_y),
-                                                         outline=1)
+                surf_author, pos_author = self.draw_text(
+                    text="Version : {}".format(self.template_list[i]["information"]["Informations"]["Version"]),
+                    font_name=self.font_data["path"],
+                    color=self.font_data["color_normal"],
+                    font_size=self.font_data["size"] - 4,
+                    surface=screen,
+                    position=(version_x, version_y),
+                    outline=1)
 
                 self.menu_content.append({"positions": (content_x, content_y),
-                               "dimensions": (self.content.get_rect().w, self.content.get_rect().h),
-                               "template": self.template_list[i]})
+                                          "dimensions": (self.content.get_rect().w, self.content.get_rect().h),
+                                          "template": self.template_list[i]})
 
                 if self.moved_tracker:
                     self.fade_engine.update()
                     self.fade_value = self.fade_engine.getFadeValue()
                     transparent_illustration = self.illustration.copy()
-                    transparent_illustration.fill((255, 255, 255, self.fade_value), special_flags=pygame.BLEND_RGBA_MULT)
+                    transparent_illustration.fill((255, 255, 255, self.fade_value),
+                                                  special_flags=pygame.BLEND_RGBA_MULT)
                     glow = self.selected.copy()
                     glow.fill((255, 255, 255, self.fade_value), special_flags=pygame.BLEND_RGBA_MULT)
                     screen.blit(transparent_illustration, (0, 0))
                     screen.blit(glow, self.selected_position)
         else:
             self.loaded_tracker.draw(screen)
-
 
     def process_templates_list(self):
         for file in glob.glob("{}{}*.template".format(self.template_directory, os.sep)):
@@ -235,33 +240,37 @@ class MainMenu:
 
     def draw_text(self, text, font_name, color, font_size, surface, position, outline=2):
         return ptext.draw(str(text), position, fontname=font_name, antialias=True,
-                                 owidth=outline, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=surface)
+                          owidth=outline, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=surface)
 
     def click(self, mouse_position, button):
         if not self.loaded_tracker:
             if button == 1:
-                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=self.left_arrow_positions, element_dimension=(self.arrow_left.get_rect().w, self.arrow_left.get_rect().h)):
+                if self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                   element_positons=self.left_arrow_positions, element_dimension=(
+                        self.arrow_left.get_rect().w, self.arrow_left.get_rect().h)):
                     if self.current_page > 1:
                         self.current_page -= 1
 
-                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=self.right_arrow_positions, element_dimension=(self.arrow_right.get_rect().w, self.arrow_right.get_rect().h)):
+                if self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                   element_positons=self.right_arrow_positions, element_dimension=(
+                        self.arrow_right.get_rect().w, self.arrow_right.get_rect().h)):
                     if self.current_page < self.max_pages:
                         self.current_page += 1
 
                 if self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                   element_positons=(self.btn_discord.left, self.btn_discord.top) ,
+                                                   element_positons=(self.btn_discord.left, self.btn_discord.top),
                                                    element_dimension=(self.btn_discord.w, self.btn_discord.h)):
                     Menu.open_discord()
 
                 if self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                   element_positons=(self.btn_paypal.left, self.btn_paypal.top) ,
+                                                   element_positons=(self.btn_paypal.left, self.btn_paypal.top),
                                                    element_dimension=(self.btn_paypal.w, self.btn_paypal.h)):
                     Menu.open_paypal()
 
                 for menu in self.menu_content:
                     if self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                       element_positons=menu["positions"], element_dimension=menu["dimensions"]):
-
+                                                       element_positons=menu["positions"],
+                                                       element_dimension=menu["dimensions"]):
                         self.set_tracker(menu["template"]["filename"])
         else:
             self.loaded_tracker.click(mouse_position, button)
@@ -292,7 +301,13 @@ class MainMenu:
                     self.fade_engine.reset()
 
     def set_tracker(self, tracker_name):
-        self.loaded_tracker = Tracker(tracker_name)
+        self.loaded_tracker = Tracker(tracker_name, self)
+
+    def reset_tracker(self):
+        self.loaded_tracker = None
+        dimension = self.get_dimension()
+        pygame.display.set_mode((dimension[0], dimension[1]))
+        self.core_service.setgamewindowcenter(x=dimension[0], y=dimension[1])
 
     def keyup(self, button, screen):
         if self.loaded_tracker:

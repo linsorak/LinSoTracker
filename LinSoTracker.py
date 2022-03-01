@@ -1,7 +1,10 @@
-import pygame
 import tkinter as tk
+
+import pygame
+
 from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
+
 
 def main():
     core_service = CoreService()
@@ -11,11 +14,8 @@ def main():
     screen = pygame.display.set_mode(dimension)
     pygame.display.set_caption(core_service.get_window_title())
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont("Tahoma", 20)
-
     main_menu.initialization()
     pygame.display.set_icon(main_menu.get_icon())
-
     core_service.setgamewindowcenter(x=dimension[0], y=dimension[1])
     loop = True
     mouse_position = None

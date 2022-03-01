@@ -6,14 +6,16 @@ from Entities.Item import Item
 
 
 class CountItem(Item):
-    def __init__(self, id, name, position, image, opacity_disable, hint, min_value, max_value, value_increase, value_start, enable=True):
+    def __init__(self, id, name, position, image, opacity_disable, hint, min_value, max_value, value_increase,
+                 value_start, enable=True):
         self.value = value_start
         self.value_increase = value_increase
         self.max_value = max_value
         self.min_value = min_value
-        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable, opacity_disable=opacity_disable,
+        Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
+                      opacity_disable=opacity_disable,
                       hint=hint)
-    
+
     def update(self):
         Item.update(self)
 
@@ -32,7 +34,8 @@ class CountItem(Item):
                                            base_image=self.image,
                                            image_surface=self.colored_image,
                                            text_position="count_item")
-        self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width, self.image.get_rect().height)
+        self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width,
+                                self.image.get_rect().height)
 
     def right_click(self):
         if self.value > self.min_value:
