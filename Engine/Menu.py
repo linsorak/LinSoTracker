@@ -29,6 +29,7 @@ class Menu():
         self.menu.add.button('Back to main menu', self.back_menu)
         self.menu.add.button('Discord', self.open_discord)
         self.menu.add.button('Pay me a coffee ? :)', self.open_paypal)
+        self.menu.add.button('Official website', self.open_website)
         self.menu.add.button('Close menu', self.menu.disable)
         self.menu.disable()
 
@@ -85,7 +86,8 @@ class Menu():
 
     def events(self, events):
         if self.menu.is_enabled():
-            self.menu.update(events)
+            print(self.menu.update(events))
+            # self.menu.update(events)
 
     def back_menu(self):
         self.tracker.back_main_menu()
@@ -100,4 +102,8 @@ class Menu():
 
     @staticmethod
     def open_paypal():
-        webbrowser.open("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3RNQCK64GWBMS&source=url")
+        webbrowser.open("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3RNQCK64GWBMS&source=url")    \
+
+    @staticmethod
+    def open_website():
+        webbrowser.open("http://www.linsotracker.com/")

@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import tempfile
 from sys import platform
@@ -19,7 +20,7 @@ class CoreService(metaclass=Singleton):
     def __init__(self):
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.0b"
+        self.version = "2.0"
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
         self.zoom = 1
@@ -61,6 +62,9 @@ class CoreService(metaclass=Singleton):
     def get_font(self, session):
         return self.json_data[2]["Fonts"][session]
 
+    def get_version(self):
+        return self.version
+
     def zoom_image(self, image):
         return pygame.transform.smoothscale(image, (image.get_rect().w * self.zoom, image.get_rect().h * self.zoom))
 
@@ -88,6 +92,19 @@ class CoreService(metaclass=Singleton):
     def create_directory(path):
         if not os.path.exists(path):
             os.makedirs(path)
+
+    @staticmethod
+    def delete_directory(path):
+        if os.path.exists(path):
+            for filename in os.listdir(path):
+                file_path = os.path.join(path, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path, ignore_errors=True)
+                except Exception as e:
+                    pass
 
     @staticmethod
     def is_on_element(mouse_positions, element_positons, element_dimension):

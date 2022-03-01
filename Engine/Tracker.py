@@ -1,9 +1,8 @@
 import json
 import os
 from zipfile import ZipFile
-
+import gc
 import pygame
-
 from Engine.Menu import Menu
 from Entities.CheckItem import CheckItem
 from Entities.CountItem import CountItem
@@ -41,10 +40,19 @@ class Tracker:
     def extract_data(self):
         filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
         self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
+
+        self.core_service.delete_directory(self.resources_path)
         self.core_service.create_directory(self.resources_path)
         if os.path.isfile(filename):
             zip = ZipFile(filename)
-            zip.extractall(self.resources_path)
+            # zip.extractall(self.resources_path)
+            # zip.close()
+            list_files = zip.namelist()
+            for file in list_files:
+                try:
+                    zip.extract(file, self.resources_path)
+                except PermissionError:
+                    pass
             zip.close()
 
     def init_tracker(self):
@@ -249,3 +257,10 @@ class Tracker:
 
     def back_main_menu(self):
         self.main_menu.reset_tracker()
+
+    def delete_data(self):
+        for item in self.items:
+            del item
+
+        del self.items
+        gc.collect()

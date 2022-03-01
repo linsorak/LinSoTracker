@@ -40,3 +40,4 @@ class LabelItem(Item):
     def set_data(self, datas):
         self.label_count = datas["label_count"]
         Item.set_data(self, datas)
+

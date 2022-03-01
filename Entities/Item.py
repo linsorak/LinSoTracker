@@ -153,3 +153,4 @@ class Item(pygame.sprite.Sprite):
         self.enable = datas["enable"]
         self.hint_show = datas["hint_show"]
         self.update()
+

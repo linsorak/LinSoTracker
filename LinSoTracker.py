@@ -46,5 +46,5 @@ def main():
 
 if __name__ == '__main__':
     root = tk.Tk()
-    root.destroy()
+    root.attributes('-alpha', 0)
     main()
