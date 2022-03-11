@@ -1,8 +1,11 @@
+import json
 import os
 import shutil
 import sys
 import tempfile
 from sys import platform
+from urllib.error import URLError
+from urllib.request import urlopen
 
 import pygame
 
@@ -18,9 +21,12 @@ class Singleton(type):
 
 class CoreService(metaclass=Singleton):
     def __init__(self):
+        self.official_template = None
+        self.new_version = None
+        self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.0"
+        self.version = "2.0b"
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
         self.zoom = 1
@@ -37,6 +43,28 @@ class CoreService(metaclass=Singleton):
             self.temp_path = os.path.expanduser(os.path.join(self.temp_path, self.app_name))
 
         self.create_directory(path=self.temp_path)
+        self.read_checker()
+
+    def read_checker(self):
+        url = "http://linsotracker.com/tracker_data/checker.json"
+        try:
+            response = urlopen(url)
+            data_json = json.loads(response.read())
+
+            if "lastest_version" in data_json:
+                if self.get_version() != data_json["lastest_version"]:
+                    self.new_version = data_json["lastest_version"]
+
+            if "official_template" in data_json:
+                self.official_template = data_json["official_template"]
+        except URLError:
+            pass
+
+    def get_new_version(self):
+        return self.new_version
+
+    def get_official_template(self):
+        return self.official_template
 
     def get_temp_path(self):
         return self.temp_path
@@ -67,6 +95,18 @@ class CoreService(metaclass=Singleton):
 
     def zoom_image(self, image):
         return pygame.transform.smoothscale(image, (image.get_rect().w * self.zoom, image.get_rect().h * self.zoom))
+
+    def get_background_color(self):
+        return self.background_color
+
+    def set_background_color(self, r, g, b):
+        self.background_color = (r, g, b)
+
+    def is_update(self):
+        if self.get_new_version():
+            return False
+        else:
+            return True
 
     @staticmethod
     def setgamewindowcenter(x=500, y=100):
@@ -112,3 +152,8 @@ class CoreService(metaclass=Singleton):
                     mouse_positions[0] <= (element_positons[0] + element_dimension[0])) &
                 (mouse_positions[1] >= element_positons[1]) & (
                             mouse_positions[1] <= (element_positons[1] + element_dimension[1])))
+
+    @staticmethod
+    def launch_app(path):
+        if os.path.exists(path):
+            os.startfile(path)

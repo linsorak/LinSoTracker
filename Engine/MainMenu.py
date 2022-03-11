@@ -50,7 +50,7 @@ class MainMenu:
         self.template_list = []
         self.extract_data()
         self.init_menu()
-        self.read_checker()
+        self.set_check()
         self.process_templates_list()
         self.loaded_tracker = None
         self.btn_paypal = None
@@ -82,20 +82,9 @@ class MainMenu:
             with open(filename, 'r') as file:
                 self.menu_json_data = json.load(file)
 
-    def read_checker(self):
-        url = "http://linsotracker.com/tracker_data/checker.json"
-        try:
-            response = urlopen(url)
-            data_json = json.loads(response.read())
-
-            if "lastest_version" in data_json:
-                if self.core_service.get_version() != data_json["lastest_version"]:
-                    self.new_version = data_json["lastest_version"]
-
-            if "official_template" in data_json:
-                self.official_template = data_json["official_template"]
-        except URLError:
-            pass
+    def set_check(self):
+        self.new_version = self.core_service.get_new_version()
+        self.official_template = self.core_service.get_official_template()
 
     def initialization(self):
         self.background_image = self.menu_json_data[0]["BackgroundImage"]

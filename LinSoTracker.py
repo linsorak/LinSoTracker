@@ -4,10 +4,12 @@ import pygame
 
 from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
+from Tools.Updater import Updater
+
+core_service = CoreService()
 
 
 def main():
-    core_service = CoreService()
     main_menu = MainMenu()
     dimension = main_menu.get_dimension()
     pygame.init()
@@ -21,7 +23,8 @@ def main():
     mouse_position = None
 
     while loop:
-        screen.fill((0, 0, 0))
+        background_color = core_service.get_background_color()
+        screen.fill(background_color)
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
@@ -44,7 +47,11 @@ def main():
 
     pygame.quit()
 
+
 if __name__ == '__main__':
-    root = tk.Tk()
-    root.attributes('-alpha', 0)
-    main()
+    if core_service.is_update():
+        root = tk.Tk()
+        root.attributes('-alpha', 0)
+        main()
+    else:
+        update = Updater()

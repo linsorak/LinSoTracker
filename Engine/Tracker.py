@@ -73,6 +73,13 @@ class Tracker:
         self.items_sheet = self.bank.addImage(os.path.join(self.resources_path, json_data_item_sheet))
         self.items_sheet_data = ImageSheet(self.items_sheet, json_data_item_sheet_dimensions["width"],
                                            json_data_item_sheet_dimensions["height"])
+
+        background_color_r = self.tracker_json_data[1]["Datas"]["BackgroundColor"]["r"]
+        background_color_g = self.tracker_json_data[1]["Datas"]["BackgroundColor"]["g"]
+        background_color_b = self.tracker_json_data[1]["Datas"]["BackgroundColor"]["b"]
+
+        self.core_service.set_background_color(background_color_r, background_color_g, background_color_b)
+
         self.menu = Menu((w, h), self)
         self.menu.set_tracker(self)
 
@@ -233,7 +240,6 @@ class Tracker:
         pygame.display.set_mode((w, h))
         self.init_items()
         self.menu.get_menu().resize(width=w, height=h)
-        # self.load_data(datas)
 
     def draw(self, screen):
         screen.blit(self.background_image, (0, 0))
