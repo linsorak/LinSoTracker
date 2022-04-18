@@ -4,10 +4,8 @@ import pygame
 
 from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
-from Tools.Updater import Updater
 
 core_service = CoreService()
-
 
 def main():
     main_menu = MainMenu()
@@ -49,9 +47,6 @@ def main():
 
 
 if __name__ == '__main__':
-    if core_service.is_update():
-        root = tk.Tk()
-        root.attributes('-alpha', 0)
-        main()
-    else:
-        update = Updater()
+    root = tk.Tk()
+    root.attributes('-alpha', 0)
+    main()
