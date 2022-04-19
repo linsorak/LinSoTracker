@@ -15,7 +15,6 @@ class AlternateCountItem(Item):
         self.left_hint = True
 
     def update(self):
-        print(self.value)
         Item.update(self)
 
         font = self.core_service.get_font("incrementalItemFont")

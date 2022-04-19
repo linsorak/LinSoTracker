@@ -86,8 +86,9 @@ class Menu():
 
     def events(self, events):
         if self.menu.is_enabled():
-            print(self.menu.update(events))
+            # print(self.menu.update(events))
             # self.menu.update(events)
+            pass
 
     def back_menu(self):
         self.tracker.back_main_menu()
