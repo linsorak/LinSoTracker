@@ -4,6 +4,7 @@ from zipfile import ZipFile
 import gc
 import pygame
 from Engine.Menu import Menu
+from Entities.AlternateCountItem import AlternateCountItem
 from Entities.CheckItem import CheckItem
 from Entities.CountItem import CountItem
 from Entities.EvolutionItem import EvolutionItem
@@ -90,7 +91,19 @@ class Tracker:
                 self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
                                                                column=item["SheetPositions"]["column"]))
 
-            if item["Kind"] == "GoModeItem":
+            if item["Kind"] == "AlternateCountItem":
+                item = AlternateCountItem(name=item["Name"],
+                                          image=item_image,
+                                          position=(item["Positions"]["x"] * self.core_service.zoom,
+                                                    item["Positions"]["y"] * self.core_service.zoom),
+                                          enable=item["isActive"],
+                                          hint=item["Hint"],
+                                          opacity_disable=item["OpacityDisable"],
+                                          max_value=item["maxValue"],
+                                          max_value_alternate=item["maxValueAlternate"],
+                                          id=id)
+                self.items.add(item)
+            elif item["Kind"] == "GoModeItem":
                 background_glow = self.bank.addZoomImage(os.path.join(self.resources_path, item["BackgroundGlow"]))
                 item = GoModeItem(name=item["Name"],
                                   image=item_image,

@@ -26,7 +26,7 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.0 - BETA"
+        self.version = "2.0.1-BETA"
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
         self.zoom = 1
@@ -148,10 +148,11 @@ class CoreService(metaclass=Singleton):
 
     @staticmethod
     def is_on_element(mouse_positions, element_positons, element_dimension):
-        return ((mouse_positions[0] >= element_positons[0]) & (
-                    mouse_positions[0] <= (element_positons[0] + element_dimension[0])) &
-                (mouse_positions[1] >= element_positons[1]) & (
-                            mouse_positions[1] <= (element_positons[1] + element_dimension[1])))
+        deadzone = 2
+        return ((mouse_positions[0] >= element_positons[0] + deadzone) & (
+                    mouse_positions[0] <= (element_positons[0] + element_dimension[0]) - deadzone) &
+                (mouse_positions[1] >= element_positons[1] + deadzone) & (
+                            mouse_positions[1] <= (element_positons[1] + element_dimension[1]) - deadzone))
 
     @staticmethod
     def launch_app(path):

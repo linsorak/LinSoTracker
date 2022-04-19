@@ -20,6 +20,7 @@ class Item(pygame.sprite.Sprite):
         self.colored_image = image.convert_alpha()
         self.grey_image = image.convert_alpha()
         self.core_service.convert_to_gs(self.grey_image)
+        self.left_hint = False
 
         self.image = self.colored_image
         self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width,
@@ -56,7 +57,8 @@ class Item(pygame.sprite.Sprite):
                                       font_path=font_path,
                                       base_image=image,
                                       image_surface=image,
-                                      text_position="hint")
+                                      text_position="hint",
+                                      o_width=4)
         return image
 
     def left_click(self):
@@ -79,22 +81,23 @@ class Item(pygame.sprite.Sprite):
 
             self.update()
 
-    def generate_text(self, text, font_name, color, font_size):
+    def generate_text(self, text, font_name, color, font_size, o_width=2):
         tempSurface = pygame.Surface((400, 400)).convert_alpha()
         tsurf, tpos = ptext.draw(str(text), (0, 0), fontname=font_name, antialias=True,
-                                 owidth=2, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=tempSurface)
+                                 owidth=o_width, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=tempSurface)
         return tsurf, tpos
 
     def get_name(self):
         return self.name
 
-    def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position):
+    def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position, o_width=2):
         if text is not None:
             color = (font["Colors"][color_category]["r"], font["Colors"][color_category]["g"],
                      font["Colors"][color_category]["b"])
             tsurf, tpos = self.generate_text(text=text, font_name=font_path,
                                              font_size=font["Size"] * self.core_service.zoom,
-                                             color=color)
+                                             color=color,
+                                             o_width=o_width)
             x = 0
             y = base_image.get_rect().h - tsurf.get_rect().h / 1.5
             w = image_surface.get_rect().w
@@ -113,9 +116,13 @@ class Item(pygame.sprite.Sprite):
                 x = base_image.get_rect().w + (base_image.get_rect().w / 2 - tsurf.get_rect().w / 2)
                 y = base_image.get_rect().h / 2 - tsurf.get_rect().h / 2
             elif text_position == "hint":
-                x = base_image.get_rect().w - tsurf.get_rect().w
+                if self.left_hint:
+                    x = 0
+                else:
+                    x = base_image.get_rect().w - tsurf.get_rect().w
                 y = 0
                 h = image_surface.get_rect().h
+
             elif text_position == "label":
                 x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
                 y = image_surface.get_rect().h - (tsurf.get_rect().h / 5)
