@@ -53,7 +53,9 @@ class EvolutionItem(Item):
 
             if self.hint_show:
                 self.image = self.update_hint(next_item["Image"])
-                
+            else:
+                self.image = next_item["Image"]
+
             self.image = self.get_drawing_text(font=font,
                                                color_category=color_category,
                                                text=next_item["Label"],
