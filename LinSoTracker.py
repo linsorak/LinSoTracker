@@ -1,6 +1,7 @@
-import tkinter as tk
+import sys
 
 import pygame
+from PyQt5.QtWidgets import QApplication
 
 from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
@@ -47,6 +48,5 @@ def main():
 
 
 if __name__ == '__main__':
-    root = tk.Tk()
-    root.attributes('-alpha', 0)
+    app = QApplication(sys.argv)
     main()

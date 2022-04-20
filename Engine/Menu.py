@@ -6,6 +6,8 @@ from typing import Tuple, Any
 import pygame_menu
 from pygame_menu import Theme
 
+from Tools.PyQtSaveLoadTool import PyQtSaveLoadTool
+
 
 class Menu():
     def __init__(self, dimensions, tracker):
@@ -31,6 +33,7 @@ class Menu():
         self.menu.add.button('Pay me a coffee ? :)', self.open_paypal)
         self.menu.add.button('Official website', self.open_website)
         self.menu.add.button('Close menu', self.menu.disable)
+        self.saveTool = PyQtSaveLoadTool()
         self.menu.disable()
 
     def active(self, screen):
@@ -55,11 +58,13 @@ class Menu():
 
     def save(self):
         data = self.tracker.save_data()
-        self.save_file(data)
+        # self.save_file(data)
+        self.saveTool.saveFileDialog(data)
         self.menu.disable()
 
     def load(self):
-        data = self.load_file()
+        # data = self.load_file()
+        data = self.saveTool.openFileNameDialog()
         if data:
             self.tracker.load_data(data)
             self.menu.disable()
