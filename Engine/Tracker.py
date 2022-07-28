@@ -248,8 +248,8 @@ class Tracker:
         self.items = pygame.sprite.Group()
         json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
-        w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
-        h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
+        w = int(self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom)
+        h = int(self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom)
         pygame.display.set_mode((w, h))
         self.init_items()
         self.menu.get_menu().resize(width=w, height=h)

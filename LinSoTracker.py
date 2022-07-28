@@ -1,7 +1,9 @@
+import os
 import sys
 
 import pygame
 from PyQt5.QtWidgets import QApplication
+from pygame import HWSURFACE, DOUBLEBUF
 
 from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
@@ -9,6 +11,7 @@ from Tools.CoreService import CoreService
 core_service = CoreService()
 
 def main():
+    os.environ['SDL_VIDEO_CENTERED'] = '1'
     main_menu = MainMenu()
     dimension = main_menu.get_dimension()
     pygame.init()
@@ -17,7 +20,7 @@ def main():
     clock = pygame.time.Clock()
     main_menu.initialization()
     pygame.display.set_icon(main_menu.get_icon())
-    core_service.setgamewindowcenter(x=dimension[0], y=dimension[1])
+    # core_service.setgamewindowcenter(x=dimension[0], y=dimension[1])
     loop = True
     mouse_position = None
 

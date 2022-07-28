@@ -26,7 +26,7 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.0.1-BETA"
+        self.version = "2.0.2-BETA"
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
         self.zoom = 1
@@ -94,7 +94,9 @@ class CoreService(metaclass=Singleton):
         return self.version
 
     def zoom_image(self, image):
-        return pygame.transform.smoothscale(image, (image.get_rect().w * self.zoom, image.get_rect().h * self.zoom))
+        w = int(image.get_rect().w * self.zoom)
+        h = int(image.get_rect().h * self.zoom)
+        return pygame.transform.smoothscale(image, (w, h))
 
     def get_background_color(self):
         return self.background_color
