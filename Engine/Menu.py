@@ -25,7 +25,11 @@ class Menu():
                                           ('x1.25', 1.25),
                                           ('x1.5', 1.5),
                                           ('x1.75', 1.75),
-                                          ('x2', 2)], onchange=self.change_zoom)
+                                          ('x2', 2),
+                                          ('x0.9', 0.9),
+                                          ('x0.85', 0.85),
+                                          ('x0.75', 0.75),
+                                          ], onchange=self.change_zoom)
         self.menu.add.button('Save tracker state', self.save)
         self.menu.add.button('Load tracker state', self.load)
         self.menu.add.button('Back to main menu', self.back_menu)

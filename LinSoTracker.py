@@ -1,3 +1,4 @@
+import os
 import sys
 
 import pygame
@@ -9,6 +10,7 @@ from Tools.CoreService import CoreService
 core_service = CoreService()
 
 def main():
+    os.environ["SDL_MOUSE_FOCUS_CLICKTHROUGH"] = "1"
     main_menu = MainMenu()
     dimension = main_menu.get_dimension()
     pygame.init()

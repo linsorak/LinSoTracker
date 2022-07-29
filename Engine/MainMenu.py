@@ -250,7 +250,7 @@ class MainMenu:
                     screen.blit(glow, self.selected_position)
 
                 surf_title, pos_title = self.draw_text(
-                    text="{} v{} - Developped by LinSoraK#7235".format(self.core_service.app_name,
+                    text="{} v{} - Developed by LinSoraK#7235".format(self.core_service.app_name,
                                                                        self.core_service.version),
                     font_name=self.font_data["path"],
                     color=self.font_data["color_normal"],
