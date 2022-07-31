@@ -1,0 +1,1684 @@
+[
+    {
+        "Informations": {
+            "Creator": "LinSoraK, inspirated by TriRetr0",
+            "Name": "Majora's Mask - 64 Template",
+            "Version": "1.0.0.0"
+        }
+    },
+    {
+        "Datas": {
+            "Dimensions": {
+                "width": 333,
+                "height": 509
+            },
+            "Zoom": 2.0,
+            "Background": "background.png",
+            "BackgroundColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+            },
+            "ItemSheet": "items.png",
+            "ItemSheetDimensions": {
+                "width": 35,
+                "height": 35
+            }
+        }
+    },
+    {
+        "Fonts": {
+            "incrementalItemFont": {
+                "Name": "visitor1.ttf",
+                "Size": 18,
+                "Colors": {
+                    "Normal": {
+                        "r": 255,
+                        "g": 255,
+                        "b": 255
+                    },
+                    "Max": {
+                        "r": 0,
+                        "g": 255,
+                        "b": 0
+                    }
+                }
+            },
+            "evolutionItemFont": {
+                "Name": "visitor1.ttf",
+                "Size": 18,
+                "Colors": {
+                    "Normal": {
+                        "r": 255,
+                        "g": 255,
+                        "b": 255
+                    },
+                    "Max": {
+                        "r": 0,
+                        "g": 255,
+                        "b": 0
+                    }
+                }
+            },
+            "countItemFont": {
+                "Name": "visitor1.ttf",
+                "Size": 18,
+                "Colors": {
+                    "Normal": {
+                        "r": 255,
+                        "g": 255,
+                        "b": 255
+                    },
+                    "Max": {
+                        "r": 0,
+                        "g": 255,
+                        "b": 0
+                    }
+                }
+            },
+            "labelItemFont": {
+                "Name": "cmd.ttf",
+                "Size": 13.5,
+                "Colors": {
+                    "Normal": {
+                        "r": 255,
+                        "g": 255,
+                        "b": 255
+                    },
+                    "Max": {
+                        "r": 0,
+                        "g": 255,
+                        "b": 255
+                    }
+                }
+            },
+            "hintFont": {
+                "Name": "lm.ttf",
+                "Size": 11,
+                "Colors": {
+                    "Normal": {
+                        "r": 0,
+                        "g": 255,
+                        "b": 255
+                    },
+                    "Max": {
+                        "r": 0,
+                        "g": 255,
+                        "b": 255
+                    }
+                }
+            }
+        }
+    },
+    {
+        "Items": [
+            {
+                "Kind": "Item",
+                "Name": "Ocarina of Time",
+                "Positions": {
+                    "x": 25,
+                    "y": 25
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 1
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable": 0.4
+            },
+            {
+                "Kind": "IncrementalItem",
+                "Name": "Fairy Bow",
+                "Positions": {
+                    "x": 65,
+                    "y": 25
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 2
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Increment": [
+                    "40",
+                    "50"
+                ]
+            },
+            {
+                "Kind": "Item",
+                "Name": "Fire Arrow",
+                "Positions": {
+                    "x": 106,
+                    "y": 25
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 3
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "Item",
+                "Name": "Ice Arrow",
+                "Positions": {
+                    "x": 147,
+                    "y": 25
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 4
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },  
+            {
+                "Kind": "Item",
+                "Name": "Light Arrow",
+                "Positions": {
+                    "x": 188,
+                    "y": 25
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 5
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "Item",
+                "Name": "Room Key",
+                "Positions": {
+                    "x": 229,
+                    "y": 30
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 6
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "IncrementalItem",
+                "Name": "Bomb",
+                "Positions": {
+                    "x": 25,
+                    "y": 66
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 7
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Increment": [
+                    "30",
+                    "40"
+                ]
+            },
+            {
+                "Kind": "Item",
+                "Name": "Bombchu",
+                "Positions": {
+                    "x": 66,
+                    "y": 66
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 8
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "IncrementalItem",
+                "Name": "Deku Stick",
+                "Positions": {
+                    "x": 107,
+                    "y": 66
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 9
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Increment": [
+                    "20",
+                    "30"
+                ]
+            },        
+            {
+                "Kind": "IncrementalItem",
+                "Name": "Deku Nut",
+                "Positions": {
+                    "x": 147,
+                    "y": 66
+                },
+                "SheetPositions": {
+                    "row": 7,
+                    "column": 7
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Increment": [
+                    "20",
+                    "30"
+                ]
+            },
+            {
+                "Kind": "Item",
+                "Name": "Magic Beans",
+                "Positions": {
+                    "x": 188,
+                    "y": 66
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 10
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Moon Tear",
+                "Positions": {
+                    "x": 229,
+                    "y": 66
+                },
+                "SheetPositions": {
+                    "row": 1,
+                    "column": 11
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Land Title Deed",
+                        "SheetPositions": {
+                            "row": 1,
+                            "column": 12
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Swamp Title Deed",
+                        "SheetPositions": {
+                            "row": 2,
+                            "column": 1
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Mountain Title Deed",
+                        "SheetPositions": {
+                            "row": 2,
+                            "column": 2
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Ocean Title Deed",
+                        "SheetPositions": {
+                            "row": 2,
+                            "column": 3
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "Item",
+                "Name": "Powder Keg",
+                "Positions": {
+                    "x": 25,
+                    "y": 107
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 4
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "Item",
+                "Name": "Pictograph Box",
+                "Positions": {
+                    "x": 66,
+                    "y": 107
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 5
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "Item",
+                "Name": "Lens of Truth",
+                "Positions": {
+                    "x": 106,
+                    "y": 107
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 6
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "Item",
+                "Name": "Hookshot",
+                "Positions": {
+                    "x": 147,
+                    "y": 107
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 7
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "Item",
+                "Name": "Great Fairy Sword",
+                "Positions": {
+                    "x": 188,
+                    "y": 107
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 8
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Letter to Kafei",
+                "Positions": {
+                    "x": 229,
+                    "y": 107
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 9
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Pendant of Memories",
+                        "SheetPositions": {
+                            "row": 2,
+                            "column": 10
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Special Delivery to Mama",
+                        "SheetPositions": {
+                            "row": 2,
+                            "column": 11
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Empty Bottle",
+                "Positions": {
+                    "x": 25,
+                    "y": 148
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 12
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Red Potion",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 1
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Milk",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 2
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Gold Powder",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 3
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Chateau Romani",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 4
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Empty Bottle",
+                "Positions": {
+                    "x": 66,
+                    "y": 148
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 12
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Red Potion",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 1
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Milk",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 2
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Gold Powder",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 3
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Chateau Romani",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 4
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Empty Bottle",
+                "Positions": {
+                    "x": 106,
+                    "y": 148
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 12
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Red Potion",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 1
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Milk",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 2
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Gold Powder",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 3
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Chateau Romani",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 4
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Empty Bottle",
+                "Positions": {
+                    "x": 147,
+                    "y": 148
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 12
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Red Potion",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 1
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Milk",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 2
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Gold Powder",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 3
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Chateau Romani",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 4
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Empty Bottle",
+                "Positions": {
+                    "x": 188,
+                    "y": 148
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 12
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Red Potion",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 1
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Milk",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 2
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Gold Powder",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 3
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Chateau Romani",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 4
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Empty Bottle",
+                "Positions": {
+                    "x": 229,
+                    "y": 148
+                },
+                "SheetPositions": {
+                    "row": 2,
+                    "column": 12
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Red Potion",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 1
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Milk",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 2
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Gold Powder",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 3
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Chateau Romani",
+                        "SheetPositions": {
+                            "row": 3,
+                            "column": 4
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Postman Hat",
+                "Positions": {
+                    "x": 25,
+                    "y": 192
+                },
+                "SheetPositions": {
+                    "row": 3,
+                    "column": 5
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Postman Hat",
+                "Positions": {
+                    "x": 25,
+                    "y": 192
+                },
+                "SheetPositions": {
+                    "row": 3,
+                    "column": 5
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "All-Night Mask",
+                "Positions": {
+                    "x": 66,
+                    "y": 192
+                },
+                "SheetPositions": {
+                    "row": 3,
+                    "column": 6
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Blast Mask",
+                "Positions": {
+                    "x": 106,
+                    "y": 192
+                },
+                "SheetPositions": {
+                    "row": 3,
+                    "column": 7
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Stone Mask",
+                "Positions": {
+                    "x": 147,
+                    "y": 192
+                },
+                "SheetPositions": {
+                    "row": 3,
+                    "column": 8
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Great Fairy's Mask",
+                "Positions": {
+                    "x": 188,
+                    "y": 192
+                },
+                "SheetPositions": {
+                    "row": 3,
+                    "column": 9
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Deku Mask",
+                "Positions": {
+                    "x": 229,
+                    "y": 192
+                },
+                "SheetPositions": {
+                    "row": 3,
+                    "column": 10
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Keaton Mask",
+                "Positions": {
+                    "x": 25,
+                    "y": 233
+                },
+                "SheetPositions": {
+                    "row": 3,
+                    "column": 11
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },       
+            {
+                "Kind": "CheckItem",
+                "Name": "Bremen Mask",
+                "Positions": {
+                    "x": 66,
+                    "y": 233
+                },
+                "SheetPositions": {
+                    "row": 3,
+                    "column": 12
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            }, 
+            {
+                "Kind": "CheckItem",
+                "Name": "Bunny Hood",
+                "Positions": {
+                    "x": 106,
+                    "y": 233
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 1
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },   
+            {
+                "Kind": "CheckItem",
+                "Name": "Don Gero's Mask",
+                "Positions": {
+                    "x": 147,
+                    "y": 233
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 2
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Mask of Scents",
+                "Positions": {
+                    "x": 188,
+                    "y": 233
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 3
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Goron Mask",
+                "Positions": {
+                    "x": 229,
+                    "y": 233
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 4
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Romani's Mask",
+                "Positions": {
+                    "x": 25,
+                    "y": 274
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 5
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Circus Leader's Mask",
+                "Positions": {
+                    "x": 66,
+                    "y": 274
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 6
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Kafei's Mask",
+                "Positions": {
+                    "x": 106,
+                    "y": 274
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 7
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Couple's Mask",
+                "Positions": {
+                    "x": 147,
+                    "y": 274
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 8
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Mask of Truth",
+                "Positions": {
+                    "x": 188,
+                    "y": 274
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 9
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Zora Mask",
+                "Positions": {
+                    "x": 229,
+                    "y": 274
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 10
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Kamaro's Mask",
+                "Positions": {
+                    "x": 25,
+                    "y": 315
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 11
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Gibdo Mask",
+                "Positions": {
+                    "x": 66,
+                    "y": 315
+                },
+                "SheetPositions": {
+                    "row": 4,
+                    "column": 12
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },     
+            {
+                "Kind": "CheckItem",
+                "Name": "Garo's Mask",
+                "Positions": {
+                    "x": 107,
+                    "y": 315
+                },
+                "SheetPositions": {
+                    "row": 5,
+                    "column": 1
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },  
+            {
+                "Kind": "CheckItem",
+                "Name": "Captain's Hat",
+                "Positions": {
+                    "x": 147,
+                    "y": 315
+                },
+                "SheetPositions": {
+                    "row": 5,
+                    "column": 2
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Giant's Mask",
+                "Positions": {
+                    "x": 188,
+                    "y": 315
+                },
+                "SheetPositions": {
+                    "row": 5,
+                    "column": 3
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            }, 
+            {
+                "Kind": "CheckItem",
+                "Name": "Fierce Deity's Mask",
+                "Positions": {
+                    "x": 229,
+                    "y": 315
+                },
+                "SheetPositions": {
+                    "row": 5,
+                    "column": 4
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Kokiri Sword",
+                "Positions": {
+                    "x": 188,
+                    "y": 359
+                },
+                "SheetPositions": {
+                    "row": 5,
+                    "column": 5
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Razor Sword",
+                        "SheetPositions": {
+                            "row": 5,
+                            "column": 6
+                        },
+                        "Label": null
+                    },
+                    {
+                        "Name": "Gilded Sword",
+                        "SheetPositions": {
+                            "row": 5,
+                            "column": 7
+                        },
+                        "Label": null
+                    }
+                ]
+            },  
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Hero's Shield",
+                "Positions": {
+                    "x": 229,
+                    "y": 359
+                },
+                "SheetPositions": {
+                    "row": 5,
+                    "column": 8
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Mirror Shield",
+                        "SheetPositions": {
+                            "row": 5,
+                            "column": 9
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Magic I",
+                "Positions": {
+                    "x": 25,
+                    "y": 359
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 1
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable": 0.5,
+                "Label": null,
+                "LabelCenter": false,
+                "NextItems": [
+                    {
+                        "Name": "Magic II",
+                        "SheetPositions": {
+                            "row": 6,
+                            "column": 2
+                        },
+                        "Label": null
+                    }
+                ]
+            },
+            {
+                "Kind": "EvolutionItem",
+                "Name": "Rupee Upgrade I",
+                "Positions": {
+                    "x": 66,
+                    "y": 359
+                },
+                "SheetPositions": {
+                    "row": 5,
+                    "column": 11
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable": 0.5,
+                "Label": "200",
+                "LabelCenter": true,
+                "NextItems": [
+                    {
+                        "Name": "Rupee Upgrade II",
+                        "SheetPositions": {
+                            "row": 5,
+                            "column": 12
+                        },
+                        "Label": "500"
+                    }
+                ]
+            },
+            {
+                "Kind": "Item",
+                "Name": "Bombers' Notebook",
+                "Positions": {
+                    "x": 229,
+                    "y": 400
+                },
+                "SheetPositions": {
+                    "row": 5,
+                    "column": 10
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5
+            },
+            {
+                "Kind": "LabelItem",
+                "Name": "Gyorg's Remains",
+                "Positions": {
+                    "x": 82,
+                    "y": 400
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 5
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "LabelList": [
+                    "????",
+                    "WOODFALL",
+                    "SNOWHEAD",
+                    "GREAT BAY",
+                    "STONE TOWER"
+                ]
+            },
+            {
+                "Kind": "LabelItem",
+                "Name": "Twinmold's Remains",
+                "Positions": {
+                    "x": 174,
+                    "y": 400
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 6
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "LabelList": [
+                    "????",
+                    "WOODFALL",
+                    "SNOWHEAD",
+                    "GREAT BAY",
+                    "STONE TOWER"
+                ]
+            },
+            {
+                "Kind": "LabelItem",
+                "Name": "Goht's Remains",
+                "Positions": {
+                    "x": 128,
+                    "y": 356
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 4
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "LabelList": [
+                    "????",
+                    "WOODFALL",
+                    "SNOWHEAD",
+                    "GREAT BAY",
+                    "STONE TOWER"
+                ]
+            }, 
+            {
+                "Kind": "LabelItem",
+                "Name": "Odolwa's Remains",
+                "Positions": {
+                    "x": 128,
+                    "y": 440
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 3
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "LabelList": [
+                    "????",
+                    "WOODFALL",
+                    "SNOWHEAD",
+                    "GREAT BAY",
+                    "STONE TOWER"
+                ]
+            },
+            {
+                "Kind": "GoModeItem",
+                "Name": "Go Mode",
+                "Positions": {
+                    "x": 128,
+                    "y": 399
+                },
+                "SheetPositions": {
+                    "row": 7,
+                    "column": 5
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "BackgroundGlow": "light.png"
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Song of Time",
+                "Positions": {
+                    "x": 273,
+                    "y": 36
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 7
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Song of Healing",
+                "Positions": {
+                    "x": 273,
+                    "y": 81
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 8
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            }, 
+            {
+                "Kind": "CheckItem",
+                "Name": "Epona's Song",
+                "Positions": {
+                    "x": 273,
+                    "y": 126
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 9
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },  
+            {
+                "Kind": "CheckItem",
+                "Name": "Song of Soaring",
+                "Positions": {
+                    "x": 273,
+                    "y": 171
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 10
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },  
+            {
+                "Kind": "CheckItem",
+                "Name": "Song of Storms",
+                "Positions": {
+                    "x": 273,
+                    "y": 216
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 11
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Sonata of Awakening",
+                "Positions": {
+                    "x": 273,
+                    "y": 261
+                },
+                "SheetPositions": {
+                    "row": 6,
+                    "column": 12
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },  
+            {
+                "Kind": "CheckItem",
+                "Name": "Goron Lullaby",
+                "Positions": {
+                    "x": 273,
+                    "y": 306
+                },
+                "SheetPositions": {
+                    "row": 7,
+                    "column": 1
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },       
+            {
+                "Kind": "CheckItem",
+                "Name": "New Wave Bossa Nova",
+                "Positions": {
+                    "x": 273,
+                    "y": 351
+                },
+                "SheetPositions": {
+                    "row": 7,
+                    "column": 2
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },    
+            {
+                "Kind": "CheckItem",
+                "Name": "New Wave Bossa Nova",
+                "Positions": {
+                    "x": 273,
+                    "y": 351
+                },
+                "SheetPositions": {
+                    "row": 7,
+                    "column": 2
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Elegy of Emptiness",
+                "Positions": {
+                    "x": 273,
+                    "y": 396
+                },
+                "SheetPositions": {
+                    "row": 7,
+                    "column": 3
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            },
+            {
+                "Kind": "CheckItem",
+                "Name": "Oath to Order",
+                "Positions": {
+                    "x": 273,
+                    "y": 441
+                },
+                "SheetPositions": {
+                    "row": 7,
+                    "column": 4
+                },
+                "isActive": false,
+                "Hint": null,
+                "OpacityDisable" : 0.5,
+                "CheckImageSheetPositions": {
+                    "row": 7,
+                    "column": 6
+                }
+            }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+        ]
+    }
+]
