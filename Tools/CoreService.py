@@ -31,6 +31,8 @@ class CoreService(metaclass=Singleton):
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
         self.zoom = 1
+        self.zoom_index = 0
+        self.sound_active = False
         self.app_path = os.path.abspath(os.path.dirname(__file__)).replace("{}{}".format(os.sep, "Tools"), os.sep)
 
         if getattr(sys, 'frozen', False):
@@ -45,6 +47,46 @@ class CoreService(metaclass=Singleton):
 
         self.create_directory(path=self.temp_path)
         self.read_checker()
+        self.load_default_configuration()
+
+
+    def save_configuration(self, session, value):
+        user_configuration = os.path.join(self.temp_path, "user.conf")
+        if os.path.exists(user_configuration):
+            data = []
+            with open(user_configuration) as f:
+                data = json.load(f)
+                data[session] = value
+
+            with open(user_configuration, 'w') as f:
+                json.dump(data, f, indent=2)
+
+    def load_default_configuration(self):
+        user_configuration = os.path.join(self.temp_path, "user.conf")
+        if not os.path.exists(user_configuration):
+            data = {}
+            data["defaultZoom"] = 0
+            data["soundWhenItemActive"] = False
+
+            with open(user_configuration, 'w') as f:
+                json.dump(data, f, indent=2)
+
+            self.zoom_index = 0
+            self.sound_active = False
+        else:
+            with open(user_configuration) as f:
+                data = json.load(f)
+
+                if "defaultZoom" in data:
+                    self.zoom_index = data["defaultZoom"]
+                else:
+                    self.zoom_index = 0
+
+                if "soundWhenItemActive" in data:
+                    self.sound_active = data["soundWhenItemActive"]
+                else:
+                    self.sound_active = False
+
 
     def read_checker(self):
         url = "http://linsotracker.com/tracker_data/checker.json"

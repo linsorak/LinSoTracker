@@ -37,6 +37,22 @@ class Tracker:
         self.core_service.set_json_data(self.tracker_json_data)
         self.core_service.set_tracker_temp_path(self.resources_path)
         self.init_items()
+        self.menu.set_zoom_index(self.core_service.zoom_index)
+        self.menu.set_sound_check(self.core_service.sound_active)
+        self.resources_base_path = os.path.join(self.core_service.get_temp_path(), "tracker")
+        self.sound_select = pygame.mixer.Sound(os.path.join(self.resources_base_path, "select.wav"))
+        self.sound_cancel = pygame.mixer.Sound(os.path.join(self.resources_base_path, "cancel.wav"))
+        pygame.mixer.Sound.set_volume(self.sound_select, 0.3)
+        pygame.mixer.Sound.set_volume(self.sound_cancel, 0.3)
+        self.check_is_default_save()
+
+    def check_is_default_save(self):
+        save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")
+        if os.path.exists(save_directory):
+            save_name = os.path.join(save_directory, self.template_name + ".trackersave")
+            if os.path.exists(save_name):
+                f = open(save_name)
+                self.load_data(json.load(f))
 
     def extract_data(self):
         filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
@@ -206,6 +222,11 @@ class Tracker:
                 if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
                                                    element_dimension=(item.get_rect().w, item.get_rect().h)):
                     item.left_click()
+                    if self.core_service.sound_active:
+                        if item.enable:
+                            self.sound_select.play()
+                        else:
+                            self.sound_cancel.play()
 
         if button == 2:
             for item in self.items:
@@ -218,6 +239,11 @@ class Tracker:
                 if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
                                                    element_dimension=(item.get_rect().w, item.get_rect().h)):
                     item.right_click()
+                    if self.core_service.sound_active:
+                        if item.enable:
+                            self.sound_select.play()
+                        else:
+                            self.sound_cancel.play()
 
     def save_data(self):
         datas = []
@@ -253,6 +279,7 @@ class Tracker:
         pygame.display.set_mode((w, h))
         self.init_items()
         self.menu.get_menu().resize(width=w, height=h)
+        self.load_data(datas)
 
     def draw(self, screen):
         screen.blit(self.background_image, (0, 0))

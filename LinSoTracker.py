@@ -2,13 +2,14 @@ import os
 import sys
 
 import pygame
-from PyQt5.QtWidgets import QApplication
 
 from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
 
 core_service = CoreService()
 
+if not core_service.isMac():
+    from PyQt5.QtWidgets import QApplication
 
 
 def main():
@@ -16,6 +17,7 @@ def main():
     main_menu = MainMenu()
     dimension = main_menu.get_dimension()
     pygame.init()
+    pygame.mixer.init()
     screen = pygame.display.set_mode(dimension)
     pygame.display.set_caption(core_service.get_window_title())
     clock = pygame.time.Clock()

@@ -1,6 +1,11 @@
 import json
 
-from PyQt5.QtWidgets import QWidget, QFileDialog
+from Tools.CoreService import CoreService
+
+core_service = CoreService()
+
+if not core_service.isMac():
+    from PyQt5.QtWidgets import QWidget, QFileDialog
 
 
 class PyQtSaveLoadTool(QWidget):
