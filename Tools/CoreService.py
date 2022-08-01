@@ -3,7 +3,8 @@ import os
 import shutil
 import sys
 import tempfile
-from sys import platform
+import platform
+
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -158,3 +159,7 @@ class CoreService(metaclass=Singleton):
     def launch_app(path):
         if os.path.exists(path):
             os.startfile(path)
+
+    @staticmethod
+    def isMac():
+        return platform.system() == "Darwin"

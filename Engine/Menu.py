@@ -6,6 +6,7 @@ from typing import Tuple, Any
 import pygame_menu
 from pygame_menu import Theme
 
+from Tools.CoreService import CoreService
 from Tools.PyQtSaveLoadTool import PyQtSaveLoadTool
 
 
@@ -30,14 +31,19 @@ class Menu():
                                           ('x0.85', 0.85),
                                           ('x0.75', 0.75),
                                           ], onchange=self.change_zoom)
-        self.menu.add.button('Save tracker state', self.save)
-        self.menu.add.button('Load tracker state', self.load)
+
+        core_service = CoreService()
+
+        if not core_service.isMac():
+            self.menu.add.button('Save tracker state', self.save)
+            self.menu.add.button('Load tracker state', self.load)
+            self.saveTool = PyQtSaveLoadTool()
+
         self.menu.add.button('Back to main menu', self.back_menu)
         self.menu.add.button('Discord', self.open_discord)
         self.menu.add.button('Pay me a coffee ? :)', self.open_paypal)
         self.menu.add.button('Official website', self.open_website)
         self.menu.add.button('Close menu', self.menu.disable)
-        self.saveTool = PyQtSaveLoadTool()
         self.menu.disable()
 
     def active(self, screen):

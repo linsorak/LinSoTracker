@@ -9,6 +9,8 @@ from Tools.CoreService import CoreService
 
 core_service = CoreService()
 
+
+
 def main():
     os.environ["SDL_MOUSE_FOCUS_CLICKTHROUGH"] = "1"
     main_menu = MainMenu()
@@ -50,5 +52,6 @@ def main():
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    if not core_service.isMac():
+        app = QApplication(sys.argv)
     main()
