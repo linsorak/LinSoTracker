@@ -39,7 +39,8 @@ class Menu():
             self.menu.add.button('Load tracker state', self.load)
             self.saveTool = PyQtSaveLoadTool()
 
-        self.sound_check = self.menu.add.toggle_switch('Sound effect', False, onchange=self.onchange)
+        self.sound_check = self.menu.add.toggle_switch('Sound effect', False, onchange=self.onchange_sound)
+        self.esc_menu_check = self.menu.add.toggle_switch('Show ESC Label', True, onchange=self.onchange_esc)
         self.menu.add.button('Back to main menu', self.back_menu)
         self.menu.add.button('Discord', self.open_discord)
         self.menu.add.button('Pay me a coffee ? :)', self.open_paypal)
@@ -47,9 +48,13 @@ class Menu():
         self.menu.add.button('Close menu', self.menu.disable)
         self.menu.disable()
 
-    def onchange(self, current_state_value, **kwargs):
+    def onchange_sound(self, current_state_value, **kwargs):
         self.core_service.save_configuration("soundWhenItemActive", current_state_value)
         self.core_service.sound_active = current_state_value
+
+    def onchange_esc(self, current_state_value, **kwargs):
+        self.core_service.save_configuration("showESCLabel", current_state_value)
+        self.core_service.draw_esc_menu_label = current_state_value
 
     def set_zoom_index(self, zoom_index):
         self.zoom_selector.set_value(zoom_index)
@@ -58,6 +63,9 @@ class Menu():
 
     def set_sound_check(self, value):
         self.sound_check.set_value(value)
+
+    def set_esc_check(self, value):
+        self.esc_menu_check.set_value(value)
 
     def active(self, screen):
         self.menu.resize(width=screen.get_rect().w, height=screen.get_rect().h)

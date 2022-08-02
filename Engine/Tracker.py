@@ -30,16 +30,18 @@ class Tracker:
         self.items = pygame.sprite.Group()
         self.template_name = template_name
         self.core_service = CoreService()
+        self.resources_base_path = os.path.join(self.core_service.get_temp_path(), "tracker")
         self.menu = []
         self.bank = Bank()
         self.extract_data()
         self.init_tracker()
+        self.core_service.load_default_configuration()
         self.core_service.set_json_data(self.tracker_json_data)
         self.core_service.set_tracker_temp_path(self.resources_path)
         self.init_items()
         self.menu.set_zoom_index(self.core_service.zoom_index)
         self.menu.set_sound_check(self.core_service.sound_active)
-        self.resources_base_path = os.path.join(self.core_service.get_temp_path(), "tracker")
+        self.menu.set_esc_check(self.core_service.draw_esc_menu_label)
         self.sound_select = pygame.mixer.Sound(os.path.join(self.resources_base_path, "select.wav"))
         self.sound_cancel = pygame.mixer.Sound(os.path.join(self.resources_base_path, "cancel.wav"))
         pygame.mixer.Sound.set_volume(self.sound_select, 0.3)
@@ -99,10 +101,18 @@ class Tracker:
 
         self.menu = Menu((w, h), self)
         self.menu.set_tracker(self)
+        self.esc_menu_image = self.bank.addImage(os.path.join(self.resources_base_path, "menu.png"))
 
     def init_items(self):
+        # itemList = []
         for item in self.tracker_json_data[3]["Items"]:
             id = len(self.items)
+
+            # if item["Name"] in itemList:
+            #     print("DOUBLON", item["Name"])
+            # else:
+            #     itemList.append(item["Name"])
+
             item_image = self.core_service.zoom_image(
                 self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
                                                                column=item["SheetPositions"]["column"]))
@@ -292,6 +302,9 @@ class Tracker:
 
         if self.menu.get_menu().is_enabled():
             self.menu.get_menu().mainloop(screen)
+
+        if self.core_service.draw_esc_menu_label:
+            screen.blit(self.esc_menu_image, (2, 2))
 
     def keyup(self, button, screen):
         if button == pygame.K_ESCAPE:

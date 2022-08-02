@@ -27,12 +27,13 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.0.3-BETA"
+        self.version = "2.0.4-BETA"
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
         self.zoom = 1
         self.zoom_index = 0
         self.sound_active = False
+        self.draw_esc_menu_label = True
         self.app_path = os.path.abspath(os.path.dirname(__file__)).replace("{}{}".format(os.sep, "Tools"), os.sep)
 
         if getattr(sys, 'frozen', False):
@@ -67,12 +68,14 @@ class CoreService(metaclass=Singleton):
             data = {}
             data["defaultZoom"] = 0
             data["soundWhenItemActive"] = False
+            data["showESCLabel"] = True
 
             with open(user_configuration, 'w') as f:
                 json.dump(data, f, indent=2)
 
-            self.zoom_index = 0
-            self.sound_active = False
+            self.zoom_index = data["defaultZoom"]
+            self.sound_active = data["soundWhenItemActive"]
+            self.draw_esc_menu_label = data["showESCLabel"]
         else:
             with open(user_configuration) as f:
                 data = json.load(f)
@@ -86,6 +89,11 @@ class CoreService(metaclass=Singleton):
                     self.sound_active = data["soundWhenItemActive"]
                 else:
                     self.sound_active = False
+
+                if "showESCLabel" in data:
+                    self.draw_esc_menu_label = data["showESCLabel"]
+                else:
+                    self.draw_esc_menu_label = True
 
 
     def read_checker(self):
