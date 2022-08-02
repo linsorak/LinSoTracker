@@ -35,7 +35,8 @@ class CountItem(Item):
                                            image_surface=self.colored_image,
                                            text_position="count_item")
         self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width,
-                                self.image.get_rect().height)
+                                self.colored_image.get_rect().height)
+        print(self.rect)
 
     def right_click(self):
         if self.value > self.min_value:

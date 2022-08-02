@@ -300,6 +300,8 @@ class Tracker:
                 item.draw()
                 break
 
+            # pygame.draw.rect(screen, (255, 255, 255),item.rect)
+
         if self.menu.get_menu().is_enabled():
             self.menu.get_menu().mainloop(screen)
 
