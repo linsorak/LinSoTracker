@@ -38,6 +38,7 @@ class Tracker:
         self.core_service.load_default_configuration()
         self.core_service.set_json_data(self.tracker_json_data)
         self.core_service.set_tracker_temp_path(self.resources_path)
+        self.core_service.set_current_tracker_name(self.template_name)
         self.init_items()
         self.menu.set_zoom_index(self.core_service.zoom_index)
         self.menu.set_sound_check(self.core_service.sound_active)

@@ -4,10 +4,6 @@ import shutil
 import sys
 import tempfile
 import platform
-
-from urllib.error import URLError
-from urllib.request import urlopen
-
 import pygame
 
 
@@ -34,6 +30,7 @@ class CoreService(metaclass=Singleton):
         self.zoom_index = 0
         self.sound_active = False
         self.draw_esc_menu_label = True
+        self.current_tracker_name = None
         self.app_path = os.path.abspath(os.path.dirname(__file__)).replace("{}{}".format(os.sep, "Tools"), os.sep)
 
         if getattr(sys, 'frozen', False):
@@ -50,6 +47,12 @@ class CoreService(metaclass=Singleton):
         self.read_checker()
         self.load_default_configuration()
 
+
+    def set_current_tracker_name(self, name):
+        self.current_tracker_name = name
+
+    def get_current_tracker_name(self):
+        return self.current_tracker_name
 
     def save_configuration(self, session, value):
         user_configuration = os.path.join(self.temp_path, "user.conf")
@@ -209,7 +212,3 @@ class CoreService(metaclass=Singleton):
     def launch_app(path):
         if os.path.exists(path):
             os.startfile(path)
-
-    @staticmethod
-    def isMac():
-        return platform.system() == "Darwin"

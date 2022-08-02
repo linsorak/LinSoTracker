@@ -1,18 +1,18 @@
 import json
 import webbrowser
-from tkinter import filedialog
 from typing import Tuple, Any
 
 import pygame_menu
 from pygame_menu import Theme
 
 from Tools.CoreService import CoreService
-from Tools.PyQtSaveLoadTool import PyQtSaveLoadTool
+from Tools.SaveLoadTool import SaveLoadTool
 
 
 class Menu():
     def __init__(self, dimensions, tracker):
         self.tracker = tracker
+        self.saveTool = SaveLoadTool()
         theme = Theme(background_color=(0, 0, 0, 50),  # transparent background
                       title_font=pygame_menu.font.FONT_NEVIS,
                       title_background_color=(4, 47, 126),
@@ -34,11 +34,8 @@ class Menu():
 
         self.core_service = CoreService()
 
-        if not self.core_service.isMac():
-            self.menu.add.button('Save tracker state', self.save)
-            self.menu.add.button('Load tracker state', self.load)
-            self.saveTool = PyQtSaveLoadTool()
-
+        self.menu.add.button('Save tracker state', self.save)
+        self.menu.add.button('Load tracker state', self.load)
         self.sound_check = self.menu.add.toggle_switch('Sound effect', False, onchange=self.onchange_sound)
         self.esc_menu_check = self.menu.add.toggle_switch('Show ESC Label', True, onchange=self.onchange_esc)
         self.menu.add.button('Back to main menu', self.back_menu)
@@ -47,6 +44,14 @@ class Menu():
         self.menu.add.button('Official website', self.open_website)
         self.menu.add.button('Close menu', self.menu.disable)
         self.menu.disable()
+
+    def save_new(self):
+        filetypes = [["*.trackersave", "LinSoTracker Save"]]
+        test = easygui.filesavebox(msg='LinSoTracker Save file',
+                    title='Specify File', default='{}.trackersave'.format(self.core_service.get_current_tracker_name()),
+                    filetypes=filetypes)
+
+        print(test)
 
     def onchange_sound(self, current_state_value, **kwargs):
         self.core_service.save_configuration("soundWhenItemActive", current_state_value)

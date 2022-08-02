@@ -8,9 +8,6 @@ from Tools.CoreService import CoreService
 
 core_service = CoreService()
 
-if not core_service.isMac():
-    from PyQt5.QtWidgets import QApplication
-
 
 def main():
     os.environ["SDL_MOUSE_FOCUS_CLICKTHROUGH"] = "1"
@@ -54,6 +51,4 @@ def main():
 
 
 if __name__ == '__main__':
-    if not core_service.isMac():
-        app = QApplication(sys.argv)
     main()
