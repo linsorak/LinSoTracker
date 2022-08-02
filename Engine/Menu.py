@@ -9,7 +9,7 @@ from Tools.CoreService import CoreService
 from Tools.SaveLoadTool import SaveLoadTool
 
 
-class Menu():
+class Menu:
     def __init__(self, dimensions, tracker):
         self.tracker = tracker
         self.saveTool = SaveLoadTool()
@@ -44,14 +44,6 @@ class Menu():
         self.menu.add.button('Official website', self.open_website)
         self.menu.add.button('Close menu', self.menu.disable)
         self.menu.disable()
-
-    def save_new(self):
-        filetypes = [["*.trackersave", "LinSoTracker Save"]]
-        test = easygui.filesavebox(msg='LinSoTracker Save file',
-                    title='Specify File', default='{}.trackersave'.format(self.core_service.get_current_tracker_name()),
-                    filetypes=filetypes)
-
-        print(test)
 
     def onchange_sound(self, current_state_value, **kwargs):
         self.core_service.save_configuration("soundWhenItemActive", current_state_value)

@@ -4,6 +4,9 @@ import shutil
 import sys
 import tempfile
 import platform
+from urllib.error import URLError
+from urllib.request import urlopen
+
 import pygame
 
 
