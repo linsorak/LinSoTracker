@@ -3,3 +3,4 @@ pygame_menu==4.2.5
 PyQt5==5.15.6
 pyinstaller
 pyinstaller-hooks-contrib
+Pillow
