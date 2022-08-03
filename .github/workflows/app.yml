@@ -59,6 +59,8 @@ jobs:
                 pyinstaller --noconfirm --onefile --windowed --icon icon.ico -n LinSoTracker LinSoTracker.py &&
                 cd dist/ &&
                 zip -r9 LinSoTracker-linux-x64.zip LinSoTracker ../tracker.data ../templates
+            OUT_FILE_NAME: LinSoTracker-linux-x64.zip
+            ASSET_MIME: application/zip
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python 3.8
