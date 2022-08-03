@@ -123,7 +123,7 @@ class Menu:
             pass
 
     def back_menu(self):
-        # self.tracker.change_zoom(value=1)
+        self.tracker.change_zoom(value=1)
         self.tracker.back_main_menu()
         self.menu.disable()
 
