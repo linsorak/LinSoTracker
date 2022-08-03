@@ -1,5 +1,5 @@
 import os
-import sys
+import tkinter
 
 import pygame
 
@@ -51,4 +51,7 @@ def main():
 
 
 if __name__ == '__main__':
+    root = tkinter.Tk()
+    root.overrideredirect(1)
+    root.withdraw()
     main()
