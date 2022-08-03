@@ -41,14 +41,18 @@ jobs:
             CMD_BUILD: >
                 pyinstaller --noconfirm --onefile --windowed --icon icon.ico -n LinSoTracker LinSoTracker.py &&
                 cd dist/ &&
-                zip -r9 LinSoTracker LinSoTracker.app/
-            OUT_FILE_NAME: LinSoTracker.zip
+                cp -r ../tracker.data ../templates LinSoTracker.app/Contents/MacOS/. &&
+                zip -r9 LinSoTracker-macos-x64.zip LinSoTracker.app/
+            OUT_FILE_NAME: LinSoTracker-macos-x64.zip
             ASSET_MIME: application/zip
           - os: windows-latest
             TARGET: windows
-            CMD_BUILD: pyinstaller --noconfirm --onefile --windowed --icon icon.ico -n LinSoTracker LinSoTracker.py
-            OUT_FILE_NAME: LinSoTracker.exe
-            ASSET_MIME: application/vnd.microsoft.portable-executable
+            CMD_BUILD: > 
+                pyinstaller --noconfirm --onefile --windowed --icon icon.ico -n LinSoTracker LinSoTracker.py &&
+                cd dist/ &&
+                zip -r9 LinSoTracker-win-x64.zip LinSoTracker.exe tracker.data templates
+            OUT_FILE_NAME: LinSoTracker.zip
+            ASSET_MIME: application/zip
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python 3.8
