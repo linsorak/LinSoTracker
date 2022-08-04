@@ -16,8 +16,7 @@ Here you can find used libraries and their versions
 |-------------|---------|
 | pygame      | 2.1.2   |
 | pygame-menu | 4.2.5   |
-| pyinstaller | 5.2     |
-| PyQt5       | 5.15.6  |
+| pyinstaller | 5.3     |
 | python      | 3.10.0  |
 
 ## Special Thanks

@@ -1,5 +1,5 @@
 import os
-import sys
+import tkinter
 
 import pygame
 
@@ -7,9 +7,6 @@ from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
 
 core_service = CoreService()
-
-if not core_service.isMac():
-    from PyQt5.QtWidgets import QApplication
 
 
 def main():
@@ -54,6 +51,7 @@ def main():
 
 
 if __name__ == '__main__':
-    if not core_service.isMac():
-        app = QApplication(sys.argv)
+    root = tkinter.Tk()
+    root.overrideredirect(1)
+    root.withdraw()
     main()
