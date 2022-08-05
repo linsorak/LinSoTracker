@@ -15,6 +15,7 @@ from Entities.LabelItem import LabelItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
 from Tools.ImageSheet import ImageSheet
+from Tools.TemplateChecker import TemplateChecker
 
 
 class Tracker:

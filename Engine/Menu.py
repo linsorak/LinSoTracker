@@ -98,29 +98,9 @@ class Menu:
             self.tracker.load_data(data)
             self.menu.disable()
 
-    def save_file(self, data):
-        file = filedialog.asksaveasfile(mode='w',
-                                        title="LinSoTracker loading save",
-                                        defaultextension=".trackersave",
-                                        filetypes=[("LinSoTracker Save", ".trackersave")])
-        if file:
-            json.dump(data, file, ensure_ascii=False, indent=4)
-            file.close()
-
-    def load_file(self):
-        file = filedialog.askopenfilename(title="LinSoTracker loading save",
-                                          defaultextension=".trackersave",
-                                          filetypes=[("LinSoTracker Save", ".trackersave")])
-
-        if file:
-            f = open(file)
-            return json.load(f)
-        else:
-            return None
-
     def events(self, events):
         if self.menu.is_enabled():
-            pass
+            self.menu.update(events)
 
     def back_menu(self):
         self.tracker.change_zoom(value=1)

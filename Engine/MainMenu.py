@@ -15,6 +15,7 @@ from Engine.Tracker import Tracker
 from Tools import ptext
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
+from Tools.TemplateChecker import TemplateChecker
 
 
 class MainMenu:
@@ -172,7 +173,10 @@ class MainMenu:
                         content_y = (self.content.get_rect().h * (i + 1) + self.content.get_rect().h) + self.y_offset + (self.space_offset * i)
                         icon_x = content_x + 10
                         icon_y = content_y + 5
-                        screen.blit(self.content, (content_x, content_y))
+                        if self.template_list[index_templates]["valid"]:
+                            screen.blit(self.content, (content_x, content_y))
+                        else:
+                            screen.blit(self.content_error, (content_x, content_y))
                         screen.blit(self.template_list[index_templates]["icon"], (icon_x, icon_y))
 
                         self.menu_content.append({"positions": (content_x, content_y),
@@ -221,12 +225,18 @@ class MainMenu:
                     outline=1)
 
             if self.moved_tracker:
+                template_valid = self.template_list[self.selected_menu_index]["valid"]
+
                 self.fade_engine.update()
                 self.fade_value = self.fade_engine.getFadeValue()
                 transparent_illustration = self.illustration.copy()
                 transparent_illustration.fill((255, 255, 255, self.fade_value),
                                               special_flags=pygame.BLEND_RGBA_MULT)
-                glow = self.selected.copy()
+                if template_valid:
+                    glow = self.selected.copy()
+                else:
+                    glow = self.selected_error.copy()
+
                 glow_position_x, glow_position_y = self.selected_position
                 glow_position_x = glow_position_x - 38
                 glow_position_y = glow_position_y - 15
@@ -290,8 +300,17 @@ class MainMenu:
                         position=(x_official, y_official),
                         outline=1.5)
 
-
-
+                if not self.template_list[self.selected_menu_index]["valid"]:
+                    x_not_valid = x_description_menu + 17
+                    y_not_valid = y_description_menu + description_menu.get_rect().h - 35
+                    self.draw_text(
+                        text="NOT VALID - PLEASE UPDATE",
+                        font_name=self.font_data["path"],
+                        color=self.font_data["color_error"],
+                        font_size=self.font_data["size"],
+                        surface=screen,
+                        position=(x_not_valid, y_not_valid),
+                        outline=1.5)
         else:
             self.loaded_tracker.draw(screen)
 
@@ -304,12 +323,20 @@ class MainMenu:
             tracker_illustration = archive.read("illustration.png")
 
             data = json.loads(tracker_json)
+
+            template_checker = TemplateChecker(data)
+
             template_data = {
                 "filename": os.path.basename(file).replace(".template", ""),
                 "information": data[0],
                 "icon": pygame.image.load(io.BytesIO(tracker_icon)),
-                "illustration": pygame.image.load(io.BytesIO(tracker_illustration))
+                "illustration": pygame.image.load(io.BytesIO(tracker_illustration)),
+                "valid": template_checker.is_valid()
             }
+
+
+            print(template_data["filename"], template_checker.errors)
+
             if self.official_template:
                 for off_template in self.official_template:
                     if off_template["template_name"] == template_data["filename"]:
@@ -359,7 +386,8 @@ class MainMenu:
                     if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                        element_positons=menu["positions"],
                                                        element_dimension=menu["dimensions"]):
-                        self.set_tracker(menu["template"]["filename"])
+                        if menu["template"]["valid"]:
+                            self.set_tracker(menu["template"]["filename"])
         else:
             self.loaded_tracker.click(mouse_position, button)
 
