@@ -41,10 +41,14 @@ class CoreService(metaclass=Singleton):
         elif __file__:
             self.app_path = os.path.dirname(__file__).replace("Tools", "")
 
-        if platform == "win32":
-            self.temp_path = os.path.join(self.temp_path, self.app_name)
-        else:
-            self.temp_path = os.path.expanduser(os.path.join(self.temp_path, self.app_name))
+        # if platform == "win32":
+        #     self.temp_path = os.path.join(self.temp_path, self.app_name)
+        # else:
+        #     self.temp_path = os.path.expanduser(os.path.join(self.temp_path, self.app_name))
+
+        with tempfile.TemporaryDirectory("-LinSoTracker") as tmpdirname:
+            self.temp_path = tmpdirname
+            print('created temporary directory', tmpdirname)
 
         self.create_directory(path=self.temp_path)
         self.read_checker()
