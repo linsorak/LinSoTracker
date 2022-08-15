@@ -6,6 +6,7 @@ import gc
 import pygame
 from Engine.Menu import Menu
 from Entities.AlternateCountItem import AlternateCountItem
+from Entities.AlternateEvolutionItem import AlternateEvolutionItem
 from Entities.CheckItem import CheckItem
 from Entities.CountItem import CountItem
 from Entities.EvolutionItem import EvolutionItem
@@ -236,7 +237,7 @@ class Tracker:
                               value_start=item["valueStart"],
                               id=item["Id"])
             item_list.add(_item)
-        elif item["Kind"] == "EvolutionItem":
+        elif item["Kind"] == "EvolutionItem" or item["Kind"] == "AlternateEvolutionItem":
             alternative_label = None
             next_items_list = []
             for next_item in item["NextItems"]:
@@ -254,18 +255,38 @@ class Tracker:
             if "AlternativeLabel" in item:
                 alternative_label = item["AlternativeLabel"]
 
-            _item = EvolutionItem(name=item["Name"],
-                                  image=item_image,
-                                  position=(item["Positions"]["x"] * self.core_service.zoom,
-                                            item["Positions"]["y"] * self.core_service.zoom),
-                                  enable=item["isActive"],
-                                  opacity_disable=item["OpacityDisable"],
-                                  hint=item["Hint"],
-                                  next_items=next_items_list,
-                                  label=item["Label"],
-                                  label_center=item["LabelCenter"],
-                                  id=item["Id"],
-                                  alternative_label=alternative_label)
+            if item["Kind"] == "EvolutionItem":
+                _item = EvolutionItem(name=item["Name"],
+                                      image=item_image,
+                                      position=(item["Positions"]["x"] * self.core_service.zoom,
+                                                item["Positions"]["y"] * self.core_service.zoom),
+                                      enable=item["isActive"],
+                                      opacity_disable=item["OpacityDisable"],
+                                      hint=item["Hint"],
+                                      next_items=next_items_list,
+                                      label=item["Label"],
+                                      label_center=item["LabelCenter"],
+                                      id=item["Id"],
+                                      alternative_label=alternative_label)
+            else:
+                global_label = None
+
+                if "GlobalLabel" in item:
+                    global_label = item["GlobalLabel"]
+
+                _item = AlternateEvolutionItem(name=item["Name"],
+                                               image=item_image,
+                                               position=(item["Positions"]["x"] * self.core_service.zoom,
+                                                         item["Positions"]["y"] * self.core_service.zoom),
+                                               enable=item["isActive"],
+                                               opacity_disable=item["OpacityDisable"],
+                                               hint=item["Hint"],
+                                               next_items=next_items_list,
+                                               label=item["Label"],
+                                               label_center=item["LabelCenter"],
+                                               id=item["Id"],
+                                               alternative_label=alternative_label,
+                                               global_label=global_label)
             item_list.add(_item)
 
         elif item["Kind"] == "IncrementalItem":
@@ -322,7 +343,6 @@ class Tracker:
 
     def items_click(self, item_list, mouse_position, button):
         click_found = False
-        print(button)
         for item in item_list:
             if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
                                                element_dimension=(item.get_rect().w, item.get_rect().h)):

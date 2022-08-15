@@ -62,7 +62,6 @@ class SubMenuItem(Item):
             items_datas.append(item.get_data())
 
         data["submenu_items"] = items_datas
-        print(self.id)
         return data
 
     def set_data(self, datas):

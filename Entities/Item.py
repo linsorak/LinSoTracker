@@ -85,6 +85,9 @@ class Item(pygame.sprite.Sprite):
         tempSurface = pygame.Surface((400, 400)).convert_alpha()
         tsurf, tpos = ptext.draw(str(text), (0, 0), fontname=font_name, antialias=True,
                                  owidth=o_width, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=tempSurface)
+
+        ptext.MEMORY_REDUCTION_FACTOR = 0
+        ptext.AUTO_CLEAN = True
         return tsurf, tpos
 
     def get_name(self):

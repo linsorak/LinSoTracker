@@ -138,7 +138,6 @@ class TemplateChecker:
             self.errors.append(self.ERROR_MISSING_SECTION_IN.format("Label", section_name))
 
     def __check_evolution_item(self, section, index):
-        print(len(section))
         if len(section.keys()) >= 11:
             self.__check_label(section, "Item ID = {}".format(index))
             self.__check_element_is_in_section_and_valid("LabelCenter", section, "Item ID = {}".format(index), bool)
@@ -283,6 +282,8 @@ class TemplateChecker:
                     elif item["Kind"] == "Item":
                         pass
                     elif item["Kind"] == "SubMenuItem":
+                        pass
+                    elif item["Kind"] == "AlternateEvolutionItem":
                         pass
                     else:
                         self.errors.append("Kind of Item '{} | ID = {} doesn't exist'".format(item["Kind"], i))

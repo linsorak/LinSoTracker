@@ -1,13 +1,16 @@
+import contextlib
 import json
 import os
 import shutil
 import sys
 import tempfile
-import platform
+from contextlib import contextmanager
 from urllib.error import URLError
 from urllib.request import urlopen
 
 import pygame
+
+from Tools import ptext
 
 
 class Singleton(type):
@@ -21,6 +24,7 @@ class Singleton(type):
 
 class CoreService(metaclass=Singleton):
     def __init__(self):
+        self.temp_dir_delete = None
         self.official_template = None
         self.new_version = None
         self.background_color = (0, 0, 0)
@@ -42,18 +46,27 @@ class CoreService(metaclass=Singleton):
         elif __file__:
             self.app_path = os.path.dirname(__file__).replace("Tools", "")
 
-        if platform == "win32":
-            self.temp_path_fixe = os.path.join(self.temp_path, self.app_name)
-        else:
-            self.temp_path_fixe = os.path.expanduser(os.path.join(self.temp_path, self.app_name))
+        self.temp_path_fixe = os.path.join(os.path.expanduser('~/Documents'), self.app_name)
 
-        with tempfile.TemporaryDirectory("-LinSoTracker") as tmpdirname:
+        with self.tempdir() as tmpdirname:
             self.temp_path = tmpdirname
 
-        self.create_directory(path=self.temp_path)
+        self.create_directory(path=self.temp_path_fixe)
         self.read_checker()
         self.load_default_configuration()
 
+    @contextmanager
+    def tempdir(self):
+        path = tempfile.mkdtemp(suffix="-LinSoTracker")
+        try:
+            yield path
+        finally:
+            try:
+                ptext.clean()
+                shutil.rmtree(path)
+                # self.delete_directory(path)
+            except IOError:
+                sys.stderr.write('Failed to clean up temp dir {}'.format(path))
 
     def set_current_tracker_name(self, name):
         self.current_tracker_name = name
@@ -104,7 +117,6 @@ class CoreService(metaclass=Singleton):
                     self.draw_esc_menu_label = data["showESCLabel"]
                 else:
                     self.draw_esc_menu_label = True
-
 
     def read_checker(self):
         url = "http://linsotracker.com/tracker_data/checker.json"
@@ -169,6 +181,9 @@ class CoreService(metaclass=Singleton):
         else:
             return True
 
+    def delete_temp_path(self):
+        self.delete_directory(self.temp_path)
+
     @staticmethod
     def setgamewindowcenter(x=500, y=100):
         os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x, y)
@@ -204,6 +219,9 @@ class CoreService(metaclass=Singleton):
                         os.unlink(file_path)
                     elif os.path.isdir(file_path):
                         shutil.rmtree(file_path, ignore_errors=True)
+
+                    os.rmdir(path)
+                    print("Delete " + path)
                 except Exception as e:
                     pass
 
@@ -211,9 +229,9 @@ class CoreService(metaclass=Singleton):
     def is_on_element(mouse_positions, element_positons, element_dimension):
         deadzone = 2
         return ((mouse_positions[0] >= element_positons[0] + deadzone) & (
-                    mouse_positions[0] <= (element_positons[0] + element_dimension[0]) - deadzone) &
+                mouse_positions[0] <= (element_positons[0] + element_dimension[0]) - deadzone) &
                 (mouse_positions[1] >= element_positons[1] + deadzone) & (
-                            mouse_positions[1] <= (element_positons[1] + element_dimension[1]) - deadzone))
+                        mouse_positions[1] <= (element_positons[1] + element_dimension[1]) - deadzone))
 
     @staticmethod
     def launch_app(path):

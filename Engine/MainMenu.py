@@ -334,7 +334,6 @@ class MainMenu:
                 "valid": template_checker.is_valid()
             }
 
-
             print(template_data["filename"], template_checker.errors)
 
             if self.official_template:
@@ -354,8 +353,11 @@ class MainMenu:
 
     @staticmethod
     def draw_text(text, font_name, color, font_size, surface, position, outline=2):
-        return ptext.draw(str(text), position, fontname=font_name, antialias=True,
+        tsurf, tpos = ptext.draw(str(text), position, fontname=font_name, antialias=True,
                           owidth=outline, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=surface)
+        ptext.MEMORY_REDUCTION_FACTOR = 0
+        ptext.AUTO_CLEAN = True
+        return tsurf, tpos
 
     def click(self, mouse_position, button):
         if not self.loaded_tracker:

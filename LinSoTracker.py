@@ -1,4 +1,6 @@
+import gc
 import os
+import sys
 import tkinter
 
 import pygame
@@ -24,30 +26,40 @@ def main():
     loop = True
     mouse_position = None
 
-    while loop:
-        background_color = core_service.get_background_color()
-        screen.fill(background_color)
-        events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.QUIT:
-                loop = False
+    try:
+        while loop:
+            background_color = core_service.get_background_color()
+            screen.fill(background_color)
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    loop = False
+                    break
 
-            if event.type == pygame.MOUSEMOTION:
-                mouse_position = pygame.mouse.get_pos()
-                main_menu.mouse_move(mouse_position)
+                if event.type == pygame.MOUSEMOTION:
+                    mouse_position = pygame.mouse.get_pos()
+                    main_menu.mouse_move(mouse_position)
 
-            if event.type == pygame.MOUSEBUTTONUP:
-                main_menu.click(mouse_position, event.button)
+                if event.type == pygame.MOUSEBUTTONUP:
+                    main_menu.click(mouse_position, event.button)
 
-            if event.type == pygame.KEYUP:
-                main_menu.keyup(event.key, screen)
+                if event.type == pygame.KEYUP:
+                    main_menu.keyup(event.key, screen)
 
-        clock.tick(30)
-        main_menu.draw(screen)
-        main_menu.events(events)
-        pygame.display.update()
+            clock.tick(30)
+            main_menu.draw(screen)
+            main_menu.events(events)
+            pygame.display.update()
 
-    pygame.quit()
+            if not loop:
+                del main_menu
+                gc.collect()
+                core_service.delete_temp_path()
+
+        pygame.quit()
+    except SystemExit:
+        core_service.delete_temp_path()
+        pygame.quit()
 
 
 if __name__ == '__main__':

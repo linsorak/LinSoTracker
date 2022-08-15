@@ -64,12 +64,18 @@ class EvolutionItem(Item):
             else:
                 draw_label = next_item["Label"]
 
+            image_draw = self.image.copy()
+            if not self.enable:
+                image_draw = self.image.convert_alpha()
+                self.core_service.convert_to_gs(image_draw)
+                image_draw = self.alpha_image(image_draw)
+
             self.image = self.get_drawing_text(font=font,
                                                color_category=color_category,
                                                text=draw_label,
                                                font_path=font_path,
-                                               base_image=self.image,
-                                               image_surface=self.image,
+                                               base_image=image_draw,
+                                               image_surface=image_draw,
                                                text_position=position)
 
 
