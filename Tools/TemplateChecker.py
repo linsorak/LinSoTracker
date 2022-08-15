@@ -92,6 +92,7 @@ class TemplateChecker:
             self.errors.append(self.ERROR_MISSING_SECTION_IN.format(element, "Fonts"))
 
     def __check_item(self, section, index):
+        self.__check_element_is_in_section_and_valid("Id", section, "Item ID = {}".format(index), int)
         self.__check_element_is_in_section_and_valid("Kind", section, "Item ID = {}".format(index), str)
         self.__check_element_is_in_section_and_valid("Name", section, "Item ID = {}".format(index), str)
         self.__positions_check("Positions", section, "Item ID = {}".format(index))
@@ -101,7 +102,6 @@ class TemplateChecker:
         if "Hint" in section.keys():
             if not isinstance(section["Hint"], str):
                 if section["Hint"] is not None:
-                    print(section["Hint"])
                     self.errors.append(
                         self.ERROR_IS_NOT_IN_EXCEPTED_TYPE.format("Hint" + "." + "Item ID = {}".format(index), str))
         else:
@@ -110,7 +110,7 @@ class TemplateChecker:
         self.__check_element_is_in_section_and_valid("OpacityDisable", section, "Item ID = {}".format(index), float)
 
     def __check_incremental_item(self, section, index):
-        if len(section.keys()) == 8:
+        if len(section.keys()) == 9:
             if "Increment" in section:
                 if isinstance(section["Increment"], list):
                     if len(section["Increment"]) > 0:
@@ -138,7 +138,8 @@ class TemplateChecker:
             self.errors.append(self.ERROR_MISSING_SECTION_IN.format("Label", section_name))
 
     def __check_evolution_item(self, section, index):
-        if len(section.keys()) == 10:
+        print(len(section))
+        if len(section.keys()) >= 11:
             self.__check_label(section, "Item ID = {}".format(index))
             self.__check_element_is_in_section_and_valid("LabelCenter", section, "Item ID = {}".format(index), bool)
 
@@ -161,7 +162,8 @@ class TemplateChecker:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def __check_subitem_evolution_item(self, section, index):
-        if len(section.keys()) == 3:
+        if len(section.keys()) >= 4:
+            self.__check_element_is_in_section_and_valid("Id", section, "Item ID = {}".format(index), int)
             self.__check_element_is_in_section_and_valid("Name", section, "Item ID = {}".format(index), str)
             self.__sheet_positions_check("SheetPositions", section, "Item ID = {}".format(index))
             self.__check_label(section, "Item ID = {}".format(index))
@@ -169,7 +171,7 @@ class TemplateChecker:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def __check_count_item(self, section, index):
-        if len(section.keys()) == 11:
+        if len(section.keys()) == 12:
             self.__check_element_is_in_section_and_valid("valueMin", section, "Item ID = {}".format(index), int)
             self.__check_element_is_in_section_and_valid("valueMax", section, "Item ID = {}".format(index), int)
             self.__check_element_is_in_section_and_valid("valueIncrease", section, "Item ID = {}".format(index), int)
@@ -179,14 +181,14 @@ class TemplateChecker:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def __check_alternate_count_item(self, section, index):
-        if len(section.keys()) == 9:
+        if len(section.keys()) == 10:
             self.__check_element_is_in_section_and_valid("maxValue", section, "Item ID = {}".format(index), int)
             self.__check_element_is_in_section_and_valid("maxValueAlternate", section, "Item ID = {}".format(index), int)
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def __check_label_item(self, section, index):
-        if len(section.keys()) == 8:
+        if len(section.keys()) >= 9:
             if "LabelList" in section.keys():
                 if isinstance(section["LabelList"], list):
                     if len(section["LabelList"]) > 0:
@@ -202,13 +204,13 @@ class TemplateChecker:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def _check_check_item(self, section, index):
-        if len(section.keys()) == 8:
+        if len(section.keys()) == 9:
             self.__sheet_positions_check("CheckImageSheetPositions", section, "Item ID = {}".format(index))
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def __check_go_mode_item(self, section, index):
-        if len(section.keys()) == 8:
+        if len(section.keys()) == 9:
             self.__check_element_is_in_section_and_valid("BackgroundGlow", section, "Item ID = {}".format(index), str)
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
@@ -219,7 +221,8 @@ class TemplateChecker:
             self.__is_on_main_structure("Datas", self.template_json_data[1])
             self.__is_on_main_structure("Fonts", self.template_json_data[2])
             self.__is_on_main_structure("Items", self.template_json_data[3])
-
+        elif len(self.template_json_data) == 5:
+            self.__is_on_main_structure("Maps", self.template_json_data[4])
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Main"))
 
@@ -261,7 +264,7 @@ class TemplateChecker:
             item = items[i]
 
             if "Kind" in item.keys():
-                if len(item.keys()) >= 7:
+                if len(item.keys()) >= 8:
                     self.__check_item(item, i)
                     if item["Kind"] == "IncrementalItem":
                         self.__check_incremental_item(item, i)
@@ -278,6 +281,8 @@ class TemplateChecker:
                     elif item["Kind"] == "GoModeItem":
                         self.__check_go_mode_item(item, i)
                     elif item["Kind"] == "Item":
+                        pass
+                    elif item["Kind"] == "SubMenuItem":
                         pass
                     else:
                         self.errors.append("Kind of Item '{} | ID = {} doesn't exist'".format(item["Kind"], i))

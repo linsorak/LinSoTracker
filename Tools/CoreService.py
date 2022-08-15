@@ -26,7 +26,8 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.0.4.2-BETA"
+        self.version = "2.0.5.0-BETA"
+        self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
         self.zoom = 1
@@ -41,14 +42,13 @@ class CoreService(metaclass=Singleton):
         elif __file__:
             self.app_path = os.path.dirname(__file__).replace("Tools", "")
 
-        # if platform == "win32":
-        #     self.temp_path = os.path.join(self.temp_path, self.app_name)
-        # else:
-        #     self.temp_path = os.path.expanduser(os.path.join(self.temp_path, self.app_name))
+        if platform == "win32":
+            self.temp_path_fixe = os.path.join(self.temp_path, self.app_name)
+        else:
+            self.temp_path_fixe = os.path.expanduser(os.path.join(self.temp_path, self.app_name))
 
         with tempfile.TemporaryDirectory("-LinSoTracker") as tmpdirname:
             self.temp_path = tmpdirname
-            print('created temporary directory', tmpdirname)
 
         self.create_directory(path=self.temp_path)
         self.read_checker()
@@ -62,7 +62,7 @@ class CoreService(metaclass=Singleton):
         return self.current_tracker_name
 
     def save_configuration(self, session, value):
-        user_configuration = os.path.join(self.temp_path, "user.conf")
+        user_configuration = os.path.join(self.temp_path_fixe, "user.conf")
         if os.path.exists(user_configuration):
             data = []
             with open(user_configuration) as f:
@@ -73,7 +73,7 @@ class CoreService(metaclass=Singleton):
                 json.dump(data, f, indent=2)
 
     def load_default_configuration(self):
-        user_configuration = os.path.join(self.temp_path, "user.conf")
+        user_configuration = os.path.join(self.temp_path_fixe, "user.conf")
         if not os.path.exists(user_configuration):
             data = {}
             data["defaultZoom"] = 0

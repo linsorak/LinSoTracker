@@ -1,5 +1,6 @@
 import json
 import os
+from tkinter import messagebox
 from zipfile import ZipFile
 import gc
 import pygame
@@ -12,14 +13,18 @@ from Entities.GoModeItem import GoModeItem
 from Entities.IncrementalItem import IncrementalItem
 from Entities.Item import Item
 from Entities.LabelItem import LabelItem
+from Entities.SubMenuItem import SubMenuItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
+from Tools.DropDown import DropDown
 from Tools.ImageSheet import ImageSheet
-from Tools.TemplateChecker import TemplateChecker
+from Tools.SaveLoadTool import SaveLoadTool
 
 
 class Tracker:
     def __init__(self, template_name, main_menu):
+        self.map_image_filename = None
+        self.map_position = None
         self.main_menu = main_menu
         self.kinds = None
         self.test_img = None
@@ -28,6 +33,10 @@ class Tracker:
         self.tracker_json_data = None
         self.resources_path = None
         self.background_image = None
+        self.maps_datas = None
+        self.list_map = None
+        self.map_image = None
+        self.submenus = pygame.sprite.Group()
         self.items = pygame.sprite.Group()
         self.template_name = template_name
         self.core_service = CoreService()
@@ -41,6 +50,7 @@ class Tracker:
         self.core_service.set_tracker_temp_path(self.resources_path)
         self.core_service.set_current_tracker_name(self.template_name)
         self.init_items()
+        self.init_maps_datas()
         self.menu.set_zoom_index(self.core_service.zoom_index)
         self.menu.set_sound_check(self.core_service.sound_active)
         self.menu.set_esc_check(self.core_service.draw_esc_menu_label)
@@ -54,9 +64,15 @@ class Tracker:
         save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")
         if os.path.exists(save_directory):
             save_name = os.path.join(save_directory, self.template_name + ".trackersave")
+
+            save_tool = SaveLoadTool()
             if os.path.exists(save_name):
-                f = open(save_name)
-                self.load_data(json.load(f))
+                f = save_tool.loadEcryptedFile(save_name)
+                if f:
+                    if f[0]["template_name"] == self.template_name:
+                        self.load_data(f)
+                    else:
+                        messagebox.showerror('Error', 'This save is for the template {}'.format(f[0]["template_name"]))
 
     def extract_data(self):
         filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
@@ -66,8 +82,6 @@ class Tracker:
         self.core_service.create_directory(self.resources_path)
         if os.path.isfile(filename):
             zip = ZipFile(filename)
-            # zip.extractall(self.resources_path)
-            # zip.close()
             list_files = zip.namelist()
             for file in list_files:
                 try:
@@ -89,6 +103,9 @@ class Tracker:
         self.core_service.setgamewindowcenter(w, h)
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
 
+        if self.map_image:
+            self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
+
         json_data_item_sheet = self.tracker_json_data[1]["Datas"]["ItemSheet"]
         json_data_item_sheet_dimensions = self.tracker_json_data[1]["Datas"]["ItemSheetDimensions"]
         self.items_sheet = self.bank.addImage(os.path.join(self.resources_path, json_data_item_sheet))
@@ -105,157 +122,241 @@ class Tracker:
         self.menu.set_tracker(self)
         self.esc_menu_image = self.bank.addImage(os.path.join(self.resources_base_path, "menu.png"))
 
-    def init_items(self):
-        # itemList = []
-        for item in self.tracker_json_data[3]["Items"]:
-            id = len(self.items)
+    def init_maps_datas(self):
+        if len(self.tracker_json_data) > 4:
+            if "Maps" in self.tracker_json_data[4].keys():
+                self.maps_datas = []
+                maps_list = []
+                name_list = []
+                maps = self.tracker_json_data[4]["Maps"]
+                maps_data = maps["Datas"]
+                for map in maps_data:
+                    filename = os.path.join(self.resources_path, map["Datas"])
+                    if os.path.isfile(filename):
+                        with open(filename, 'r') as file:
+                            json_datas = json.load(file)
+                            self.maps_datas.append(json_datas)
+                            name_list.append(json_datas[0]["Datas"]["Name"])
 
-            # if item["Name"] in itemList:
-            #     print("DOUBLON", item["Name"])
-            # else:
-            #     itemList.append(item["Name"])
+                font = self.core_service.get_font("mapListFont")
+                font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+                transparent_color = (255, 255, 255, 0)
+                background_color = (
+                    font["Colors"]["BackgroundMenuList"]["r"], font["Colors"]["BackgroundMenuList"]["r"],
+                    font["Colors"]["BackgroundMenuList"]["b"])
+                text_color = (font["Colors"]["Font"]["r"], font["Colors"]["Font"]["r"], font["Colors"]["Font"]["b"])
+                self.list_map = DropDown(
+                    background_color,
+                    background_color,
+                    text_color,
+                    maps["MapsListDimensions"]["x"],
+                    maps["MapsListDimensions"]["y"],
+                    maps["MapsListDimensions"]["width"],
+                    maps["MapsListDimensions"]["height"],
+                    pygame.font.SysFont(None, 30),
+                    name_list[0],
+                    name_list)
 
-            item_image = self.core_service.zoom_image(
-                self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
-                                                               column=item["SheetPositions"]["column"]))
+                self.map_image_filename = self.maps_datas[0][0]["Datas"]["Background"]
+                self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
+                self.map_position = self.maps_datas[0][0]["Datas"]["Positions"]
 
-            if item["Kind"] == "AlternateCountItem":
-                item = AlternateCountItem(name=item["Name"],
-                                          image=item_image,
-                                          position=(item["Positions"]["x"] * self.core_service.zoom,
-                                                    item["Positions"]["y"] * self.core_service.zoom),
-                                          enable=item["isActive"],
-                                          hint=item["Hint"],
-                                          opacity_disable=item["OpacityDisable"],
-                                          max_value=item["maxValue"],
-                                          max_value_alternate=item["maxValueAlternate"],
-                                          id=id)
-                self.items.add(item)
-            elif item["Kind"] == "GoModeItem":
-                background_glow = self.bank.addZoomImage(os.path.join(self.resources_path, item["BackgroundGlow"]))
-                item = GoModeItem(name=item["Name"],
-                                  image=item_image,
-                                  position=(item["Positions"]["x"] * self.core_service.zoom,
-                                            item["Positions"]["y"] * self.core_service.zoom),
-                                  enable=item["isActive"],
-                                  hint=item["Hint"],
-                                  opacity_disable=item["OpacityDisable"],
-                                  background_glow=background_glow,
-                                  id=id)
-                self.items.add(item)
-            elif item["Kind"] == "CheckItem":
-                check_image = self.core_service.zoom_image(
-                    self.items_sheet_data.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
-                                                                   column=item["CheckImageSheetPositions"]["column"]))
-                item = CheckItem(name=item["Name"],
-                                 image=item_image,
-                                 position=(item["Positions"]["x"] * self.core_service.zoom,
-                                           item["Positions"]["y"] * self.core_service.zoom),
-                                 enable=item["isActive"],
-                                 hint=item["Hint"],
-                                 opacity_disable=item["OpacityDisable"],
-                                 check_image=check_image,
-                                 id=id)
-                self.items.add(item)
-            elif item["Kind"] == "LabelItem":
-                item = LabelItem(name=item["Name"],
-                                 image=item_image,
-                                 position=(item["Positions"]["x"] * self.core_service.zoom,
-                                           item["Positions"]["y"] * self.core_service.zoom),
-                                 enable=item["isActive"],
-                                 hint=item["Hint"],
-                                 opacity_disable=item["OpacityDisable"],
-                                 label_list=item["LabelList"],
-                                 id=id)
-                self.items.add(item)
-            elif item["Kind"] == "CountItem":
-                item = CountItem(name=item["Name"],
-                                 image=item_image,
-                                 position=(item["Positions"]["x"] * self.core_service.zoom,
-                                           item["Positions"]["y"] * self.core_service.zoom),
-                                 enable=item["isActive"],
-                                 hint=item["Hint"],
-                                 opacity_disable=item["OpacityDisable"],
-                                 min_value=item["valueMin"],
-                                 max_value=item["valueMax"],
-                                 value_increase=item["valueIncrease"],
-                                 value_start=item["valueStart"],
-                                 id=id)
-                self.items.add(item)
-            elif item["Kind"] == "EvolutionItem":
-                next_items_list = []
-                for next_item in item["NextItems"]:
-                    temp_item = {}
-                    temp_item["Name"] = next_item["Name"]
-                    temp_item["Image"] = self.core_service.zoom_image(
-                        self.items_sheet_data.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"],
-                                                                       column=next_item["SheetPositions"]["column"]))
-                    temp_item["Label"] = next_item["Label"]
-                    next_items_list.append(temp_item)
+    def change_map(self, map_name):
+        pass
 
-                item = EvolutionItem(name=item["Name"],
-                                     image=item_image,
-                                     position=(item["Positions"]["x"] * self.core_service.zoom,
-                                               item["Positions"]["y"] * self.core_service.zoom),
-                                     enable=item["isActive"],
-                                     opacity_disable=item["OpacityDisable"],
-                                     hint=item["Hint"],
-                                     next_items=next_items_list,
-                                     label=item["Label"],
-                                     label_center=item["LabelCenter"],
-                                     id=id)
-                self.items.add(item)
+    def init_item(self, item, item_list):
+        item_image = self.core_service.zoom_image(
+            self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
+                                                           column=item["SheetPositions"]["column"]))
 
-            elif item["Kind"] == "IncrementalItem":
-                item = IncrementalItem(name=item["Name"],
+        if item["Kind"] == "AlternateCountItem":
+            _item = AlternateCountItem(name=item["Name"],
                                        image=item_image,
                                        position=(item["Positions"]["x"] * self.core_service.zoom,
                                                  item["Positions"]["y"] * self.core_service.zoom),
                                        enable=item["isActive"],
-                                       opacity_disable=item["OpacityDisable"],
                                        hint=item["Hint"],
-                                       increments=item["Increment"],
-                                       id=id)
-                self.items.add(item)
-            elif item["Kind"] == "Item":
-                item = Item(name=item["Name"],
-                            image=item_image,
-                            position=(item["Positions"]["x"] * self.core_service.zoom,
-                                      item["Positions"]["y"] * self.core_service.zoom),
-                            enable=item["isActive"],
-                            hint=item["Hint"],
-                            opacity_disable=item["OpacityDisable"],
-                            id=id)
-                self.items.add(item)
+                                       opacity_disable=item["OpacityDisable"],
+                                       max_value=item["maxValue"],
+                                       max_value_alternate=item["maxValueAlternate"],
+                                       id=item["Id"])
+            item_list.add(_item)
+        elif item["Kind"] == "GoModeItem":
+            background_glow = self.bank.addZoomImage(os.path.join(self.resources_path, item["BackgroundGlow"]))
+            _item = GoModeItem(name=item["Name"],
+                               image=item_image,
+                               position=(item["Positions"]["x"] * self.core_service.zoom,
+                                         item["Positions"]["y"] * self.core_service.zoom),
+                               enable=item["isActive"],
+                               hint=item["Hint"],
+                               opacity_disable=item["OpacityDisable"],
+                               background_glow=background_glow,
+                               id=item["Id"])
+            item_list.add(_item)
+        elif item["Kind"] == "CheckItem":
+            check_image = self.core_service.zoom_image(
+                self.items_sheet_data.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
+                                                               column=item["CheckImageSheetPositions"]["column"]))
+            _item = CheckItem(name=item["Name"],
+                              image=item_image,
+                              position=(item["Positions"]["x"] * self.core_service.zoom,
+                                        item["Positions"]["y"] * self.core_service.zoom),
+                              enable=item["isActive"],
+                              hint=item["Hint"],
+                              opacity_disable=item["OpacityDisable"],
+                              check_image=check_image,
+                              id=item["Id"])
+            item_list.add(_item)
+        elif item["Kind"] == "LabelItem":
+            offset = 0
+            if "OffsetLabel" in item:
+                offset = item["OffsetLabel"]
+            _item = LabelItem(name=item["Name"],
+                              image=item_image,
+                              position=(item["Positions"]["x"] * self.core_service.zoom,
+                                        item["Positions"]["y"] * self.core_service.zoom),
+                              enable=item["isActive"],
+                              hint=item["Hint"],
+                              opacity_disable=item["OpacityDisable"],
+                              label_list=item["LabelList"],
+                              label_offset=offset,
+                              id=item["Id"])
+            item_list.add(_item)
+        elif item["Kind"] == "CountItem":
+            _item = CountItem(name=item["Name"],
+                              image=item_image,
+                              position=(item["Positions"]["x"] * self.core_service.zoom,
+                                        item["Positions"]["y"] * self.core_service.zoom),
+                              enable=item["isActive"],
+                              hint=item["Hint"],
+                              opacity_disable=item["OpacityDisable"],
+                              min_value=item["valueMin"],
+                              max_value=item["valueMax"],
+                              value_increase=item["valueIncrease"],
+                              value_start=item["valueStart"],
+                              id=item["Id"])
+            item_list.add(_item)
+        elif item["Kind"] == "EvolutionItem":
+            alternative_label = None
+            next_items_list = []
+            for next_item in item["NextItems"]:
+                temp_item = {}
+                temp_item["Name"] = next_item["Name"]
+                temp_item["Image"] = self.core_service.zoom_image(
+                    self.items_sheet_data.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"],
+                                                                   column=next_item["SheetPositions"]["column"]))
+                temp_item["Label"] = next_item["Label"]
+                if "AlternativeLabel" in next_item:
+                    temp_item["AlternativeLabel"] = next_item["AlternativeLabel"]
+
+                next_items_list.append(temp_item)
+
+            if "AlternativeLabel" in item:
+                alternative_label = item["AlternativeLabel"]
+
+            _item = EvolutionItem(name=item["Name"],
+                                  image=item_image,
+                                  position=(item["Positions"]["x"] * self.core_service.zoom,
+                                            item["Positions"]["y"] * self.core_service.zoom),
+                                  enable=item["isActive"],
+                                  opacity_disable=item["OpacityDisable"],
+                                  hint=item["Hint"],
+                                  next_items=next_items_list,
+                                  label=item["Label"],
+                                  label_center=item["LabelCenter"],
+                                  id=item["Id"],
+                                  alternative_label=alternative_label)
+            item_list.add(_item)
+
+        elif item["Kind"] == "IncrementalItem":
+            _item = IncrementalItem(name=item["Name"],
+                                    image=item_image,
+                                    position=(item["Positions"]["x"] * self.core_service.zoom,
+                                              item["Positions"]["y"] * self.core_service.zoom),
+                                    enable=item["isActive"],
+                                    opacity_disable=item["OpacityDisable"],
+                                    hint=item["Hint"],
+                                    increments=item["Increment"],
+                                    id=item["Id"])
+            item_list.add(_item)
+        elif item["Kind"] == "SubMenuItem":
+            _item = SubMenuItem(name=item["Name"],
+                                image=item_image,
+                                position=(item["Positions"]["x"] * self.core_service.zoom,
+                                          item["Positions"]["y"] * self.core_service.zoom),
+                                enable=item["isActive"],
+                                hint=item["Hint"],
+                                opacity_disable=item["OpacityDisable"],
+                                id=item["Id"],
+                                background_image=item["Background"],
+                                resources_path=self.resources_path,
+                                tracker=self,
+                                items_list=item["ItemsList"])
+
+            item_list.add(_item)
+        elif item["Kind"] == "Item":
+            _item = Item(name=item["Name"],
+                         image=item_image,
+                         position=(item["Positions"]["x"] * self.core_service.zoom,
+                                   item["Positions"]["y"] * self.core_service.zoom),
+                         enable=item["isActive"],
+                         hint=item["Hint"],
+                         opacity_disable=item["OpacityDisable"],
+                         id=item["Id"])
+            item_list.add(_item)
+
+    def init_items(self):
+        for item in self.tracker_json_data[3]["Items"]:
+            self.init_item(item, self.items)
+
+    def items_left_click(self, item_list, mouse_position):
+        for item in item_list:
+            if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
+                                               element_dimension=(item.get_rect().w, item.get_rect().h)):
+                item.left_click()
+                if self.core_service.sound_active:
+                    if item.enable:
+                        self.sound_select.play()
+                    else:
+                        self.sound_cancel.play()
+
+    def items_click(self, item_list, mouse_position, button):
+        click_found = False
+        print(button)
+        for item in item_list:
+            if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
+                                               element_dimension=(item.get_rect().w, item.get_rect().h)):
+                if button == 1:
+                    item.left_click()
+                if button == 2:
+                    item.wheel_click()
+                if button == 3:
+                    item.right_click()
+
+                if self.core_service.sound_active and (button == 1 or button == 3):
+                    if item.enable:
+                        self.sound_select.play()
+                    else:
+                        self.sound_cancel.play()
+                click_found = True
+
+        return click_found
 
     def click(self, mouse_position, button):
-        if button == 1:
-            for item in self.items:
-                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
-                                                   element_dimension=(item.get_rect().w, item.get_rect().h)):
-                    item.left_click()
-                    if self.core_service.sound_active:
-                        if item.enable:
-                            self.sound_select.play()
-                        else:
-                            self.sound_cancel.play()
+        can_click = True
 
-        if button == 2:
-            for item in self.items:
-                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
-                                                   element_dimension=(item.get_rect().w, item.get_rect().h)):
-                    item.wheel_click()
+        for submenu in self.submenus:
+            if submenu.show:
+                can_click = False
+                break
 
-        if button == 3:
-            for item in self.items:
-                if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
-                                                   element_dimension=(item.get_rect().w, item.get_rect().h)):
-                    item.right_click()
-                    if self.core_service.sound_active:
-                        if item.enable:
-                            self.sound_select.play()
-                        else:
-                            self.sound_cancel.play()
+        if can_click:
+            self.items_click(self.items, mouse_position, button)
+
+        else:
+            for submenu in self.submenus:
+                if submenu.show:
+                    submenu.submenu_click(mouse_position, button)
 
     def save_data(self):
         datas = []
@@ -284,10 +385,15 @@ class Tracker:
         datas = self.save_data()
         self.core_service.zoom = value
         self.items = pygame.sprite.Group()
+        self.submenus = pygame.sprite.Group()
         json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
         w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
         h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
+
+        if self.map_image:
+            self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
+
         pygame.display.set_mode((w, h))
         self.init_items()
         self.menu.get_menu().resize(width=w, height=h)
@@ -310,12 +416,26 @@ class Tracker:
         if self.core_service.draw_esc_menu_label:
             screen.blit(self.esc_menu_image, (2, 2))
 
+        if self.list_map:
+            screen.blit(self.map_image, (
+                self.map_position["x"] * self.core_service.zoom, self.map_position["y"] * self.core_service.zoom))
+            self.list_map.draw(screen)
+
+        for submenu in self.submenus:
+            submenu.draw_submenu(screen)
+
     def keyup(self, button, screen):
         if button == pygame.K_ESCAPE:
             if not self.menu.get_menu().is_enabled():
                 self.menu.active(screen)
 
     def events(self, events):
+        if self.list_map:
+            selected_option = self.list_map.update(events)
+            if selected_option >= 0:
+                self.list_map.main = self.list_map.options[selected_option]
+                self.change_map(self.list_map.main)
+
         self.menu.events(events)
 
     def back_main_menu(self):

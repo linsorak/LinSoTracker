@@ -58,7 +58,7 @@ class Item(pygame.sprite.Sprite):
                                       base_image=image,
                                       image_surface=image,
                                       text_position="hint",
-                                      o_width=4)
+                                      o_width=2)
         return image
 
     def left_click(self):
@@ -90,7 +90,7 @@ class Item(pygame.sprite.Sprite):
     def get_name(self):
         return self.name
 
-    def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position, o_width=2):
+    def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position, o_width=2, offset=0):
         if text is not None:
             color = (font["Colors"][color_category]["r"], font["Colors"][color_category]["g"],
                      font["Colors"][color_category]["b"])
@@ -125,7 +125,7 @@ class Item(pygame.sprite.Sprite):
 
             elif text_position == "label":
                 x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
-                y = image_surface.get_rect().h - (tsurf.get_rect().h / 5)
+                y = (image_surface.get_rect().h - (tsurf.get_rect().h / 5)) - (offset * self.core_service.zoom)
                 h = image_surface.get_rect().h + tsurf.get_rect().h
                 if tsurf.get_rect().w > image_surface.get_rect().w:
                     pos_x = image_surface.get_rect().w - tsurf.get_rect().w

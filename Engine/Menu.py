@@ -1,5 +1,6 @@
 import json
 import webbrowser
+from tkinter import messagebox
 from typing import Tuple, Any
 
 import pygame_menu
@@ -94,9 +95,14 @@ class Menu:
     def load(self):
         # data = self.load_file()
         data = self.saveTool.openFileNameDialog()
-        if data:
-            self.tracker.load_data(data)
-            self.menu.disable()
+        try:
+            if data and data[0]["template_name"] == self.tracker.template_name:
+                self.tracker.load_data(data)
+                self.menu.disable()
+            else:
+                messagebox.showerror('Error', 'This save is for the template {}'.format(data[0]["template_name"]))
+        except:
+            messagebox.showerror('Error', 'Something wrong with this save')
 
     def events(self, events):
         if self.menu.is_enabled():

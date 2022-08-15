@@ -4,9 +4,10 @@ from Entities.Item import Item
 
 
 class LabelItem(Item):
-    def __init__(self, id, name, position, image, opacity_disable, hint, enable, label_list):
+    def __init__(self, id, name, position, image, opacity_disable, hint, enable, label_list, label_offset = 0):
         self.label_count = 0
         self.label_list = label_list
+        self.label_offset = label_offset
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                       opacity_disable=opacity_disable,
                       hint=hint)
@@ -22,7 +23,8 @@ class LabelItem(Item):
                                            font_path=font_path,
                                            base_image=self.image,
                                            image_surface=self.image,
-                                           text_position="label")
+                                           text_position="label",
+                                           offset=self.label_offset)
 
     def right_click(self):
         if self.label_count < len(self.label_list) - 1:

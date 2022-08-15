@@ -4,11 +4,12 @@ from Entities.Item import Item
 
 
 class EvolutionItem(Item):
-    def __init__(self, id, name, image, position, enable, opacity_disable, hint, next_items, label, label_center):
+    def __init__(self, id, name, image, position, enable, opacity_disable, hint, next_items, label, label_center, alternative_label=None):
         self.label_center = label_center
         self.label = label
         self.next_item_index = -1
         self.next_items = next_items
+        self.alternative_label = alternative_label
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                       opacity_disable=opacity_disable, hint=hint)
 
@@ -40,6 +41,8 @@ class EvolutionItem(Item):
         font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
         position = "right"
 
+        draw_label = ""
+
         if self.label_center:
             position = "center"
 
@@ -56,9 +59,14 @@ class EvolutionItem(Item):
             else:
                 self.image = next_item["Image"]
 
+            if self.hint_show and ("AlternativeLabel" in next_item):
+                draw_label = next_item["AlternativeLabel"]
+            else:
+                draw_label = next_item["Label"]
+
             self.image = self.get_drawing_text(font=font,
                                                color_category=color_category,
-                                               text=next_item["Label"],
+                                               text=draw_label,
                                                font_path=font_path,
                                                base_image=self.image,
                                                image_surface=self.image,
@@ -71,9 +79,14 @@ class EvolutionItem(Item):
             if len(self.next_items) == 0:
                 color_category = "Max"
 
+            if self.hint_show and self.alternative_label is not None:
+                draw_label = self.alternative_label
+            else:
+                draw_label = self.label
+
             self.image = self.get_drawing_text(font=font,
                                                color_category=color_category,
-                                               text=self.label,
+                                               text=draw_label,
                                                font_path=font_path,
                                                base_image=self.image,
                                                image_surface=self.image,
