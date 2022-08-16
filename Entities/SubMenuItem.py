@@ -35,7 +35,7 @@ class SubMenuItem(Item):
             if item.enable:
                 self.counter += 1
 
-        font = self.core_service.get_font("incrementalItemFont")
+        font = self.core_service.get_font("subMenuItemFont")
         font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
 
         color_category = "Normal"
@@ -45,7 +45,7 @@ class SubMenuItem(Item):
 
         self.image = self.get_drawing_text(font=font,
                                            color_category=color_category,
-                                           text=str(self.counter),
+                                           text="{}/{}".format(self.counter, len(self.items)),
                                            font_path=font_path,
                                            base_image=self.image,
                                            image_surface=self.image,
