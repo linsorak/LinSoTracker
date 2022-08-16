@@ -312,7 +312,8 @@ class Tracker:
                                 background_image=item["Background"],
                                 resources_path=self.resources_path,
                                 tracker=self,
-                                items_list=item["ItemsList"])
+                                items_list=item["ItemsList"],
+                                show_numbers_items_active=item["ShowNumbersOfItemsActive"])
 
             item_list.add(_item)
         elif item["Kind"] == "Item":
@@ -377,6 +378,11 @@ class Tracker:
             for submenu in self.submenus:
                 if submenu.show:
                     submenu.submenu_click(mouse_position, button)
+
+                    for item in self.items:
+                        if type(item) == SubMenuItem:
+                            item.update()
+
 
     def save_data(self):
         datas = []
