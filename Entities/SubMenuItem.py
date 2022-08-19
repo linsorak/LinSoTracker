@@ -62,7 +62,7 @@ class SubMenuItem(Item):
 
     def init_items(self):
         for item in self.items_list:
-            self.tracker.init_item(item, self.items)
+            self.tracker.init_item(item, self.items, self.tracker.items_sheet_data)
 
     def left_click(self):
         if self.show:

@@ -13,6 +13,7 @@ class Item(pygame.sprite.Sprite):
         self.hint = hint
         self.hint_show = False
         self.name = name
+        self.base_name = self.name
         self.opacity_disable = opacity_disable
         self.enable = enable
         self.position = position
@@ -37,6 +38,7 @@ class Item(pygame.sprite.Sprite):
         return self.core_service.set_image_transparent(image=image, opacity_disable=self.opacity_disable)
 
     def update(self):
+        print(self.name)
         if not self.enable:
             # transparent_image = self.grey_image.copy()
             # transparent_image.fill((255, 255, 255, 255 * self.opacity_disable), special_flags=pygame.BLEND_RGBA_MULT)
@@ -66,6 +68,7 @@ class Item(pygame.sprite.Sprite):
             self.enable = False
         else:
             self.enable = True
+
         self.update()
 
     def right_click(self):

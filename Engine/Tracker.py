@@ -165,9 +165,9 @@ class Tracker:
     def change_map(self, map_name):
         pass
 
-    def init_item(self, item, item_list):
+    def init_item(self, item, item_list, items_sheet_image):
         item_image = self.core_service.zoom_image(
-            self.items_sheet_data.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
+            items_sheet_image.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
                                                            column=item["SheetPositions"]["column"]))
 
         if item["Kind"] == "AlternateCountItem":
@@ -196,7 +196,7 @@ class Tracker:
             item_list.add(_item)
         elif item["Kind"] == "CheckItem":
             check_image = self.core_service.zoom_image(
-                self.items_sheet_data.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
+                items_sheet_image.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
                                                                column=item["CheckImageSheetPositions"]["column"]))
             _item = CheckItem(name=item["Name"],
                               image=item_image,
@@ -244,7 +244,7 @@ class Tracker:
                 temp_item = {}
                 temp_item["Name"] = next_item["Name"]
                 temp_item["Image"] = self.core_service.zoom_image(
-                    self.items_sheet_data.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"],
+                    items_sheet_image.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"],
                                                                    column=next_item["SheetPositions"]["column"]))
                 temp_item["Label"] = next_item["Label"]
                 if "AlternativeLabel" in next_item:
@@ -329,7 +329,7 @@ class Tracker:
 
     def init_items(self):
         for item in self.tracker_json_data[3]["Items"]:
-            self.init_item(item, self.items)
+            self.init_item(item, self.items, self.items_sheet_data)
 
     def items_left_click(self, item_list, mouse_position):
         for item in item_list:
@@ -431,8 +431,9 @@ class Tracker:
 
         for item in self.items:
             if type(item) == GoModeItem:
-                item.draw()
-                break
+                if item.enable:
+                    item.draw()
+                    break
 
             # pygame.draw.rect(screen, (255, 255, 255),item.rect)
 

@@ -17,9 +17,12 @@ class EvolutionItem(Item):
         if self.enable:
             if self.next_item_index < len(self.next_items) - 1:
                 self.next_item_index = self.next_item_index + 1
+                next_item = self.next_items[self.next_item_index]
+                self.name = next_item["Name"]
             else:
                 self.next_item_index = -1
                 self.enable = False
+                self.name = self.base_name
         else:
             self.enable = True
         self.update()
@@ -28,11 +31,16 @@ class EvolutionItem(Item):
         if not self.enable:
             self.enable = True
             self.next_item_index = len(self.next_items) - 1
+            next_item = self.next_items[self.next_item_index]
+            self.name = next_item["Name"]
         else:
             if self.next_item_index >= 0:
                 self.next_item_index = self.next_item_index - 1
+                next_item = self.next_items[self.next_item_index]
+                self.name = next_item["Name"]
             else:
                 self.enable = False
+                self.name = self.base_name
         self.update()
 
     def update(self):
