@@ -311,6 +311,20 @@ class MainMenu:
                         surface=screen,
                         position=(x_not_valid, y_not_valid),
                         outline=1.5)
+
+                if "Comments" in self.template_list[self.selected_menu_index]:
+                    x_comments = x_creator
+                    y_comments = y_version + 22
+                    self.draw_text(
+                        text="Comments : {}".format(
+                            self.template_list[self.selected_menu_index]["information"]["Informations"]["Comments"]),
+                        font_name=self.font_data["path"],
+                        color=self.font_data["color_normal"],
+                        font_size=self.font_data["description_size"] * 0.85,
+                        surface=screen,
+                        position=(x_comments, y_comments),
+                        outline=1.5)
+
         else:
             self.loaded_tracker.draw(screen)
 
@@ -334,7 +348,8 @@ class MainMenu:
                 "valid": template_checker.is_valid()
             }
 
-            print(template_data["filename"], template_checker.errors)
+            if "Comments" in data[0]["Informations"]:
+                template_data["Comments"] = data[0]["Informations"]["Comments"]
 
             if self.official_template:
                 for off_template in self.official_template:

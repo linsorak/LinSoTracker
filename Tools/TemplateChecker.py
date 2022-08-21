@@ -228,10 +228,12 @@ class TemplateChecker:
     def __is_information_valid(self):
         informations = self.template_json_data[0]["Informations"]
 
-        if len(informations.keys()) == 3:
+        if len(informations.keys()) >= 3:
             self.__check_element_is_in_section_and_valid("Creator", informations, "Informations", str)
             self.__check_element_is_in_section_and_valid("Name", informations, "Informations", str)
             self.__check_element_is_in_section_and_valid("Version", informations, "Informations", str)
+            if "Comments" in informations:
+                self.__check_element_is_in_section_and_valid("Comments", informations, "Informations", str)
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Informations"))
 

@@ -3,23 +3,25 @@ import os
 
 import pygame
 
+from Entities.CheckItem import CheckItem
 from Entities.Item import Item
 from Tools.Bank import Bank
 
 
 class SubMenuItem(Item):
-    def __init__(self, id, name, image, position, enable, opacity_disable, hint, background_image, resources_path, tracker, items_list, show_numbers_items_active):
+    def __init__(self, id, name, image, position, enable, opacity_disable, hint, background_image, resources_path, tracker, items_list, show_numbers_items_active, show_numbers_checked_items):
         self.background_image_name = background_image
         self.background_image = None
         self.base_image = None
         self.resources_path = resources_path
         self.show_numbers_items_active = show_numbers_items_active
+        self.show_numbers_checked_items = show_numbers_checked_items
         self.show = False
         self.items = pygame.sprite.Group()
         self.bank = Bank()
         self.tracker = tracker
         self.items_list = items_list
-        self.counter = 0
+        self.counter_enable = 0
         self.init_items()
         self.update_background()
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
@@ -30,27 +32,40 @@ class SubMenuItem(Item):
 
     def update(self):
         Item.update(self)
-        self.counter = 0
-        for item in self.items:
-            if item.enable:
-                self.counter += 1
 
-        font = self.core_service.get_font("subMenuItemFont")
-        font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+        if self.show_numbers_items_active:
+            self.counter_enable = 0
+            self.counter_check = 0
+            for item in self.items:
+                if item.enable:
+                    self.counter_enable += 1
+                if type(item) == CheckItem:
+                    if item.check:
+                        self.counter_check += 1
 
-        color_category = "Normal"
+            font = self.core_service.get_font("subMenuItemFont")
+            font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
 
-        if self.counter == len(self.items):
-            color_category = "Max"
+            color_category = "Normal"
 
-        self.image = self.get_drawing_text(font=font,
-                                           color_category=color_category,
-                                           text="{}/{}".format(self.counter, len(self.items)),
-                                           font_path=font_path,
-                                           base_image=self.image,
-                                           image_surface=self.image,
-                                           text_position="right",
-                                           offset=10)
+            if self.counter_enable == len(self.items):
+                color_category = "Max"
+
+            text_draw = "{}/{}"
+
+            if self.show_numbers_checked_items:
+                text_draw = text_draw = text_draw.format(self.counter_check, self.counter_enable)
+            else:
+                text_draw = text_draw.format(self.counter_enable, len(self.items))
+
+            self.image = self.get_drawing_text(font=font,
+                                               color_category=color_category,
+                                               text=text_draw,
+                                               font_path=font_path,
+                                               base_image=self.image,
+                                               image_surface=self.image,
+                                               text_position="right",
+                                               offset=10)
 
     def update_background(self):
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.background_image_name))

@@ -175,6 +175,9 @@ class CoreService(metaclass=Singleton):
     def set_background_color(self, r, g, b):
         self.background_color = (r, g, b)
 
+    def get_color_from_font(self, font_datas, session):
+        return (font_datas["Colors"][session]["r"], font_datas["Colors"][session]["g"], font_datas["Colors"][session]["b"])
+
     def is_update(self):
         if self.get_new_version():
             return False
@@ -183,6 +186,7 @@ class CoreService(metaclass=Singleton):
 
     def delete_temp_path(self):
         self.delete_directory(self.temp_path)
+
 
     @staticmethod
     def setgamewindowcenter(x=500, y=100):
@@ -221,7 +225,6 @@ class CoreService(metaclass=Singleton):
                         shutil.rmtree(file_path, ignore_errors=True)
 
                     os.rmdir(path)
-                    print("Delete " + path)
                 except Exception as e:
                     pass
 

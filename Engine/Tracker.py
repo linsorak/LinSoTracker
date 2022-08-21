@@ -4,6 +4,7 @@ from tkinter import messagebox
 from zipfile import ZipFile
 import gc
 import pygame
+
 from Engine.Menu import Menu
 from Entities.AlternateCountItem import AlternateCountItem
 from Entities.AlternateEvolutionItem import AlternateEvolutionItem
@@ -14,16 +15,19 @@ from Entities.GoModeItem import GoModeItem
 from Entities.IncrementalItem import IncrementalItem
 from Entities.Item import Item
 from Entities.LabelItem import LabelItem
+from Entities.Maps.Map import Map
 from Entities.SubMenuItem import SubMenuItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
 from Tools.DropDown import DropDown
 from Tools.ImageSheet import ImageSheet
+from Tools.MapSelector import MapSelector
 from Tools.SaveLoadTool import SaveLoadTool
 
 
 class Tracker:
     def __init__(self, template_name, main_menu):
+        self.maps_names = []
         self.map_image_filename = None
         self.map_position = None
         self.main_menu = main_menu
@@ -34,9 +38,9 @@ class Tracker:
         self.tracker_json_data = None
         self.resources_path = None
         self.background_image = None
-        self.maps_datas = None
-        self.list_map = None
-        self.map_image = None
+        self.current_map = None
+        self.drop_down_maps_list = None
+        self.maps_list = []
         self.submenus = pygame.sprite.Group()
         self.items = pygame.sprite.Group()
         self.template_name = template_name
@@ -104,8 +108,8 @@ class Tracker:
         self.core_service.setgamewindowcenter(w, h)
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
 
-        if self.map_image:
-            self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
+        # if self.map_image:
+        #     self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
 
         json_data_item_sheet = self.tracker_json_data[1]["Datas"]["ItemSheet"]
         json_data_item_sheet_dimensions = self.tracker_json_data[1]["Datas"]["ItemSheetDimensions"]
@@ -126,41 +130,30 @@ class Tracker:
     def init_maps_datas(self):
         if len(self.tracker_json_data) > 4:
             if "Maps" in self.tracker_json_data[4].keys():
-                self.maps_datas = []
-                maps_list = []
-                name_list = []
+                self.maps_names = []
                 maps = self.tracker_json_data[4]["Maps"]
-                maps_data = maps["Datas"]
-                for map in maps_data:
+                for map in maps:
                     filename = os.path.join(self.resources_path, map["Datas"])
                     if os.path.isfile(filename):
                         with open(filename, 'r') as file:
                             json_datas = json.load(file)
-                            self.maps_datas.append(json_datas)
-                            name_list.append(json_datas[0]["Datas"]["Name"])
 
-                font = self.core_service.get_font("mapListFont")
-                font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
-                transparent_color = (255, 255, 255, 0)
-                background_color = (
-                    font["Colors"]["BackgroundMenuList"]["r"], font["Colors"]["BackgroundMenuList"]["r"],
-                    font["Colors"]["BackgroundMenuList"]["b"])
-                text_color = (font["Colors"]["Font"]["r"], font["Colors"]["Font"]["r"], font["Colors"]["Font"]["b"])
-                self.list_map = DropDown(
-                    background_color,
-                    background_color,
-                    text_color,
-                    maps["MapsListDimensions"]["x"],
-                    maps["MapsListDimensions"]["y"],
-                    maps["MapsListDimensions"]["width"],
-                    maps["MapsListDimensions"]["height"],
-                    pygame.font.SysFont(None, 30),
-                    name_list[0],
-                    name_list)
+                            positions = (
+                                self.background_image.get_rect().w + self.background_image.get_rect().x,
+                                self.background_image.get_rect().y
+                            )
+                            temp_map = Map(json_datas, positions, self, map["Active"])
+                            self.maps_list.append(temp_map)
+                            self.maps_names.append(temp_map.get_name())
+                            if map["Active"]:
+                                self.current_map = temp_map
 
-                self.map_image_filename = self.maps_datas[0][0]["Datas"]["Background"]
-                self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
-                self.map_position = self.maps_datas[0][0]["Datas"]["Positions"]
+                            maps_rect = self.tracker_json_data[4]["MapsList"]["MapsListBox"]["MapsListRect"]
+                #
+                #
+                # self.map_image_filename = self.maps_datas[0][0]["Datas"]["Background"]
+                # self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
+                # self.map_position = self.maps_datas[0][0]["Datas"]["Positions"]
 
     def change_map(self, map_name):
         pass
@@ -168,7 +161,7 @@ class Tracker:
     def init_item(self, item, item_list, items_sheet_image):
         item_image = self.core_service.zoom_image(
             items_sheet_image.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
-                                                           column=item["SheetPositions"]["column"]))
+                                                       column=item["SheetPositions"]["column"]))
 
         if item["Kind"] == "AlternateCountItem":
             _item = AlternateCountItem(name=item["Name"],
@@ -197,7 +190,7 @@ class Tracker:
         elif item["Kind"] == "CheckItem":
             check_image = self.core_service.zoom_image(
                 items_sheet_image.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
-                                                               column=item["CheckImageSheetPositions"]["column"]))
+                                                           column=item["CheckImageSheetPositions"]["column"]))
             _item = CheckItem(name=item["Name"],
                               image=item_image,
                               position=(item["Positions"]["x"] * self.core_service.zoom,
@@ -245,7 +238,7 @@ class Tracker:
                 temp_item["Name"] = next_item["Name"]
                 temp_item["Image"] = self.core_service.zoom_image(
                     items_sheet_image.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"],
-                                                                   column=next_item["SheetPositions"]["column"]))
+                                                               column=next_item["SheetPositions"]["column"]))
                 temp_item["Label"] = next_item["Label"]
                 if "AlternativeLabel" in next_item:
                     temp_item["AlternativeLabel"] = next_item["AlternativeLabel"]
@@ -313,7 +306,8 @@ class Tracker:
                                 resources_path=self.resources_path,
                                 tracker=self,
                                 items_list=item["ItemsList"],
-                                show_numbers_items_active=item["ShowNumbersOfItemsActive"])
+                                show_numbers_items_active=item["ShowNumbersOfItemsActive"],
+                                show_numbers_checked_items=item["ShowNumberOfCheckedItems"])
 
             item_list.add(_item)
         elif item["Kind"] == "Item":
@@ -343,7 +337,6 @@ class Tracker:
                         self.sound_cancel.play()
 
     def items_click(self, item_list, mouse_position, button):
-        click_found = False
         for item in item_list:
             if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
                                                element_dimension=(item.get_rect().w, item.get_rect().h)):
@@ -359,9 +352,8 @@ class Tracker:
                         self.sound_select.play()
                     else:
                         self.sound_cancel.play()
-                click_found = True
-
-        return click_found
+                return True
+        return False
 
     def click(self, mouse_position, button):
         can_click = True
@@ -372,7 +364,18 @@ class Tracker:
                 break
 
         if can_click:
-            self.items_click(self.items, mouse_position, button)
+            if self.current_map:
+                self.current_map.click(mouse_position, button)
+                self.current_map.update()
+
+                if not self.current_map.checks_list_open:
+                    self.items_click(self.items, mouse_position, button)
+                    self.current_map.update()
+
+            else:
+                self.items_click(self.items, mouse_position, button)
+                if self.current_map:
+                    self.current_map.update()
 
         else:
             for submenu in self.submenus:
@@ -382,7 +385,6 @@ class Tracker:
                     for item in self.items:
                         if type(item) == SubMenuItem:
                             item.update()
-
 
     def save_data(self):
         datas = []
@@ -416,14 +418,19 @@ class Tracker:
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
         w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
         h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
+        maps_rect = self.tracker_json_data[4]["MapsList"]["MapsListBox"]["MapsListRect"]
 
-        if self.map_image:
-            self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
+        # if self.map_image:
+        #     self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
+
+        if self.current_map:
+            self.current_map.update()
 
         pygame.display.set_mode((w, h))
         self.init_items()
         self.menu.get_menu().resize(width=w, height=h)
         self.load_data(datas)
+
 
     def draw(self, screen):
         screen.blit(self.background_image, (0, 0))
@@ -443,13 +450,12 @@ class Tracker:
         if self.core_service.draw_esc_menu_label:
             screen.blit(self.esc_menu_image, (2, 2))
 
-        if self.list_map:
-            screen.blit(self.map_image, (
-                self.map_position["x"] * self.core_service.zoom, self.map_position["y"] * self.core_service.zoom))
-            self.list_map.draw(screen)
-
         for submenu in self.submenus:
             submenu.draw_submenu(screen)
+
+        if self.current_map:
+            self.current_map.draw(screen)
+
 
     def keyup(self, button, screen):
         if button == pygame.K_ESCAPE:
@@ -457,12 +463,6 @@ class Tracker:
                 self.menu.active(screen)
 
     def events(self, events):
-        if self.list_map:
-            selected_option = self.list_map.update(events)
-            if selected_option >= 0:
-                self.list_map.main = self.list_map.options[selected_option]
-                self.change_map(self.list_map.main)
-
         self.menu.events(events)
 
     def back_main_menu(self):
@@ -474,3 +474,23 @@ class Tracker:
 
         del self.items
         gc.collect()
+
+    def have(self, item_name):
+        for item in self.items:
+            if item.name == item_name:
+                if item.enable:
+                    return True
+                else:
+                    return False
+
+        return False
+
+    def do(self, action):
+        actions_list = self.tracker_json_data[4]["ActionsConditions"]
+        if action in actions_list:
+            if type(actions_list[action]) == str:
+                action_do = actions_list[action].replace("have(", "self.have(").replace("do(", "self.do(")
+            else:
+                action_do = action
+            return eval(action_do)
+

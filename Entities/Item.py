@@ -38,7 +38,6 @@ class Item(pygame.sprite.Sprite):
         return self.core_service.set_image_transparent(image=image, opacity_disable=self.opacity_disable)
 
     def update(self):
-        print(self.name)
         if not self.enable:
             # transparent_image = self.grey_image.copy()
             # transparent_image.fill((255, 255, 255, 255 * self.opacity_disable), special_flags=pygame.BLEND_RGBA_MULT)
@@ -96,7 +95,8 @@ class Item(pygame.sprite.Sprite):
     def get_name(self):
         return self.name
 
-    def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position, o_width=2, offset=0):
+    def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position,
+                         o_width=2, offset=0):
         if text is not None:
             color = (font["Colors"][color_category]["r"], font["Colors"][color_category]["g"],
                      font["Colors"][color_category]["b"])
@@ -166,4 +166,3 @@ class Item(pygame.sprite.Sprite):
         self.enable = datas["enable"]
         self.hint_show = datas["hint_show"]
         self.update()
-
