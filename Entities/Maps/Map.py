@@ -72,7 +72,7 @@ class Map:
                 font_size=font["Size"] * self.tracker.core_service.zoom,
                 surface=temp_surface,
                 position=(0, self.map_datas[0]["Datas"]["LabelY"]),
-                outline=2 / self.tracker.core_service.zoom)
+                outline=2 * self.tracker.core_service.zoom)
 
             base_x = self.index_positions[0] * self.tracker.core_service.zoom
             base_x = base_x + (self.checks_list_background.get_rect().w / 2)
@@ -94,7 +94,8 @@ class Map:
             for i in range(0, len(self.current_block_checks.get_checks())):
                 check = self.current_block_checks.get_checks()[i]
                 label_surface = check.get_surface_label()
-                x = self.box_checks.x
+                #x = self.box_checks.x
+                x = self.box_checks.x + (self.box_checks.w / 2) - (label_surface.get_rect().w / 2)
                 y = self.box_checks.y + (label_surface.get_rect().h * i + 5)
                 check.set_position_draw(x, y)
         else:
