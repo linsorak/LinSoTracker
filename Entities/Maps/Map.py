@@ -5,6 +5,7 @@ import pygame
 from Engine import MainMenu
 from Entities.Maps.BlockChecks import BlockChecks
 from Entities.Maps.CheckListItem import CheckListItem
+from Entities.Maps.SimpleCheck import SimpleCheck
 
 
 class Map:
@@ -43,6 +44,11 @@ class Map:
                     block.add_check(temp_check)
 
                 self.checks_list.append(block)
+
+            if "SimpleCheck" in check:
+                simple_check = SimpleCheck(check["SimpleCheck"]["Id"], check["SimpleCheck"]["Name"], check["SimpleCheck"]["Positions"], self, check["SimpleCheck"]["Conditions"])
+                self.checks_list.append(simple_check)
+
 
     def update(self):
         self.map_background = self.tracker.bank.addZoomImage(
@@ -101,8 +107,9 @@ class Map:
                                               self.index_positions[1] * self.tracker.core_service.zoom))
 
             for check in self.checks_list:
-                if type(check) == BlockChecks:
-                    check.draw(screen)
+                #if type(check) == BlockChecks:
+                #    check.draw(screen)
+                check.draw(screen)
 
             if self.current_block_checks:
                 screen.blit(self.checks_list_background, (self.index_positions[0] * self.tracker.core_service.zoom,
@@ -118,15 +125,26 @@ class Map:
     def click(self, mouse_position, button):
         # self.checks_list_open = True
         for check in self.checks_list:
-            if not self.checks_list_open:
+            if type(check) == BlockChecks:
+                if not self.checks_list_open:
+                    if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
+                                                               element_positons=check.get_position(),
+                                                               element_dimension=(check.get_rect().w, check.get_rect().h)):
+                        if button == 1:
+                            print(check.name)
+                            check.left_click(mouse_position)
+                else:
+                    if button == 1:
+                        self.current_block_checks.left_click(mouse_position)
+
+            if type(check) == SimpleCheck:
                 if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
                                                            element_positons=check.get_position(),
                                                            element_dimension=(check.get_rect().w, check.get_rect().h)):
                     if button == 1:
                         check.left_click(mouse_position)
-            else:
-                if button == 1:
-                    self.current_block_checks.left_click(mouse_position)
+
+
             # else:
             #     self.checks_list_open = False
             #     self.current_block_checks = None

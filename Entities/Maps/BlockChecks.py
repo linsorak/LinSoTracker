@@ -13,8 +13,8 @@ class BlockChecks(SimpleCheck):
         self.surface_logic_indicator = None
         self.list_checks = []
         self.show_checks = False
+        self.all_logic = False
         self.logic_cpt = 0
-        self.update()
 
     def add_check(self, check):
         self.list_checks.append(check)
@@ -50,7 +50,6 @@ class BlockChecks(SimpleCheck):
                                     groups_datas["h"] * self.map.tracker.core_service.zoom)
 
         if self.checked:
-            print("ALL CHECKED")
             self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "Done")
         else:
             if self.all_logic:
@@ -58,7 +57,6 @@ class BlockChecks(SimpleCheck):
             else:
                 self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "NotLogic")
 
-        print("self.all_logic = {} | self.checked = {}".format(self.all_logic, self.checked))
 
         temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
         temp_surface = temp_surface.convert_alpha()
@@ -73,7 +71,7 @@ class BlockChecks(SimpleCheck):
             outline=1 * self.map.tracker.core_service.zoom)
 
 
-        x_number = self.pin_rect.x + (self.pin_rect.w / 2) - (self.surface_logic_indicator.get_rect().w / 2)
+        x_number = self.pin_rect.x + (self.pin_rect.w / 2) - (self.surface_logic_indicator.get_rect().w / 2) + (0.5 * self.map.tracker.core_service.zoom)
         # x_number = self.pin_rect.x + self.pin_rect.w
         y_number = self.pin_rect.y + (self.pin_rect.h / 2) - (self.surface_logic_indicator.get_rect().h / 2)
         self.position_logic_indicator = (x_number, y_number)

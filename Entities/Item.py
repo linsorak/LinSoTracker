@@ -67,8 +67,8 @@ class Item(pygame.sprite.Sprite):
             self.enable = False
         else:
             self.enable = True
-
         self.update()
+        print(self.name)
 
     def right_click(self):
         self.left_click()

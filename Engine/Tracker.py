@@ -418,7 +418,8 @@ class Tracker:
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
         w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
         h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
-        maps_rect = self.tracker_json_data[4]["MapsList"]["MapsListBox"]["MapsListRect"]
+        if "MapsList" in self.tracker_json_data:
+            maps_rect = self.tracker_json_data[4]["MapsList"]["MapsListBox"]["MapsListRect"]
 
         # if self.map_image:
         #     self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
