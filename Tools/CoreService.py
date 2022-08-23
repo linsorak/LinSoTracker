@@ -1,10 +1,12 @@
-import contextlib
 import json
 import os
+import platform
 import shutil
 import sys
 import tempfile
+import webbrowser
 from contextlib import contextmanager
+from tkinter import messagebox
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -30,7 +32,7 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.0.5.1-BETA"
+        self.version = "2.0.5.2-BETA"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -128,8 +130,20 @@ class CoreService(metaclass=Singleton):
                 if self.get_version() != data_json["lastest_version"]:
                     self.new_version = data_json["lastest_version"]
 
+                if "block_old_beta" and "block_only_windows" in data_json:
+                    if data_json["block_old_beta"] and (self.get_version() != data_json["lastest_version"]) and \
+                            data_json["block_only_windows"] and self.detect_os() == "win" and ("url_base" in data_json):
+                        MsgBox = messagebox.askquestion('New version detected',
+                                                        'Do you want to download the new version ?', icon='question')
+                        if MsgBox == 'yes':
+                            webbrowser.open(data_json["url_base"].format(self.detect_os(),  data_json["lastest_version"]))
+
+                        exit(1)
+
             if "official_template" in data_json:
                 self.official_template = data_json["official_template"]
+
+
         except URLError:
             pass
 
@@ -176,7 +190,8 @@ class CoreService(metaclass=Singleton):
         self.background_color = (r, g, b)
 
     def get_color_from_font(self, font_datas, session):
-        return (font_datas["Colors"][session]["r"], font_datas["Colors"][session]["g"], font_datas["Colors"][session]["b"])
+        return (
+        font_datas["Colors"][session]["r"], font_datas["Colors"][session]["g"], font_datas["Colors"][session]["b"])
 
     def is_update(self):
         if self.get_new_version():
@@ -187,6 +202,17 @@ class CoreService(metaclass=Singleton):
     def delete_temp_path(self):
         self.delete_directory(self.temp_path)
 
+    @staticmethod
+    def detect_os():
+        if platform.system() == 'Windows':
+            return "win"
+        elif platform.system() == 'Linux':
+            return "linux"
+        elif platform.system() == 'Darwin':
+            if platform.machine() == 'arm64':
+                return "macARM64"
+            else:
+                return "macIntel"
 
     @staticmethod
     def setgamewindowcenter(x=500, y=100):

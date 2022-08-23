@@ -2,8 +2,6 @@ import glob
 import io
 import json
 import os
-from urllib.error import URLError
-from urllib.request import urlopen
 from zipfile import ZipFile
 
 import pygame
@@ -31,7 +29,6 @@ class MainMenu:
         self.max_icon_per_page = self.max_row * self.max_column
         self.current_page = 1
         self.max_pages = None
-
 
         self.official_template = None
         self.new_version = None
@@ -113,7 +110,8 @@ class MainMenu:
         self.content_error = self.bank.addImage(os.path.join(self.resources_path, self.content_error))
         self.selected = self.bank.addImage(os.path.join(self.resources_path, "glow.png"))
         self.selected_error = self.bank.addImage(os.path.join(self.resources_path, "glow-error.png"))
-        self.description_menu = self.bank.addImage(os.path.join(self.resources_path, self.menu_json_data[0]["DescriptionBox"]))
+        self.description_menu = self.bank.addImage(
+            os.path.join(self.resources_path, self.menu_json_data[0]["DescriptionBox"]))
 
         session_font = self.menu_json_data[0]["HomeMenuFont"]
         session_font_color = session_font["Colors"]
@@ -169,8 +167,10 @@ class MainMenu:
             for i in range(0, self.max_row):
                 for j in range(0, self.max_column):
                     if len(self.template_list) > index_templates:
-                        content_x = (self.content.get_rect().w * (j + 1) + self.content.get_rect().w) + self.x_offset + (self.space_offset * j)
-                        content_y = (self.content.get_rect().h * (i + 1) + self.content.get_rect().h) + self.y_offset + (self.space_offset * i)
+                        content_x = (self.content.get_rect().w * (
+                                    j + 1) + self.content.get_rect().w) + self.x_offset + (self.space_offset * j)
+                        content_y = (self.content.get_rect().h * (
+                                    i + 1) + self.content.get_rect().h) + self.y_offset + (self.space_offset * i)
                         icon_x = content_x + 10
                         icon_y = content_y + 5
                         if self.template_list[index_templates]["valid"]:
@@ -182,7 +182,6 @@ class MainMenu:
                         self.menu_content.append({"positions": (content_x, content_y),
                                                   "dimensions": (self.content.get_rect().w, self.content.get_rect().h),
                                                   "template": self.template_list[index_templates]})
-
 
                         index_templates += 1
 
@@ -244,7 +243,7 @@ class MainMenu:
 
                 description_menu = self.description_menu.copy()
                 description_menu.fill((255, 255, 255, self.fade_value),
-                                              special_flags=pygame.BLEND_RGBA_MULT)
+                                      special_flags=pygame.BLEND_RGBA_MULT)
 
                 x_description_menu = screen.get_rect().w - description_menu.get_rect().w
                 y_description_menu = 410
@@ -252,7 +251,6 @@ class MainMenu:
                 screen.blit(transparent_illustration, (0, 0))
                 screen.blit(glow, (glow_position_x, glow_position_y))
                 screen.blit(description_menu, (x_description_menu, y_description_menu))
-
 
                 x_title = x_description_menu + 17
                 y_title = y_description_menu + 13
@@ -269,7 +267,8 @@ class MainMenu:
                 x_creator = x_title + 15
                 y_creator = y_title + 55
                 self.draw_text(
-                    text="Creator : {}".format(self.template_list[self.selected_menu_index]["information"]["Informations"]["Creator"]),
+                    text="Creator : {}".format(
+                        self.template_list[self.selected_menu_index]["information"]["Informations"]["Creator"]),
                     font_name=self.font_data["path"],
                     color=self.font_data["color_normal"],
                     font_size=self.font_data["description_size"],
@@ -280,7 +279,8 @@ class MainMenu:
                 x_version = x_creator
                 y_version = y_creator + 22
                 self.draw_text(
-                    text="Version : {}".format(self.template_list[self.selected_menu_index]["information"]["Informations"]["Version"]),
+                    text="Version : {}".format(
+                        self.template_list[self.selected_menu_index]["information"]["Informations"]["Version"]),
                     font_name=self.font_data["path"],
                     color=self.font_data["color_normal"],
                     font_size=self.font_data["description_size"],
@@ -368,8 +368,13 @@ class MainMenu:
 
     @staticmethod
     def draw_text(text, font_name, color, font_size, surface, position, outline=2):
+        outline_temp = outline
+        core_service = CoreService()
+        if core_service.zoom == 1 and outline == 1:
+            outline_temp = 2
+
         tsurf, tpos = ptext.draw(str(text), position, fontname=font_name, antialias=True,
-                          owidth=outline, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=surface)
+                                 owidth=outline_temp, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=surface)
         ptext.MEMORY_REDUCTION_FACTOR = 0
         ptext.AUTO_CLEAN = True
         return tsurf, tpos
@@ -413,7 +418,7 @@ class MainMenu:
             is_on_menu = False
             if self.menu_content:
                 for i in range(0, len(self.menu_content)):
-                # for menu in self.menu_content:
+                    # for menu in self.menu_content:
                     menu = self.menu_content[i]
                     if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                        element_positons=menu["positions"],

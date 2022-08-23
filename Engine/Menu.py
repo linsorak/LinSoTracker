@@ -38,7 +38,7 @@ class Menu:
         self.menu.add.button('Save tracker state', self.save)
         self.menu.add.button('Load tracker state', self.load)
         self.sound_check = self.menu.add.toggle_switch('Sound effect', False, onchange=self.onchange_sound)
-        self.esc_menu_check = self.menu.add.toggle_switch('Show ESC Label', True, onchange=self.onchange_esc)
+        self.esc_menu_check = self.menu.add.toggle_switch('ESC Label', True, onchange=self.onchange_esc)
         self.menu.add.button('Back to main menu', self.back_menu)
         self.menu.add.button('Discord', self.open_discord)
         self.menu.add.button('Pay me a coffee ? :)', self.open_paypal)

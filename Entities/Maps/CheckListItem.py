@@ -27,6 +27,7 @@ class CheckListItem(Sprite):
         self.checked = False
         self.is_logic = False
         self.color = None
+        self.show = False
 
         if type(self.conditions) == str:
             self.conditions = self.conditions.replace("have(", "self.tracker.have(")
@@ -61,7 +62,7 @@ class CheckListItem(Sprite):
             font_size=font["Size"] * self.tracker.core_service.zoom,
             surface=temp_surface,
             position=(self.position["x"], self.position["y"]),
-            outline=1.5 * self.tracker.core_service.zoom)
+            outline=1 * self.tracker.core_service.zoom)
 
         # font = pygame.font.Font(font_path, font["Size"] * self.tracker.core_service.zoom)
         # self.surface = font.render(self.name, True, color)
@@ -72,7 +73,6 @@ class CheckListItem(Sprite):
             self.checked = False
         else:
             self.checked = True
-        print(self.name)
         self.update()
 
     def get_surface_label(self):

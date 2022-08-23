@@ -3,7 +3,7 @@ import os
 import pygame
 
 from Engine import MainMenu
-from Entities.Maps.SimpleCheck import SimpleCheck, ConditionsType
+from Entities.Maps.SimpleCheck import SimpleCheck
 
 
 class BlockChecks(SimpleCheck):
@@ -39,6 +39,7 @@ class BlockChecks(SimpleCheck):
                 self.all_logic = False
 
         font = self.map.tracker.core_service.get_font("mapFont")
+        map_font_path = os.path.join(self.map.tracker.core_service.get_tracker_temp_path(), font["Name"])
         font_number = self.map.tracker.core_service.get_font("mapFontChecksNumber")
         font_path = os.path.join(self.map.tracker.core_service.get_tracker_temp_path(), font_number["Name"])
         groups_datas = self.map.tracker.tracker_json_data[4]["SizeGroupChecks"]
@@ -57,7 +58,6 @@ class BlockChecks(SimpleCheck):
             else:
                 self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "NotLogic")
 
-
         temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
         temp_surface = temp_surface.convert_alpha()
 
@@ -68,17 +68,20 @@ class BlockChecks(SimpleCheck):
             font_size=font_number["Size"] * self.map.tracker.core_service.zoom,
             surface=temp_surface,
             position=(self.pin_rect.x, self.pin_rect.y),
-            outline=1 * self.map.tracker.core_service.zoom)
+            outline=0.5 * self.map.tracker.core_service.zoom)
 
-
-        x_number = self.pin_rect.x + (self.pin_rect.w / 2) - (self.surface_logic_indicator.get_rect().w / 2) + (0.5 * self.map.tracker.core_service.zoom)
+        x_number = self.pin_rect.x + (self.pin_rect.w / 2) - (self.surface_logic_indicator.get_rect().w / 2) + (
+                    0.5 * self.map.tracker.core_service.zoom)
         # x_number = self.pin_rect.x + self.pin_rect.w
-        y_number = self.pin_rect.y + (self.pin_rect.h / 2) - (self.surface_logic_indicator.get_rect().h / 2)
+        y_number = self.pin_rect.y + (self.pin_rect.h / 2) - (self.surface_logic_indicator.get_rect().h / 2) + (1.5 * self.map.tracker.core_service.zoom)
         self.position_logic_indicator = (x_number, y_number)
+
+
 
     def draw(self, screen):
         self.draw_rect(screen, self.pin_color, (0, 0, 0), self.pin_rect, 2 * self.map.tracker.core_service.zoom)
-        screen.blit(self.surface_logic_indicator, self.position_logic_indicator)
+        if self.logic_cpt > 0:
+            screen.blit(self.surface_logic_indicator, self.position_logic_indicator)
 
     def draw_checks(self, screen):
         for check in self.list_checks:
@@ -95,9 +98,27 @@ class BlockChecks(SimpleCheck):
                     check.left_click()
 
             if not check_found:
-                self.show_checks = False
-                self.map.checks_list_open = False
-                self.map.current_block_checks = None
+                if self.map.checks_list_open:
+                    # print(check.name)
+                    x_left, y_left, x_right, y_right = self.map.get_arrows_positions()
+
+                    if self.map.tracker.core_service.is_on_element(mouse_positions=mouse_position,
+                                                                   element_positons=(x_left, y_left),
+                                                                   element_dimension=(
+                                                                           self.map.left_arrow.get_rect().w,
+                                                                           self.map.left_arrow.get_rect().h)):
+                        self.map.left_arrow_click()
+                    elif self.map.tracker.core_service.is_on_element(mouse_positions=mouse_position,
+                                                                     element_positons=(x_right, y_right),
+                                                                     element_dimension=(
+                                                                             self.map.right_arrow.get_rect().w,
+                                                                             self.map.right_arrow.get_rect().h)):
+                        self.map.right_arrow_click()
+                    else:
+                        self.show_checks = False
+                        self.map.checks_list_open = False
+                        self.map.current_block_checks = None
+                        self.map.current_check_page = 1
         else:
             self.show_checks = True
             self.map.checks_list_open = True
