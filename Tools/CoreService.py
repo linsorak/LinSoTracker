@@ -136,9 +136,10 @@ class CoreService(metaclass=Singleton):
                         MsgBox = messagebox.askquestion('New version detected',
                                                         'Do you want to download the new version ?', icon='question')
                         if MsgBox == 'yes':
-                            webbrowser.open(data_json["url_base"].format(self.detect_os(),  data_json["lastest_version"]))
+                            webbrowser.open(
+                                data_json["url_base"].format(self.detect_os(), data_json["lastest_version"]))
 
-                        exit(1)
+                        sys.exit()
 
             if "official_template" in data_json:
                 self.official_template = data_json["official_template"]
@@ -191,7 +192,7 @@ class CoreService(metaclass=Singleton):
 
     def get_color_from_font(self, font_datas, session):
         return (
-        font_datas["Colors"][session]["r"], font_datas["Colors"][session]["g"], font_datas["Colors"][session]["b"])
+            font_datas["Colors"][session]["r"], font_datas["Colors"][session]["g"], font_datas["Colors"][session]["b"])
 
     def is_update(self):
         if self.get_new_version():
