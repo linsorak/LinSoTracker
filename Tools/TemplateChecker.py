@@ -110,7 +110,9 @@ class TemplateChecker:
         self.__check_element_is_in_section_and_valid("OpacityDisable", section, "Item ID = {}".format(index), float)
 
     def __check_incremental_item(self, section, index):
-        if len(section.keys()) == 9:
+        if len(section.keys()) >= 9:
+            if "StartIncrementIndex" in section.keys():
+                self.__check_element_is_in_section_and_valid("StartIncrementIndex", section, "Item ID = {}".format(index), int)
             if "Increment" in section:
                 if isinstance(section["Increment"], list):
                     if len(section["Increment"]) > 0:

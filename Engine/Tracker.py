@@ -283,6 +283,10 @@ class Tracker:
             item_list.add(_item)
 
         elif item["Kind"] == "IncrementalItem":
+            start_increment_index = None
+            if "StartIncrementIndex" in item:
+                start_increment_index = item["StartIncrementIndex"]
+
             _item = IncrementalItem(name=item["Name"],
                                     image=item_image,
                                     position=(item["Positions"]["x"] * self.core_service.zoom,
@@ -291,7 +295,8 @@ class Tracker:
                                     opacity_disable=item["OpacityDisable"],
                                     hint=item["Hint"],
                                     increments=item["Increment"],
-                                    id=item["Id"])
+                                    id=item["Id"],
+                                    start_increment_index=start_increment_index)
             item_list.add(_item)
         elif item["Kind"] == "SubMenuItem":
             _item = SubMenuItem(name=item["Name"],

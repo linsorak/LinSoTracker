@@ -4,9 +4,10 @@ from Entities.Item import Item
 
 
 class IncrementalItem(Item):
-    def __init__(self, id, name, image, position, enable, opacity_disable, increments, hint):
+    def __init__(self, id, name, image, position, enable, opacity_disable, increments, hint, start_increment_index):
         self.increments_position = -1
         self.increments = increments
+        self.start_increment_index = start_increment_index
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                       opacity_disable=opacity_disable, hint=hint)
 
@@ -19,6 +20,9 @@ class IncrementalItem(Item):
                 self.enable = False
         else:
             self.enable = True
+            if type(self.start_increment_index) == int:
+                self.increments_position = self.start_increment_index
+
         self.update()
 
     def right_click(self):
@@ -28,6 +32,10 @@ class IncrementalItem(Item):
         else:
             if self.increments_position >= 0:
                 self.increments_position = self.increments_position - 1
+
+                if self.increments_position == self.start_increment_index - 1:
+                    self.increments_position = -1
+                    self.enable = False
             else:
                 self.enable = False
         self.update()
