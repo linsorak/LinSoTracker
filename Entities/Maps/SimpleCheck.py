@@ -20,7 +20,7 @@ class SimpleCheck:
         self.pin_rect = None
         self.checked = False
         self.conditions = conditions
-        #self.conditions = "have('Giant Bomb Bag') or have('Bomb Bag') or have('Bomb') or have('Water Bomb')"
+        # self.conditions = "have('Giant Bomb Bag') or have('Bomb Bag') or have('Bomb') or have('Water Bomb')"
         if type(self.conditions) == str:
             self.conditions = self.conditions.replace("have(", "self.map.tracker.have(")
             self.conditions = self.conditions.replace("do(", "self.map.tracker.do(")
@@ -40,20 +40,26 @@ class SimpleCheck:
             self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "Done")
 
         simple_check_datas = self.map.tracker.tracker_json_data[4]["SizeSimpleCheck"]
-        x = (self.map.index_positions[0] * self.map.tracker.core_service.zoom) + (self.positions["x"] * self.map.tracker.core_service.zoom)
+        x = (self.map.index_positions[0] * self.map.tracker.core_service.zoom) + (
+                    self.positions["x"] * self.map.tracker.core_service.zoom)
         x = x + ((simple_check_datas["w"] * self.map.tracker.core_service.zoom) / 2)
-        y = (self.map.index_positions[1] * self.map.tracker.core_service.zoom) + (self.positions["y"] * self.map.tracker.core_service.zoom)
+        y = (self.map.index_positions[1] * self.map.tracker.core_service.zoom) + (
+                    self.positions["y"] * self.map.tracker.core_service.zoom)
         y = y + ((simple_check_datas["h"] * self.map.tracker.core_service.zoom) / 2)
 
         self.pin_rect = pygame.Rect(x, y,
-                                    (simple_check_datas["w"] * self.map.tracker.core_service.zoom),
-                                    (simple_check_datas["h"] * self.map.tracker.core_service.zoom))
+                                    ((simple_check_datas["w"] * 2) * self.map.tracker.core_service.zoom),
+                                    ((simple_check_datas["h"] * 2) * self.map.tracker.core_service.zoom))
 
     def draw(self, screen):
-        pygame.draw.circle(screen, self.pin_color, (self.pin_rect.x + (self.pin_rect.w / 2), self.pin_rect.y + (self.pin_rect.h / 2)), self.pin_rect.w / 2)
-        pygame.draw.circle(screen, pygame.Color("black"), (self.pin_rect.x + (self.pin_rect.w / 2), self.pin_rect.y + (self.pin_rect.h / 2)), self.pin_rect.w / 2, 1)
-
-
+        pygame.draw.circle(screen, self.pin_color,
+                           (self.pin_rect.x + (self.pin_rect.w / 2), self.pin_rect.y + (self.pin_rect.h / 2)),
+                           self.pin_rect.w / 2)
+        pygame.draw.circle(screen, pygame.Color("black"),
+                           (self.pin_rect.x + (self.pin_rect.w / 2), self.pin_rect.y + (self.pin_rect.h / 2)),
+                           self.pin_rect.w / 2, 1)
+        # pygame.draw.circle(screen, self.pin_color, (self.pin_rect.x + (self.pin_rect.w / 2), self.pin_rect.y + (self.pin_rect.h / 2)), self.pin_rect.w / 2)
+        # pygame.draw.circle(screen, pygame.Color("black"), (self.pin_rect.x + (self.pin_rect.w / 2), self.pin_rect.y + (self.pin_rect.h / 2)), self.pin_rect.w / 2, 1)
 
     def left_click(self, mouse_position):
         if self.checked:

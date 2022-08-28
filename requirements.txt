@@ -3,3 +3,7 @@ pygame_menu==4.2.5
 pyinstaller
 pyinstaller-hooks-contrib
 Pillow
+cryptography
+nuitka
+ordered-set
+zstandard

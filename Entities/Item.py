@@ -59,7 +59,7 @@ class Item(pygame.sprite.Sprite):
                                       base_image=image,
                                       image_surface=image,
                                       text_position="hint",
-                                      o_width=2)
+                                      o_width=3 * self.core_service.zoom)
         return image
 
     def left_click(self):
@@ -114,7 +114,7 @@ class Item(pygame.sprite.Sprite):
                 x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
             elif text_position == "right":
                 x = (image_surface.get_rect().w - tsurf.get_rect().w)
-                y = base_image.get_rect().h - tsurf.get_rect().h
+                y = base_image.get_rect().h - tsurf.get_rect().h + (tsurf.get_rect().h / 4)
                 w = w + tsurf.get_rect().w / 1.5
             elif text_position == "count_item":
                 w = base_image.get_rect().w * 2

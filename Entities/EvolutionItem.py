@@ -4,7 +4,8 @@ from Entities.Item import Item
 
 
 class EvolutionItem(Item):
-    def __init__(self, id, name, image, position, enable, opacity_disable, hint, next_items, label, label_center, alternative_label=None):
+    def __init__(self, id, name, image, position, enable, opacity_disable, hint, next_items, label, label_center,
+                 alternative_label=None):
         self.label_center = label_center
         self.label = label
         self.next_item_index = -1
@@ -45,7 +46,7 @@ class EvolutionItem(Item):
 
     def update(self):
         Item.update(self)
-        font = self.core_service.get_font("incrementalItemFont")
+        font = self.core_service.get_font("evolutionItemFont")
         font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
         position = "right"
 
@@ -105,8 +106,6 @@ class EvolutionItem(Item):
                                                base_image=self.image,
                                                image_surface=self.image,
                                                text_position=position)
-
-
 
     def get_data(self):
         data = Item.get_data(self)

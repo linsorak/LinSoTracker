@@ -131,14 +131,17 @@ class CoreService(metaclass=Singleton):
                     self.new_version = data_json["lastest_version"]
 
                 if "block_old_beta" and "block_only_windows" in data_json:
-                    if data_json["block_old_beta"] and (self.get_version() != data_json["lastest_version"]) and \
-                            data_json["block_only_windows"] and self.detect_os() == "win" and ("url_base" in data_json):
-                        MsgBox = messagebox.askquestion('New version detected',
-                                                        'Do you want to download the new version ?', icon='question')
-                        if MsgBox == 'yes':
-                            webbrowser.open(
-                                data_json["url_base"].format(self.detect_os(), data_json["lastest_version"]))
+                    if not data_json["block_old_beta"]:
+                        if (self.get_version() != data_json["lastest_version"]) and data_json["block_only_windows"] and self.detect_os() == "win" and ("url_base" in data_json):
+                            MsgBox = messagebox.askquestion('New version detected',
+                                                            'Do you want to download the new version ?', icon='question')
+                            if MsgBox == 'yes':
+                                webbrowser.open(
+                                    data_json["url_base"].format(self.detect_os(), data_json["lastest_version"]))
 
+                            sys.exit()
+                    else:
+                        messagebox.showwarning("BETA IS OVER", "Download the new version on www.linsotracker.com")
                         sys.exit()
 
             if "official_template" in data_json:

@@ -47,20 +47,21 @@ class Map:
 
     def processing_checks(self):
         for check in self.map_datas[0]["ChecksList"]:
-            if "Block" in check:
-                block = BlockChecks(check["Block"]["Id"], check["Block"]["Name"], check["Block"]["Positions"], self)
+            if check["Kind"] == "Block":
+                block = BlockChecks(check["Id"], check["Name"], check["Positions"], self)
 
-                for check_item in check["Block"]["Checks"]:
-                    temp_check = CheckListItem(check_item["Id"], check_item["Name"], check["Block"]["Positions"],
+                for check_item in check["Checks"]:
+                    temp_check = CheckListItem(check_item["Id"], check_item["Name"], check["Positions"],
                                                check_item["Conditions"], self.tracker)
                     block.add_check(temp_check)
 
                 self.checks_list.append(block)
 
-            if "SimpleCheck" in check:
-                simple_check = SimpleCheck(check["SimpleCheck"]["Id"], check["SimpleCheck"]["Name"],
-                                           check["SimpleCheck"]["Positions"], self, check["SimpleCheck"]["Conditions"])
+            if check["Kind"] == "SimpleCheck":
+                simple_check = SimpleCheck(check["Id"], check["Name"],
+                                           check["Positions"], self, check["Conditions"])
                 self.checks_list.append(simple_check)
+
 
     def update(self):
         self.map_background = self.tracker.bank.addZoomImage(
