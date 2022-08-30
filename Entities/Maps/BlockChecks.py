@@ -71,12 +71,11 @@ class BlockChecks(SimpleCheck):
             outline=0.5 * self.map.tracker.core_service.zoom)
 
         x_number = self.pin_rect.x + (self.pin_rect.w / 2) - (self.surface_logic_indicator.get_rect().w / 2) + (
-                    0.5 * self.map.tracker.core_service.zoom)
+                0.5 * self.map.tracker.core_service.zoom)
         # x_number = self.pin_rect.x + self.pin_rect.w
-        y_number = self.pin_rect.y + (self.pin_rect.h / 2) - (self.surface_logic_indicator.get_rect().h / 2) + (1.5 * self.map.tracker.core_service.zoom)
+        y_number = self.pin_rect.y + (self.pin_rect.h / 2) - (self.surface_logic_indicator.get_rect().h / 2) + (
+                    1.5 * self.map.tracker.core_service.zoom)
         self.position_logic_indicator = (x_number, y_number)
-
-
 
     def draw(self, screen):
         self.draw_rect(screen, self.pin_color, (0, 0, 0), self.pin_rect, 2 * self.map.tracker.core_service.zoom)
@@ -88,43 +87,9 @@ class BlockChecks(SimpleCheck):
             check.draw(screen)
 
     def left_click(self, mouse_position):
-        check_found = False
-        if self.show_checks:
-            for check in self.list_checks:
-                if self.map.tracker.core_service.is_on_element(mouse_positions=mouse_position,
-                                                               element_positons=check.get_position_draw(),
-                                                               element_dimension=check.get_dimensions()):
-                    check_found = True
-                    check.left_click()
-
-            if not check_found:
-                if self.map.checks_list_open:
-                    # print(check.name)
-                    x_left, y_left, x_right, y_right = self.map.get_arrows_positions()
-
-                    if self.map.tracker.core_service.is_on_element(mouse_positions=mouse_position,
-                                                                   element_positons=(x_left, y_left),
-                                                                   element_dimension=(
-                                                                           self.map.left_arrow.get_rect().w,
-                                                                           self.map.left_arrow.get_rect().h)):
-                        self.map.left_arrow_click()
-                    elif self.map.tracker.core_service.is_on_element(mouse_positions=mouse_position,
-                                                                     element_positons=(x_right, y_right),
-                                                                     element_dimension=(
-                                                                             self.map.right_arrow.get_rect().w,
-                                                                             self.map.right_arrow.get_rect().h)):
-                        self.map.right_arrow_click()
-                    else:
-                        self.show_checks = False
-                        self.map.checks_list_open = False
-                        self.map.current_block_checks = None
-                        self.map.current_check_page = 1
-        else:
-            self.show_checks = True
-            self.map.checks_list_open = True
+        if not self.map.current_block_checks:
             self.map.current_block_checks = self
-
-        self.update()
+            self.update()
 
     def get_rect(self):
         return self.pin_rect

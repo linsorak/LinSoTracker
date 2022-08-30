@@ -64,10 +64,6 @@ class CheckListItem(Sprite):
             position=(self.position["x"], self.position["y"]),
             outline=1 * self.tracker.core_service.zoom)
 
-        # font = pygame.font.Font(font_path, font["Size"] * self.tracker.core_service.zoom)
-        # self.surface = font.render(self.name, True, color)
-        # self.surface_shadow = font.render(self.name, True, pygame.Color("black"))
-
     def left_click(self):
         if self.checked:
             self.checked = False
@@ -97,3 +93,15 @@ class CheckListItem(Sprite):
         if self.checked:
             #pygame.draw.line(screen, pygame.Color("black"), (self.x_line_start, self.y_line_start), (self.x_line_end , self.y_line_end ), int(4 * self.tracker.core_service.zoom))
             pygame.draw.line(screen, self.color, (self.x_line_start, self.y_line_start), (self.x_line_end , self.y_line_end), int(2 * self.tracker.core_service.zoom))
+
+    def get_data(self):
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "checked": self.checked
+        }
+        return data
+
+    def set_data(self, datas):
+        self.checked = datas["checked"]
+        self.update()

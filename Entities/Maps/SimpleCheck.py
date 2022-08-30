@@ -74,3 +74,15 @@ class SimpleCheck:
 
     def get_position(self):
         return (self.pin_rect.x, self.pin_rect.y)
+
+    def get_data(self):
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "checked": self.checked
+        }
+        return data
+
+    def set_data(self, datas):
+        self.checked = datas["checked"]
+        self.update()

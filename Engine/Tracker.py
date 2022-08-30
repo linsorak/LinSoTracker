@@ -1,11 +1,14 @@
+import gc
 import json
 import os
 from tkinter import messagebox
 from zipfile import ZipFile
-import gc
+
 import pygame
 
+from Engine import MainMenu
 from Engine.Menu import Menu
+from Engine.PopupWindow import PopupWindow
 from Entities.AlternateCountItem import AlternateCountItem
 from Entities.AlternateEvolutionItem import AlternateEvolutionItem
 from Entities.CheckItem import CheckItem
@@ -16,17 +19,19 @@ from Entities.IncrementalItem import IncrementalItem
 from Entities.Item import Item
 from Entities.LabelItem import LabelItem
 from Entities.Maps.Map import Map
+from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.SubMenuItem import SubMenuItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
-from Tools.DropDown import DropDown
 from Tools.ImageSheet import ImageSheet
-from Tools.MapSelector import MapSelector
 from Tools.SaveLoadTool import SaveLoadTool
 
 
 class Tracker:
     def __init__(self, template_name, main_menu):
+        self.surface_label_map_name = None
+        self.position_draw_label_map_name = None
+        self.map_name_items_list = None
         self.maps_names = []
         self.map_image_filename = None
         self.map_position = None
@@ -40,6 +45,9 @@ class Tracker:
         self.background_image = None
         self.current_map = None
         self.drop_down_maps_list = None
+        self.next_map_name = None
+        self.box_label_map_name_rect = None
+        self.maps_list_window = PopupWindow(tracker=self, index_positions=(0, 0))
         self.maps_list = []
         self.submenus = pygame.sprite.Group()
         self.items = pygame.sprite.Group()
@@ -128,6 +136,7 @@ class Tracker:
         self.esc_menu_image = self.bank.addImage(os.path.join(self.resources_base_path, "menu.png"))
 
     def init_maps_datas(self):
+        self.map_name_items_list = []
         if len(self.tracker_json_data) > 4:
             if "Maps" in self.tracker_json_data[4].keys():
                 self.maps_names = []
@@ -138,25 +147,98 @@ class Tracker:
                         with open(filename, 'r') as file:
                             json_datas = json.load(file)
 
-                            positions = (
-                                self.background_image.get_rect().w + self.background_image.get_rect().x,
-                                self.background_image.get_rect().y
-                            )
-                            temp_map = Map(json_datas, positions, self, map["Active"])
+                            positions = {
+                                "x": self.background_image.get_rect().w + self.background_image.get_rect().x,
+                                "y": self.background_image.get_rect().y
+                            }
+                            temp_map = Map(json_datas, positions, self, False)
                             self.maps_list.append(temp_map)
                             self.maps_names.append(temp_map.get_name())
-                            if map["Active"]:
-                                self.current_map = temp_map
 
-                            maps_rect = self.tracker_json_data[4]["MapsList"]["MapsListBox"]["MapsListRect"]
-                #
-                #
-                # self.map_image_filename = self.maps_datas[0][0]["Datas"]["Background"]
-                # self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
-                # self.map_position = self.maps_datas[0][0]["Datas"]["Positions"]
+                            temp_map_name = MapNameListItem(tracker=self,
+                                                            ident=map["Id"],
+                                                            name=json_datas[0]["Datas"]["Name"],
+                                                            position=positions)
+                            self.map_name_items_list.append(temp_map_name)
 
-    def change_map(self, map_name):
-        pass
+        self.change_map(self.map_name_items_list[1])
+        self.update()
+        # maps_rect = self.tracker_json_data[4]["MapsList"]["MapsListBox"]["MapsListRect"]
+        #
+        #
+        # self.map_image_filename = self.maps_datas[0][0]["Datas"]["Background"]
+        # self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
+        # self.map_position = self.maps_datas[0][0]["Datas"]["Positions"]
+
+    def update(self):
+        self.box_label_map_name_rect = self.tracker_json_data[4]["MapsList"]["MapListButtonLabelRect"]
+        self.box_label_map_name_rect = pygame.Rect(
+            self.box_label_map_name_rect["x"] * self.core_service.zoom,
+            self.box_label_map_name_rect["y"] * self.core_service.zoom,
+            self.box_label_map_name_rect["w"] * self.core_service.zoom,
+            self.box_label_map_name_rect["h"] * self.core_service.zoom
+        )
+
+        font = self.core_service.get_font("mapFontListMaps")
+        font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+
+        temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
+        temp_surface = temp_surface.convert_alpha()
+        self.surface_label_map_name, self.position_draw_label_map_name = MainMenu.MainMenu.draw_text(
+            text=self.current_map.get_name(),
+            font_name=font_path,
+            color=(255, 255, 255),
+            font_size=font["Size"] * self.core_service.zoom,
+            surface=temp_surface,
+            position=(self.box_label_map_name_rect.x, self.box_label_map_name_rect.y),
+            outline=1 * self.core_service.zoom)
+
+        x = (self.box_label_map_name_rect.w / 2) - (
+                self.surface_label_map_name.get_rect().w / 2) + self.box_label_map_name_rect.x
+        y = (self.box_label_map_name_rect.h / 2) - (
+                self.surface_label_map_name.get_rect().h / 2) + self.box_label_map_name_rect.y
+        self.position_draw_label_map_name = (x, y)
+
+        maps_list_box_datas = self.tracker_json_data[4]["MapsList"]["MapsListBox"]
+        self.maps_list_background = self.bank.addZoomImage(
+            os.path.join(self.resources_path, maps_list_box_datas["SubMenuBackground"]))
+
+        maps_list_box_rect = pygame.Rect(
+            (maps_list_box_datas["DrawBoxRect"][
+                 "x"] * self.core_service.zoom) + self.maps_list_background.get_rect().x,
+            (maps_list_box_datas["DrawBoxRect"][
+                 "y"] * self.core_service.zoom) + self.maps_list_background.get_rect().y,
+            maps_list_box_datas["DrawBoxRect"]["w"] * self.core_service.zoom,
+            maps_list_box_datas["DrawBoxRect"]["h"] * self.core_service.zoom)
+
+        self.maps_list_window.set_background_image_path(maps_list_box_datas["SubMenuBackground"])
+        self.maps_list_window.set_arrow_left_image_path(maps_list_box_datas["LeftArrow"]["Image"])
+        self.maps_list_window.set_arrow_right_image_path(maps_list_box_datas["RightArrow"]["Image"])
+        self.maps_list_window.set_title("Maps")
+        self.maps_list_window.set_title_font(self.core_service.get_font("mapFontTitle"))
+        self.maps_list_window.set_title_label_position_y(maps_list_box_datas["LabelY"])
+        self.maps_list_window.set_list_items(self.map_name_items_list)
+        self.maps_list_window.set_box_rect(maps_list_box_rect)
+        left_arrow = (maps_list_box_datas["LeftArrow"]["Positions"]["x"],
+                      maps_list_box_datas["LeftArrow"]["Positions"]["y"])
+        right_arrow = (maps_list_box_datas["RightArrow"]["Positions"]["x"],
+                       maps_list_box_datas["RightArrow"]["Positions"]["y"])
+
+        self.maps_list_window.set_arrows_positions(left_arrow, right_arrow)
+        self.maps_list_window.update()
+
+    def change_map_by_map_name(self, map_name):
+        for map_item in self.map_name_items_list:
+            if map_item.name == map_name:
+                self.change_map(map_item)
+
+    def change_map(self, map_list_item):
+        self.current_map = self.maps_list[map_list_item.id]
+        self.current_map.active = True
+        self.current_map.update()
+        self.update()
+
+        # print("map", map_infos)
 
     def init_item(self, item, item_list, items_sheet_image):
         item_image = self.core_service.zoom_image(
@@ -377,6 +459,19 @@ class Tracker:
                     self.items_click(self.items, mouse_position, button)
                     self.current_map.update()
 
+                if self.maps_list_window.is_open():
+                    self.maps_list_window.left_click(mouse_position)
+
+                if self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                   element_positons=(
+                                                           self.box_label_map_name_rect.x,
+                                                           self.box_label_map_name_rect.y),
+                                                   element_dimension=(
+                                                           self.box_label_map_name_rect.w,
+                                                           self.box_label_map_name_rect.h)):
+                    self.maps_list_window.open = True
+                    self.maps_list_window.update()
+
             else:
                 self.items_click(self.items, mouse_position, button)
                 if self.current_map:
@@ -426,9 +521,6 @@ class Tracker:
         if "MapsList" in self.tracker_json_data:
             maps_rect = self.tracker_json_data[4]["MapsList"]["MapsListBox"]["MapsListRect"]
 
-        # if self.map_image:
-        #     self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
-
         if self.current_map:
             self.current_map.update()
 
@@ -436,7 +528,7 @@ class Tracker:
         self.init_items()
         self.menu.get_menu().resize(width=w, height=h)
         self.load_data(datas)
-
+        self.update()
 
     def draw(self, screen):
         screen.blit(self.background_image, (0, 0))
@@ -462,6 +554,14 @@ class Tracker:
         if self.current_map:
             self.current_map.draw(screen)
 
+        screen.blit(self.surface_label_map_name, self.position_draw_label_map_name)
+
+        if self.maps_list_window.is_open():
+            infoObject = pygame.display.Info()
+            s = pygame.Surface((infoObject.current_w, infoObject.current_h), pygame.SRCALPHA)  # per-pixel alpha
+            s.fill((0, 0, 0, 209))  # notice the alpha value in the color
+            screen.blit(s, (0, 0))
+            self.maps_list_window.draw(screen)
 
     def keyup(self, button, screen):
         if button == pygame.K_ESCAPE:
@@ -499,4 +599,3 @@ class Tracker:
             else:
                 action_do = action
             return eval(action_do)
-
