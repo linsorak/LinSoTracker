@@ -54,7 +54,6 @@ class Map:
         self.map_background = self.tracker.bank.addZoomImage(
             os.path.join(self.tracker.resources_path, self.map_image_filename))
 
-
         self.checks_list_background = self.tracker.bank.addZoomImage(
             os.path.join(self.tracker.resources_path, self.checks_list_background_filename))
 
@@ -137,16 +136,22 @@ class Map:
     def get_name(self):
         return self.map_datas[0]["Datas"]["Name"]
 
-
     def get_data(self):
+        checks_datas = []
+        for check in self.checks_list:
+            checks_datas.append(check.get_data())
+
         data = {
             "name": self.get_name(),
-            "enable": self.enable,
-            "hint_show": self.hint_show
+            "checks_datas": checks_datas
         }
         return data
 
-    def set_data(self, datas):
-        self.enable = datas["enable"]
-        self.hint_show = datas["hint_show"]
-        self.update()
+    def load_data(self, datas):
+        checks_datas = datas["checks_datas"]
+        for data in checks_datas:
+            for check in self.checks_list:
+                if (check.id == data["id"]) and (check.name == data["name"]):
+                    check.set_data(data)
+                    break
+

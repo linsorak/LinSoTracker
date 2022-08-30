@@ -161,14 +161,8 @@ class Tracker:
                                                             position=positions)
                             self.map_name_items_list.append(temp_map_name)
 
-        self.change_map(self.map_name_items_list[1])
+        self.change_map(self.map_name_items_list[0])
         self.update()
-        # maps_rect = self.tracker_json_data[4]["MapsList"]["MapsListBox"]["MapsListRect"]
-        #
-        #
-        # self.map_image_filename = self.maps_datas[0][0]["Datas"]["Background"]
-        # self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
-        # self.map_position = self.maps_datas[0][0]["Datas"]["Positions"]
 
     def update(self):
         self.box_label_map_name_rect = self.tracker_json_data[4]["MapsList"]["MapListButtonLabelRect"]
@@ -499,6 +493,15 @@ class Tracker:
         datas.append({
             "items": datas_items
         })
+
+        if self.maps_list:
+            maps_datas = []
+            for map_data in self.maps_list:
+                maps_datas.append(map_data.get_data())
+
+        datas.append({
+            "maps": maps_datas
+        })
         return datas
 
     def load_data(self, datas):
@@ -508,6 +511,15 @@ class Tracker:
                     if data["name"] == item.name and data["id"] == item.id:
                         item.set_data(data)
                         break
+
+            if "maps" in datas[2]:
+                for maps_datas in datas[2]["maps"]:
+                    for map_data in self.maps_list:
+                        if maps_datas["name"] == map_data.get_name():
+                            map_data.load_data(maps_datas)
+                            map_data.update()
+                            break
+
 
     def change_zoom(self, value):
         datas = self.save_data()

@@ -74,7 +74,7 @@ class BlockChecks(SimpleCheck):
                 0.5 * self.map.tracker.core_service.zoom)
         # x_number = self.pin_rect.x + self.pin_rect.w
         y_number = self.pin_rect.y + (self.pin_rect.h / 2) - (self.surface_logic_indicator.get_rect().h / 2) + (
-                    1.5 * self.map.tracker.core_service.zoom)
+                1.5 * self.map.tracker.core_service.zoom)
         self.position_logic_indicator = (x_number, y_number)
 
     def draw(self, screen):
@@ -98,3 +98,22 @@ class BlockChecks(SimpleCheck):
     def draw_rect(surface, fill_color, outline_color, rect, border=1):
         surface.fill(outline_color, rect)
         surface.fill(fill_color, rect.inflate(-border * 2, -border * 2))
+
+    def get_data(self):
+        checks_datas = []
+        for check in self.list_checks:
+            checks_datas.append(check.get_data())
+
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "checks_datas": checks_datas
+        }
+        return data
+
+    def set_data(self, datas):
+        for data in datas["checks_datas"]:
+            for check in self.list_checks:
+                if (check.id == data["id"]) and (check.name == data["name"]):
+                    check.set_data(data)
+                    break
