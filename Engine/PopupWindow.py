@@ -8,6 +8,9 @@ from Engine import MainMenu
 
 class PopupWindow:
     def __init__(self, tracker, index_positions):
+        self.title_label_position_y = None
+        self.surface_pages_information = None
+        self.position_pages_information = None
         self.tracker = tracker
         self.index_positions = index_positions
         self.title_font = None
@@ -49,7 +52,7 @@ class PopupWindow:
         self.title_font = title_font
 
     def set_title_label_position_y(self, title_label_position_y):
-       self.title_label_position_y = title_label_position_y
+        self.title_label_position_y = title_label_position_y
 
     def update(self):
         self.background_image = self.tracker.bank.addZoomImage(
@@ -142,13 +145,13 @@ class PopupWindow:
             position=(0, 0),
             outline=1 * self.tracker.core_service.zoom)
 
-
         x_left, y_left, x_right, y_right = self.get_arrows_positions()
         x_space_between_arrows = x_right - (x_left + self.left_arrow.get_rect().w)
         x = (x_space_between_arrows / 2) - (self.surface_pages_information.get_rect().w / 2) + (
-                    x_left + self.left_arrow.get_rect().w)
+                x_left + self.left_arrow.get_rect().w)
         y = y_left + ((self.left_arrow.get_rect().h / 2) - (self.surface_pages_information.get_rect().h / 2))
         self.position_pages_information = (x, y)
+        print(self.title, "Open", self.open)
 
     def draw(self, screen):
         screen.blit(self.background_image, (self.index_positions[0] * self.tracker.core_service.zoom,
@@ -191,8 +194,8 @@ class PopupWindow:
 
         for check in get_check:
             if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
-                                                                       element_positons=check.get_position_draw(),
-                                                                       element_dimension=check.get_dimensions()):
+                                                       element_positons=check.get_position_draw(),
+                                                       element_dimension=check.get_dimensions()):
                 click_found = True
                 check.left_click()
             # self.right_arrow_click()
@@ -200,29 +203,32 @@ class PopupWindow:
         x_left, y_left, x_right, y_right = self.get_arrows_positions()
 
         if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
-                                                       element_positons=(x_left, y_left),
-                                                       element_dimension=(
-                                                               self.left_arrow.get_rect().w,
-                                                               self.left_arrow.get_rect().h)):
+                                                   element_positons=(x_left, y_left),
+                                                   element_dimension=(
+                                                           self.left_arrow.get_rect().w,
+                                                           self.left_arrow.get_rect().h)):
             self.left_arrow_click()
             click_found = True
         elif self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
-                                                         element_positons=(x_right, y_right),
-                                                         element_dimension=(
-                                                                 self.right_arrow.get_rect().w,
-                                                                 self.right_arrow.get_rect().h)):
+                                                     element_positons=(x_right, y_right),
+                                                     element_dimension=(
+                                                             self.right_arrow.get_rect().w,
+                                                             self.right_arrow.get_rect().h)):
             self.right_arrow_click()
             click_found = True
 
         if not click_found:
-            self.open = False
+            self.close_window()
             self.current_check_page = 1
+
     def set_list_items(self, list_items):
         self.list_items = list_items
 
     def set_arrows_positions(self, left, right):
-        self.left_arrow_positions = ((left[0] + self.index_positions[0]) * self.tracker.core_service.zoom, (left[1] + self.index_positions[1]) * self.tracker.core_service.zoom)
-        self.right_arrow_positions = ((right[0] + self.index_positions[0]) * self.tracker.core_service.zoom, (right[1] + self.index_positions[1]) * self.tracker.core_service.zoom)
+        self.left_arrow_positions = ((left[0] + self.index_positions[0]) * self.tracker.core_service.zoom,
+                                     (left[1] + self.index_positions[1]) * self.tracker.core_service.zoom)
+        self.right_arrow_positions = ((right[0] + self.index_positions[0]) * self.tracker.core_service.zoom,
+                                      (right[1] + self.index_positions[1]) * self.tracker.core_service.zoom)
 
     def get_arrows_positions(self):
         return self.left_arrow_positions[0], self.left_arrow_positions[1], self.right_arrow_positions[0], \
@@ -271,3 +277,10 @@ class PopupWindow:
 
         self.update()
 
+    def open_window(self):
+        self.open = True
+        self.update()
+
+    def close_window(self):
+        self.open = False
+        self.update()

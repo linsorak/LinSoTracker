@@ -5,7 +5,6 @@ from pygame.sprite import Sprite
 
 from Engine import MainMenu
 from Entities.Maps.SimpleCheck import ConditionsType
-from Tools.CoreService import CoreService
 
 
 class CheckListItem(Sprite):

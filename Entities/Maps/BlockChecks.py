@@ -89,6 +89,7 @@ class BlockChecks(SimpleCheck):
     def left_click(self, mouse_position):
         if not self.map.current_block_checks:
             self.map.current_block_checks = self
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
             self.update()
 
     def get_rect(self):

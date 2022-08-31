@@ -20,7 +20,6 @@ class Map:
         self.checks_list = []
         self.current_block_checks = None
         self.check_window = PopupWindow(tracker=self.tracker, index_positions=self.index_positions)
-        self.maps_list_window = PopupWindow(tracker=self.tracker, index_positions=self.index_positions)
         self.processing()
         self.processing_checks()
         self.update()
