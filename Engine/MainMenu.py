@@ -427,7 +427,6 @@ class MainMenu:
                         if self.moved_tracker != menu["template"]["filename"]:
                             self.fade_engine.reset()
                             self.illustration = menu["template"]["illustration"]
-                            # self.moved_tracker = menu["template"]["filename"]
                             self.moved_tracker = menu["template"]["filename"]
                             self.selected_menu_index = i + ((self.max_row * self.max_column) * (self.current_page - 1))
                             self.selected_position = (menu["positions"][0] + 19, menu["positions"][1] - 8)
@@ -442,6 +441,9 @@ class MainMenu:
                     self.illustration = None
                     self.selected_menu_index = None
                     self.fade_engine.reset()
+        else:
+            self.loaded_tracker.mouse_move(mouse_position)
+
 
     def set_tracker(self, tracker_name):
         self.loaded_tracker = Tracker(tracker_name, self)

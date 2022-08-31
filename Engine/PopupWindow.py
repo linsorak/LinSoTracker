@@ -110,7 +110,8 @@ class PopupWindow:
             y = self.box_rect.y + (label_surface.get_rect().h * index + 5)
             check.set_position_draw(x, y)
             check.show = True
-
+        self.left_arrow = self.left_arrow_base.copy()
+        self.right_arrow = self.right_arrow_base.copy()
         if self.current_check_page == 1:
             self.tracker.core_service.convert_to_gs(self.left_arrow)
             self.left_arrow = self.tracker.core_service.set_image_transparent(image=self.left_arrow,

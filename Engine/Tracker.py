@@ -29,6 +29,8 @@ from Tools.SaveLoadTool import SaveLoadTool
 
 class Tracker:
     def __init__(self, template_name, main_menu):
+        self.position_check_hint = None
+        self.surface_check_hint = None
         self.surface_label_map_name = None
         self.position_draw_label_map_name = None
         self.map_name_items_list = None
@@ -47,6 +49,7 @@ class Tracker:
         self.drop_down_maps_list = None
         self.next_map_name = None
         self.box_label_map_name_rect = None
+        self.mouse_check_found = None
         self.maps_list_window = PopupWindow(tracker=self, index_positions=(0, 0))
         self.maps_list = []
         self.submenus = pygame.sprite.Group()
@@ -161,65 +164,66 @@ class Tracker:
                                                             position=positions)
                             self.map_name_items_list.append(temp_map_name)
 
-        self.change_map(self.map_name_items_list[0])
+                self.change_map(self.map_name_items_list[0])
         self.update()
 
     def update(self):
-        self.box_label_map_name_rect = self.tracker_json_data[4]["MapsList"]["MapListButtonLabelRect"]
-        self.box_label_map_name_rect = pygame.Rect(
-            self.box_label_map_name_rect["x"] * self.core_service.zoom,
-            self.box_label_map_name_rect["y"] * self.core_service.zoom,
-            self.box_label_map_name_rect["w"] * self.core_service.zoom,
-            self.box_label_map_name_rect["h"] * self.core_service.zoom
-        )
+        if self.current_map:
+            self.box_label_map_name_rect = self.tracker_json_data[4]["MapsList"]["MapListButtonLabelRect"]
+            self.box_label_map_name_rect = pygame.Rect(
+                self.box_label_map_name_rect["x"] * self.core_service.zoom,
+                self.box_label_map_name_rect["y"] * self.core_service.zoom,
+                self.box_label_map_name_rect["w"] * self.core_service.zoom,
+                self.box_label_map_name_rect["h"] * self.core_service.zoom
+            )
 
-        font = self.core_service.get_font("mapFontListMaps")
-        font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+            font = self.core_service.get_font("mapFontListMaps")
+            font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
 
-        temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
-        temp_surface = temp_surface.convert_alpha()
-        self.surface_label_map_name, self.position_draw_label_map_name = MainMenu.MainMenu.draw_text(
-            text=self.current_map.get_name(),
-            font_name=font_path,
-            color=(255, 255, 255),
-            font_size=font["Size"] * self.core_service.zoom,
-            surface=temp_surface,
-            position=(self.box_label_map_name_rect.x, self.box_label_map_name_rect.y),
-            outline=1 * self.core_service.zoom)
+            temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
+            temp_surface = temp_surface.convert_alpha()
+            self.surface_label_map_name, self.position_draw_label_map_name = MainMenu.MainMenu.draw_text(
+                text=self.current_map.get_name(),
+                font_name=font_path,
+                color=(255, 255, 255),
+                font_size=font["Size"] * self.core_service.zoom,
+                surface=temp_surface,
+                position=(self.box_label_map_name_rect.x, self.box_label_map_name_rect.y),
+                outline=1 * self.core_service.zoom)
 
-        x = (self.box_label_map_name_rect.w / 2) - (
-                self.surface_label_map_name.get_rect().w / 2) + self.box_label_map_name_rect.x
-        y = (self.box_label_map_name_rect.h / 2) - (
-                self.surface_label_map_name.get_rect().h / 2) + self.box_label_map_name_rect.y
-        self.position_draw_label_map_name = (x, y)
+            x = (self.box_label_map_name_rect.w / 2) - (
+                    self.surface_label_map_name.get_rect().w / 2) + self.box_label_map_name_rect.x
+            y = (self.box_label_map_name_rect.h / 2) - (
+                    self.surface_label_map_name.get_rect().h / 2) + self.box_label_map_name_rect.y
+            self.position_draw_label_map_name = (x, y)
 
-        maps_list_box_datas = self.tracker_json_data[4]["MapsList"]["MapsListBox"]
-        self.maps_list_background = self.bank.addZoomImage(
-            os.path.join(self.resources_path, maps_list_box_datas["SubMenuBackground"]))
+            maps_list_box_datas = self.tracker_json_data[4]["MapsList"]["MapsListBox"]
+            self.maps_list_background = self.bank.addZoomImage(
+                os.path.join(self.resources_path, maps_list_box_datas["SubMenuBackground"]))
 
-        maps_list_box_rect = pygame.Rect(
-            (maps_list_box_datas["DrawBoxRect"][
-                 "x"] * self.core_service.zoom) + self.maps_list_background.get_rect().x,
-            (maps_list_box_datas["DrawBoxRect"][
-                 "y"] * self.core_service.zoom) + self.maps_list_background.get_rect().y,
-            maps_list_box_datas["DrawBoxRect"]["w"] * self.core_service.zoom,
-            maps_list_box_datas["DrawBoxRect"]["h"] * self.core_service.zoom)
+            maps_list_box_rect = pygame.Rect(
+                (maps_list_box_datas["DrawBoxRect"][
+                     "x"] * self.core_service.zoom) + self.maps_list_background.get_rect().x,
+                (maps_list_box_datas["DrawBoxRect"][
+                     "y"] * self.core_service.zoom) + self.maps_list_background.get_rect().y,
+                maps_list_box_datas["DrawBoxRect"]["w"] * self.core_service.zoom,
+                maps_list_box_datas["DrawBoxRect"]["h"] * self.core_service.zoom)
 
-        self.maps_list_window.set_background_image_path(maps_list_box_datas["SubMenuBackground"])
-        self.maps_list_window.set_arrow_left_image_path(maps_list_box_datas["LeftArrow"]["Image"])
-        self.maps_list_window.set_arrow_right_image_path(maps_list_box_datas["RightArrow"]["Image"])
-        self.maps_list_window.set_title("Maps")
-        self.maps_list_window.set_title_font(self.core_service.get_font("mapFontTitle"))
-        self.maps_list_window.set_title_label_position_y(maps_list_box_datas["LabelY"])
-        self.maps_list_window.set_list_items(self.map_name_items_list)
-        self.maps_list_window.set_box_rect(maps_list_box_rect)
-        left_arrow = (maps_list_box_datas["LeftArrow"]["Positions"]["x"],
-                      maps_list_box_datas["LeftArrow"]["Positions"]["y"])
-        right_arrow = (maps_list_box_datas["RightArrow"]["Positions"]["x"],
-                       maps_list_box_datas["RightArrow"]["Positions"]["y"])
+            self.maps_list_window.set_background_image_path(maps_list_box_datas["SubMenuBackground"])
+            self.maps_list_window.set_arrow_left_image_path(maps_list_box_datas["LeftArrow"]["Image"])
+            self.maps_list_window.set_arrow_right_image_path(maps_list_box_datas["RightArrow"]["Image"])
+            self.maps_list_window.set_title("Maps")
+            self.maps_list_window.set_title_font(self.core_service.get_font("mapFontTitle"))
+            self.maps_list_window.set_title_label_position_y(maps_list_box_datas["LabelY"])
+            self.maps_list_window.set_list_items(self.map_name_items_list)
+            self.maps_list_window.set_box_rect(maps_list_box_rect)
+            left_arrow = (maps_list_box_datas["LeftArrow"]["Positions"]["x"],
+                          maps_list_box_datas["LeftArrow"]["Positions"]["y"])
+            right_arrow = (maps_list_box_datas["RightArrow"]["Positions"]["x"],
+                           maps_list_box_datas["RightArrow"]["Positions"]["y"])
 
-        self.maps_list_window.set_arrows_positions(left_arrow, right_arrow)
-        self.maps_list_window.update()
+            self.maps_list_window.set_arrows_positions(left_arrow, right_arrow)
+            self.maps_list_window.update()
 
     def change_map_by_map_name(self, map_name):
         for map_item in self.map_name_items_list:
@@ -480,6 +484,43 @@ class Tracker:
                         if type(item) == SubMenuItem:
                             item.update()
 
+    def mouse_move(self, mouse_position):
+        if self.current_map and self.current_map.checks_list:
+            found = False
+            for check in self.current_map.checks_list:
+                if self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                   element_positons=check.get_position(),
+                                                   element_dimension=(
+                                                           check.get_rect().w, check.get_rect().h)):
+                    self.mouse_check_found = check
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                    self.check_update()
+                    found = True
+                    break
+
+            if not found:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                self.mouse_check_found = None
+
+    def check_update(self):
+        if self.mouse_check_found:
+            font = self.core_service.get_font("mapFontCheckHint")
+            font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+            color = self.core_service.get_color_from_font(font, "Normal")
+            temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
+            temp_surface = temp_surface.convert_alpha()
+            self.surface_check_hint, self.position_check_hint = MainMenu.MainMenu.draw_text(
+                text=self.mouse_check_found.name,
+                font_name=font_path,
+                color=color,
+                font_size=font["Size"] * self.core_service.zoom,
+                surface=temp_surface,
+                position=(0, 0),
+                outline=1 * self.core_service.zoom)
+
+            x = self.mouse_check_found.get_position()[0] - ((self.surface_check_hint.get_rect().w / 2) - (self.mouse_check_found.get_rect().w / 2) )
+            y = self.mouse_check_found.get_position()[1] - self.surface_check_hint.get_rect().h
+            self.position_check_hint = (x, y)
     def save_data(self):
         datas = []
         datas.append({
@@ -499,9 +540,9 @@ class Tracker:
             for map_data in self.maps_list:
                 maps_datas.append(map_data.get_data())
 
-        datas.append({
-            "maps": maps_datas
-        })
+            datas.append({
+                "maps": maps_datas
+            })
         return datas
 
     def load_data(self, datas):
@@ -512,14 +553,13 @@ class Tracker:
                         item.set_data(data)
                         break
 
-            if "maps" in datas[2]:
+            if len(datas) > 2 and "maps" in datas[2]:
                 for maps_datas in datas[2]["maps"]:
                     for map_data in self.maps_list:
                         if maps_datas["name"] == map_data.get_name():
                             map_data.load_data(maps_datas)
                             map_data.update()
                             break
-
 
     def change_zoom(self, value):
         datas = self.save_data()
@@ -565,15 +605,23 @@ class Tracker:
 
         if self.current_map:
             self.current_map.draw(screen)
+            screen.blit(self.surface_label_map_name, self.position_draw_label_map_name)
 
-        screen.blit(self.surface_label_map_name, self.position_draw_label_map_name)
+            if self.maps_list_window.is_open():
+                infoObject = pygame.display.Info()
+                s = pygame.Surface((infoObject.current_w, infoObject.current_h), pygame.SRCALPHA)  # per-pixel alpha
+                s.fill((0, 0, 0, 209))  # notice the alpha value in the color
+                screen.blit(s, (0, 0))
+                self.maps_list_window.draw(screen)
 
-        if self.maps_list_window.is_open():
-            infoObject = pygame.display.Info()
-            s = pygame.Surface((infoObject.current_w, infoObject.current_h), pygame.SRCALPHA)  # per-pixel alpha
-            s.fill((0, 0, 0, 209))  # notice the alpha value in the color
-            screen.blit(s, (0, 0))
-            self.maps_list_window.draw(screen)
+            if self.mouse_check_found:
+                temp_rect = pygame.Rect(self.position_check_hint[0],
+                                        self.position_check_hint[1],
+                                        self.surface_check_hint.get_rect().w,
+                                        self.surface_check_hint.get_rect().h)
+
+                pygame.draw.rect(screen, (0, 0, 0), temp_rect)
+                screen.blit(self.surface_check_hint, self.position_check_hint)
 
     def keyup(self, button, screen):
         if button == pygame.K_ESCAPE:

@@ -1,0 +1,2705 @@
+[
+    {
+        "Datas" : {
+            "Name": "Hyrule",
+            "Background": "main_map.png",
+            "Dimensions": {
+                "width": 750,
+                "height": 785
+            },         
+            "SubMenuBackground": "main_map_submenu.png",
+            "DrawBoxRect": {
+                "x": 195,
+                "y": 150,
+                "w": 363,
+                "h": 455
+            },   
+            "LabelY": 100,
+            "LeftArrow" : {
+                "Image": "left-arrow.png",
+                "Positions": {
+                    "x": 315,
+                    "y": 616
+                }
+            },
+            "RightArrow" : {
+                "Image": "right-arrow.png",
+                "Positions": {
+                    "x": 419,
+                    "y": 616
+                }
+            }
+        },
+        "ChecksList": 
+            [
+                {
+                    "Id": 0,
+                    "Kind": "Block",
+                    "Name": "Ordon Village",
+                    "Positions": {
+                        "x": 406,
+                        "y": 650
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Wooden Sword Chest",
+                            "Conditions": "do('HaveSword')"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Link House Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Fishing Rod",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Sera Bottle",
+                            "Conditions": "False"
+                        },  
+                        {
+                            "Id": 4,
+                            "Name": "Slingshot",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Ordon Shield",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 6,
+                            "Name": "Ordon Sword",
+                            "Conditions": "False"
+                        },    
+                        {
+                            "Id": 7,
+                            "Name": "Iron Boots Chest",
+                            "Conditions": "False"
+                        }                                   
+                    ]
+                },                                
+                {
+                    "Id": 1,
+                    "Kind": "SimpleCheck",
+                    "Name": "Hearding Goat",
+                    "Positions": {
+                        "x": 417,
+                        "y": 683
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 2,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Rat Chuchu chest",
+                    "Positions": {
+                        "x": 400,
+                        "y": 683
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 3,
+                    "Kind": "SimpleCheck",
+                    "Name": "Shield Attack",
+                    "Positions": {
+                        "x": 401,
+                        "y": 617
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 4,
+                    "Kind": "SimpleCheck",
+                    "Name": "Coro Bottle",
+                    "Positions": {
+                        "x": 414,
+                        "y": 556
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 5,
+                    "Kind": "SimpleCheck",
+                    "Name": "Lantern",
+                    "Positions": {
+                        "x": 414,
+                        "y": 544
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 6,
+                    "Kind": "SimpleCheck",
+                    "Name": "South Faron Cave Small Chest",
+                    "Positions": {
+                        "x": 396,
+                        "y": 546
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 7,
+                    "Kind": "SimpleCheck",
+                    "Name": "Mist Owl Statue Chest",
+                    "Positions": {
+                        "x": 397,
+                        "y": 531
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 8,
+                    "Kind": "SimpleCheck",
+                    "Name": "Mist Skybook Letter",
+                    "Positions": {
+                        "x": 407,
+                        "y": 531
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 9,
+                    "Kind": "SimpleCheck",
+                    "Name": "North Faron Cave Heart Piece Chest",
+                    "Positions": {
+                        "x": 392,
+                        "y": 518
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 10,
+                    "Kind": "SimpleCheck",
+                    "Name": "North Faron Cave Small Chest",
+                    "Positions": {
+                        "x": 401,
+                        "y": 518
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 11,
+                    "Kind": "SimpleCheck",
+                    "Name": "Mist East Mist Chest",
+                    "Positions": {
+                        "x": 386,
+                        "y": 536
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 12,
+                    "Kind": "SimpleCheck",
+                    "Name": "Mist West Stump Small Chest",
+                    "Positions": {
+                        "x": 375,
+                        "y": 536
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 13,
+                    "Kind": "SimpleCheck",
+                    "Name": "Mist Nord Mist Small Chest",
+                    "Positions": {
+                        "x": 375,
+                        "y": 536
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 14,
+                    "Kind": "SimpleCheck",
+                    "Name": "Mist Nord Mist Small Chest",
+                    "Positions": {
+                        "x": 381,
+                        "y": 526
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 15,
+                    "Kind": "SimpleCheck",
+                    "Name": "Near Shop Chest",
+                    "Positions": {
+                        "x": 361,
+                        "y": 539
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 16,
+                    "Kind": "SimpleCheck",
+                    "Name": "Ending Blow",
+                    "Positions": {
+                        "x": 356,
+                        "y": 529
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 17,
+                    "Kind": "Block",
+                    "Name": "Forest Temple",
+                    "Positions": {
+                        "x": 356,
+                        "y": 510
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Entrance Vine Chest",
+                            "Conditions": "do('HaveSword')"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Central Chest Behind Stairs",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Dungeon Map Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Ooccoo",
+                            "Conditions": "False"
+                        },  
+                        {
+                            "Id": 4,
+                            "Name": "Windless Monkey Under",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Second Monkey Under Bridge Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 6,
+                            "Name": "Totem Pole Chest",
+                            "Conditions": "False"
+                        },    
+                        {
+                            "Id": 7,
+                            "Name": "West Tile Worm Small Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 8,
+                            "Name": "Deku Like Piece of Heart",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 9,
+                            "Name": "Big Baba Small Key",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 10,
+                            "Name": "Boomerang",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 11,
+                            "Name": "West Tile Worm Heart Piece",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 12,
+                            "Name": "Compass Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 13,
+                            "Name": "Big Key Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 14,
+                            "Name": "Water Cave near Big Key",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 15,
+                            "Name": "North Deku like Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 16,
+                            "Name": "East Tile Worm Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 17,
+                            "Name": "Diababa",
+                            "Conditions": "False"
+                        }                                                    
+                    ]
+                },
+                {
+                    "Id": 18,
+                    "Kind": "SimpleCheck",
+                    "Name": "Lost Wood Latern Chest",
+                    "Positions": {
+                        "x": 335,
+                        "y": 541
+                    },
+                    "Conditions": "False"
+                },     
+                {
+                    "Id": 19,
+                    "Kind": "SimpleCheck",
+                    "Name": "Lost Wood Spinner Chest",
+                    "Positions": {
+                        "x": 318,
+                        "y": 541
+                    },
+                    "Conditions": "False"
+                },   
+                {
+                    "Id": 20,
+                    "Kind": "SimpleCheck",
+                    "Name": "Past Heart Piece",
+                    "Positions": {
+                        "x": 335,
+                        "y": 524
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 21,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Deku Baba Hear Piece Chest",
+                    "Positions": {
+                        "x": 310,
+                        "y": 524
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 20,
+                    "Kind": "SimpleCheck",
+                    "Name": "Master Sword",
+                    "Positions": {
+                        "x": 330,
+                        "y": 498
+                    },
+                    "Conditions": "False"
+                },   
+                {
+                    "Id": 21,
+                    "Kind": "SimpleCheck",
+                    "Name": "Shadow Crystal",
+                    "Positions": {
+                        "x": 320,
+                        "y": 498
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 22,
+                    "Kind": "Block",
+                    "Name": "Temple Of Time",
+                    "Positions": {
+                        "x": 323,
+                        "y": 480
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Ooccoo",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Lobby Lantern Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "First Stair Pot Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "First Stair Window Small Chest",
+                            "Conditions": "False"
+                        },  
+                        {
+                            "Id": 4,
+                            "Name": "Dungeon Map Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Armos Room Left Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 6,
+                            "Name": "Compass Chest",
+                            "Conditions": "False"
+                        },    
+                        {
+                            "Id": 7,
+                            "Name": "Scale Room Spider Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 8,
+                            "Name": "Thrid Stair Swinging Gilloutine Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 9,
+                            "Name": "Third Stair Window Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 10,
+                            "Name": "Dominion Rod Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 11,
+                            "Name": "Scale Room Upper Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 12,
+                            "Name": "Helmasaur Room Small Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 13,
+                            "Name": "Big Key Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 14,
+                            "Name": "Second Stair Heart Piece Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 15,
+                            "Name": "Armos Room South Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 16,
+                            "Name": "Armos Room Right Heart Piece Chest",
+                            "Conditions": "False"
+                        },   
+                        {
+                            "Id": 17,
+                            "Name": "Armagohma",
+                            "Conditions": "False"
+                        }                                                    
+                    ]
+                },
+                {
+                    "Id": 23,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Chu Baba and Keese Rear Chest",
+                    "Positions": {
+                        "x": 415,
+                        "y": 499
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 24,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Chu Baba and Keese Left Chest",
+                    "Positions": {
+                        "x": 415,
+                        "y": 489
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 25,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Chu Baba and Keese Right Chest",
+                    "Positions": {
+                        "x": 425,
+                        "y": 489
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 26,
+                    "Kind": "SimpleCheck",
+                    "Name": "Tree Heart Piece",
+                    "Positions": {
+                        "x": 407,
+                        "y": 462
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 27,
+                    "Kind": "SimpleCheck",
+                    "Name": "Under Bridge Chest",
+                    "Positions": {
+                        "x": 400,
+                        "y": 447
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 28,
+                    "Kind": "SimpleCheck",
+                    "Name": "Youth's Sens",
+                    "Positions": {
+                        "x": 452,
+                        "y": 459
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 29,
+                    "Kind": "Block",
+                    "Name": "Kakariko Lantern Cave",
+                    "Positions": {
+                        "x": 481,
+                        "y": 439
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "First Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Second Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Heart Piece Chest",
+                            "Conditions": "False"
+                        }                                                
+                    ]
+                },
+                {
+                    "Id": 30,
+                    "Kind": "SimpleCheck",
+                    "Name": "Gorge Spire Heart Piece",
+                    "Positions": {
+                        "x": 462,
+                        "y": 402
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 31,
+                    "Kind": "SimpleCheck",
+                    "Name": "Gorge Spire Chest",
+                    "Positions": {
+                        "x": 452,
+                        "y": 400
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 32,
+                    "Kind": "SimpleCheck",
+                    "Name": "Gorge Owl Statue Chest",
+                    "Positions": {
+                        "x": 482,
+                        "y": 375
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 33,
+                    "Kind": "SimpleCheck",
+                    "Name": "Gorge Skybook Letter",
+                    "Positions": {
+                        "x": 492,
+                        "y": 375
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 34,
+                    "Kind": "Block",
+                    "Name": "Kakariko Village",
+                    "Positions": {
+                        "x": 582,
+                        "y": 405
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Inn Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Barnes Bomb Bag",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Eldin Spring Heart Piece",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Bomb Rock Spire Heart",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "Graveyard Lantern Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Watchtower Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "Watchtower Alcove Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "Archery Heart Piece",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "Hylian Shield",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "Hawkeye",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "Zora Armor",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "Coral Earring",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "Jump Strike",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "Renados Letter",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Horse Call",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 15,
+                            "Name": "Powered Dominion Rod",
+                            "Conditions": "False"
+                        }                                                                           
+                    ]
+                },
+                {
+                    "Id": 35,
+                    "Kind": "SimpleCheck",
+                    "Name": "Alcove Heart Piece Chest",
+                    "Positions": {
+                        "x": 624,
+                        "y": 318
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 36,
+                    "Kind": "Block",
+                    "Name": "Goron Mines",
+                    "Positions": {
+                        "x": 621,
+                        "y": 292
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Entrance Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Main Magnet Room Bottom",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Dungeon Map Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Gor Amato Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "Gor Amato Key Shard",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Ooccoo",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "Magnet Maze Heart Piece",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "Switch Room Underwater Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "Switch Room Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "After Switch Room Heart Piece",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "Outside Beamos Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "Gor Ebizo Key Shard",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "Gor Ebizo Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "Small Chest Before Dangoro",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Bow Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 15,
+                            "Name": "Compass Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 16,
+                            "Name": "Gor Liggs Key Shard",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 17,
+                            "Name": "Gor Liggs Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 18,
+                            "Name": "Main Magnet Room Top Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 19,
+                            "Name": "Outside Underwater Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 20,
+                            "Name": "Outside Clawshot Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 21,
+                            "Name": "Fyrus",
+                            "Conditions": "False"
+                        }                                                                                     
+                    ]
+                },
+                {
+                    "Id": 37,
+                    "Kind": "SimpleCheck",
+                    "Name": "Bomb Rock Ledge Heart Piece",
+                    "Positions": {
+                        "x": 524,
+                        "y": 335
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 38,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Bomskit Right Chest",
+                    "Positions": {
+                        "x": 520,
+                        "y": 300
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 39,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Bomskit Left Chest",
+                    "Positions": {
+                        "x": 508,
+                        "y": 300
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 40,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Water Bomb Fish Chest",
+                    "Positions": {
+                        "x": 565,
+                        "y": 266
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 41,
+                    "Kind": "SimpleCheck",
+                    "Name": "Eldin Bridge Owl Chest",
+                    "Positions": {
+                        "x": 567,
+                        "y": 253
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 42,
+                    "Kind": "SimpleCheck",
+                    "Name": "Eldin Bridge Skybook Letter",
+                    "Positions": {
+                        "x": 567,
+                        "y": 223
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 43,
+                    "Kind": "Block",
+                    "Name": "Bridge of Eldin Stockcave",
+                    "Positions": {
+                        "x": 586,
+                        "y": 212
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Dodongo Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Lantern Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Heart Piece Chest",
+                            "Conditions": "False"
+                        }                                                
+                    ]
+                },
+                {
+                    "Id": 44,
+                    "Kind": "Block",
+                    "Name": "Grotto - Stalfos",
+                    "Positions": {
+                        "x": 547,
+                        "y": 149
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Left Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Right Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Heart Piece Chest",
+                            "Conditions": "False"
+                        }                                                
+                    ]
+                },
+                {
+                    "Id": 45,
+                    "Kind": "SimpleCheck",
+                    "Name": "Hidden Village Impaz Skybook",
+                    "Positions": {
+                        "x": 518,
+                        "y": 200
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 46,
+                    "Kind": "SimpleCheck",
+                    "Name": "Hidden Village Impaz Ilia Charm",
+                    "Positions": {
+                        "x": 518,
+                        "y": 190
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 47,
+                    "Kind": "SimpleCheck",
+                    "Name": "Hidden Village Hide And Seek",
+                    "Positions": {
+                        "x": 528,
+                        "y": 185
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 48,
+                    "Kind": "SimpleCheck",
+                    "Name": "Plumm Fruit Game Heart Piece",
+                    "Positions": {
+                        "x": 481,
+                        "y": 118
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 49,
+                    "Kind": "SimpleCheck",
+                    "Name": "Iza Bomb Bag",
+                    "Positions": {
+                        "x": 479,
+                        "y": 99
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 50,
+                    "Kind": "SimpleCheck",
+                    "Name": "Giant Bomb Bag",
+                    "Positions": {
+                        "x": 489,
+                        "y": 99
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 51,
+                    "Kind": "SimpleCheck",
+                    "Name": "Fishing Hole Bottle",
+                    "Positions": {
+                        "x": 482,
+                        "y": 78
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 52,
+                    "Kind": "SimpleCheck",
+                    "Name": "Fishing Hole Heart Piece",
+                    "Positions": {
+                        "x": 472,
+                        "y": 74
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 53,
+                    "Kind": "SimpleCheck",
+                    "Name": "Reekfish Scent",
+                    "Positions": {
+                        "x": 405,
+                        "y": 94
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 54,
+                    "Kind": "SimpleCheck",
+                    "Name": "Small Chest Near Mother and Child Isles",
+                    "Positions": {
+                        "x": 415,
+                        "y": 94
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 55,
+                    "Kind": "SimpleCheck",
+                    "Name": "Small Chest Under Waterfall",
+                    "Positions": {
+                        "x": 410,
+                        "y": 85
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 56,
+                    "Kind": "SimpleCheck",
+                    "Name": "Underwater Left Chest",
+                    "Positions": {
+                        "x": 397,
+                        "y": 73
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 57,
+                    "Kind": "SimpleCheck",
+                    "Name": "Underwater Right Chest",
+                    "Positions": {
+                        "x": 407,
+                        "y": 73
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 58,
+                    "Kind": "SimpleCheck",
+                    "Name": "Goron In Lava Rock",
+                    "Positions": {
+                        "x": 402,
+                        "y": 62
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 59,
+                    "Kind": "SimpleCheck",
+                    "Name": "Ilia Scent",
+                    "Positions": {
+                        "x": 450,
+                        "y": 187
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 60,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Skultulla Chest",
+                    "Positions": {
+                        "x": 396,
+                        "y": 180
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 61,
+                    "Kind": "SimpleCheck",
+                    "Name": "Frozen Block Cave Chest",
+                    "Positions": {
+                        "x": 387,
+                        "y": 205
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 62,
+                    "Kind": "SimpleCheck",
+                    "Name": "Ashei Sketch",
+                    "Positions": {
+                        "x": 372,
+                        "y": 92
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 63,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Freezard Chest",
+                    "Positions": {
+                        "x": 320,
+                        "y": 75
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 64,
+                    "Kind": "SimpleCheck",
+                    "Name": "Frozen Lantern Chest",
+                    "Positions": {
+                        "x": 287,
+                        "y": 95
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 65,
+                    "Kind": "SimpleCheck",
+                    "Name": "Snowboard Racing",
+                    "Positions": {
+                        "x": 269,
+                        "y": 95
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 66,
+                    "Kind": "Block",
+                    "Name": "Snowpeak Ruins",
+                    "Positions": {
+                        "x": 160,
+                        "y": 220
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Entrance Left Armor Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Entrance Right Armor Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Dungeon Map Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Ooccoo",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "Courtyard Partially Buried Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Courtyard Open Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "Ordon Pumpkin Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "Courtyard Buried Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "Wooden Beam Room Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "Compass Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "Courtyard South Ice Wall Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "Ball and Chain",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "Goat Cheese Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "West Breakable Floor Heart Piece",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Wooden Beam Room Chandelier Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 15,
+                            "Name": "Entrance Chandelire Heart Piece Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 16,
+                            "Name": "East Chilfos Chandelier Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 17,
+                            "Name": "West Cannon Storage Left Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 18,
+                            "Name": "West Cannon Storage Right Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 19,
+                            "Name": "Bedroom Key Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 20,
+                            "Name": "Blizzeta",
+                            "Conditions": "False"
+                        }                                                                                                   
+                    ]
+                },  
+                {
+                    "Id": 67,
+                    "Kind": "SimpleCheck",
+                    "Name": "Behind Gate Underwater Chest",
+                    "Positions": {
+                        "x": 395,
+                        "y": 233
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 68,
+                    "Kind": "SimpleCheck",
+                    "Name": "Spinner Wall Heart Piece Chest",
+                    "Positions": {
+                        "x": 308,
+                        "y": 292
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 69,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Helmasaur Chest",
+                    "Positions": {
+                        "x": 335,
+                        "y": 297
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 70,
+                    "Kind": "SimpleCheck",
+                    "Name": "Back Slice",
+                    "Positions": {
+                        "x": 361,
+                        "y": 316
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 71,
+                    "Kind": "SimpleCheck",
+                    "Name": "Greate Spin",
+                    "Positions": {
+                        "x": 393,
+                        "y": 300
+                    },
+                    "Conditions": "False"
+                },  
+                {
+                    "Id": 72,
+                    "Kind": "SimpleCheck",
+                    "Name": "Hot Springwater Goron",
+                    "Positions": {
+                        "x": 441,
+                        "y": 311
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 73,
+                    "Kind": "Block",
+                    "Name": "Hyrule Castle Town",
+                    "Positions": {
+                        "x": 393,
+                        "y": 314
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "East Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Donation Heart Piece",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Star Challenge 1",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Star Challenge 2",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "Jovani Bottle",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Jovani All Souls",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "Invoice",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "Medicine Scent",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "Agitha 1st Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "Agitha 2nd Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "Agitha 3rd Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "Agitha 4th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "Agitha 5th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "Agitha 6th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Agitha 7th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 15,
+                            "Name": "Agitha 8th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 16,
+                            "Name": "Agitha 9th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 17,
+                            "Name": "Agitha 10th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 18,
+                            "Name": "Agitha 11th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 19,
+                            "Name": "Agitha 12th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 20,
+                            "Name": "Agitha 13th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 21,
+                            "Name": "Agitha 14th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 22,
+                            "Name": "Agitha 15th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 23,
+                            "Name": "Agitha 16th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 24,
+                            "Name": "Agitha 17th Bug",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 25,
+                            "Name": "Agitha 18th Bug",
+                            "Conditions": "False"
+                        } ,
+                        {
+                            "Id": 26,
+                            "Name": "Agitha 19th Bug",
+                            "Conditions": "False"
+                        } ,
+                        {
+                            "Id": 27,
+                            "Name": "Agitha 20th Bug",
+                            "Conditions": "False"
+                        } ,
+                        {
+                            "Id": 28,
+                            "Name": "Agitha 21th Bug",
+                            "Conditions": "False"
+                        } ,
+                        {
+                            "Id": 29,
+                            "Name": "Agitha 22th Bug",
+                            "Conditions": "False"
+                        } ,
+                        {
+                            "Id": 30,
+                            "Name": "Agitha 23th Bug",
+                            "Conditions": "False"
+                        } ,
+                        {
+                            "Id": 31,
+                            "Name": "Agitha 24th Bug",
+                            "Conditions": "False"
+                        }                                                  
+                    ]
+                },
+                {
+                    "Id": 74,
+                    "Kind": "Block",
+                    "Name": "Hyrule Castle",
+                    "Positions": {
+                        "x": 393,
+                        "y": 275
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Graveyard Grave Switch Room",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Grvyrd Grave Switch Room Front Left",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Grvyrd Grave Switch Room Back Left",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Graveyard Owl Statue",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "Dungeon Map Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "East Castle Balcony Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "West Courtyard Northern Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "West Courtyard Central Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "King Bublin Key",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "Compass Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "Lantern Staircase Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "Main Hall Southwest Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "Main Hall Northwest Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "Southeast Balcony Tower Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Big Key Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 15,
+                            "Name": "Treasure Room 1st Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 16,
+                            "Name": "Treasure Room 2nd Chest",
+                            "Conditions": "False"
+                        },                        
+                        {
+                            "Id": 17,
+                            "Name": "Treasure Room 3rd Chest",
+                            "Conditions": "False"
+                        },                        
+                        {
+                            "Id": 18,
+                            "Name": "Treasure Room 4th Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 19,
+                            "Name": "Treasure Room 5th Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 20,
+                            "Name": "Treasure Room 1st Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 21,
+                            "Name": "Treasure Room 2nd Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 22,
+                            "Name": "Treasure Room 3rd Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 23,
+                            "Name": "Treasure Room 4th Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 24,
+                            "Name": "Treasure Room 5th Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 25,
+                            "Name": "Treasure Room 6th Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 26,
+                            "Name": "Treasure Room 7th Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 27,
+                            "Name": "Treasure Room 8th Small Chest",
+                            "Conditions": "False"
+                        }                                                                
+                    ]
+                },
+                {
+                    "Id": 75,
+                    "Kind": "SimpleCheck",
+                    "Name": "Hylia Bridge Owl Statue Chest",
+                    "Positions": {
+                        "x": 304,
+                        "y": 334
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 76,
+                    "Kind": "SimpleCheck",
+                    "Name": "Hylia Bridge Skyboot Letter",
+                    "Positions": {
+                        "x": 313,
+                        "y": 334
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 77,
+                    "Kind": "SimpleCheck",
+                    "Name": "Castle Ruins Owl Statue Chest",
+                    "Positions": {
+                        "x": 334,
+                        "y": 338
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 78,
+                    "Kind": "SimpleCheck",
+                    "Name": "Castle Ruins Skybook Letter",
+                    "Positions": {
+                        "x": 344,
+                        "y": 338
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 79,
+                    "Kind": "SimpleCheck",
+                    "Name": "Castle Pillar Chest",
+                    "Positions": {
+                        "x": 387,
+                        "y": 340
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 80,
+                    "Kind": "SimpleCheck",
+                    "Name": "Lake Chasm Chest",
+                    "Positions": {
+                        "x": 380,
+                        "y": 359
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 81,
+                    "Kind": "SimpleCheck",
+                    "Name": "Helm Splitter",
+                    "Positions": {
+                        "x": 391,
+                        "y": 354
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 82,
+                    "Kind": "SimpleCheck",
+                    "Name": "Fountain chest",
+                    "Positions": {
+                        "x": 400,
+                        "y": 348
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 83,
+                    "Kind": "SimpleCheck",
+                    "Name": "Wooden Statue",
+                    "Positions": {
+                        "x": 398,
+                        "y": 365
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 84,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Tetike Chest",
+                    "Positions": {
+                        "x": 409,
+                        "y": 356
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 85,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Shell Blade Chest",
+                    "Positions": {
+                        "x": 283,
+                        "y": 353
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 86,
+                    "Kind": "SimpleCheck",
+                    "Name": "Bridge Vine Chest",
+                    "Positions": {
+                        "x": 307,
+                        "y": 353
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 87,
+                    "Kind": "SimpleCheck",
+                    "Name": "Flight-By-Fowl",
+                    "Positions": {
+                        "x": 321,
+                        "y": 365
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 88,
+                    "Kind": "SimpleCheck",
+                    "Name": "Outside Lanaryu Spring Left Statue Small Chest",
+                    "Positions": {
+                        "x": 310,
+                        "y": 385
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 89,
+                    "Kind": "SimpleCheck",
+                    "Name": "Outside Lanaryu Spring Right Statue Small Chest",
+                    "Positions": {
+                        "x": 320,
+                        "y": 385
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 90,
+                    "Kind": "SimpleCheck",
+                    "Name": "Outside Grotto Chest",
+                    "Positions": {
+                        "x": 328,
+                        "y": 429
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 91,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Bubble Chest",
+                    "Positions": {
+                        "x": 342,
+                        "y": 429
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 92,
+                    "Kind": "SimpleCheck",
+                    "Name": "Underwater Chest",
+                    "Positions": {
+                        "x": 293,
+                        "y": 415
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 93,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Water Toadpoli Chest",
+                    "Positions": {
+                        "x": 285,
+                        "y": 423
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 94,
+                    "Kind": "SimpleCheck",
+                    "Name": "Aurus Memo",
+                    "Positions": {
+                        "x": 262,
+                        "y": 405
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 95,
+                    "Kind": "Block",
+                    "Name": "Lakebed Temple",
+                    "Positions": {
+                        "x": 293,
+                        "y": 365
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Lobby Left Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Lobby Rear Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Stalactite Room Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Central Room Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "Ooccoo",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Dungeon Map Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "East Stalactite Room Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "East Second Floor Southwest Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "East Second Floor Southeast Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "East Water Supply Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "Before Deku Toad Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "Before Deku Toad Submerged Left Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "Before Deku Toad Submerged Right Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "Clawshot Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Central Room Chanelier Heart Piece",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 15,
+                            "Name": "Central Room Center Spire Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 16,
+                            "Name": "East Water Supply Clawshot Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 17,
+                            "Name": "West Lower Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 18,
+                            "Name": "West Water Supply Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 19,
+                            "Name": "Compass Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 20,
+                            "Name": "West Second Floor Southwest Underwater Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 21,
+                            "Name": "West Second Floor Central Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 22,
+                            "Name": "West Second Floor Northeast Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 23,
+                            "Name": "West Second Floor Southeast Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 24,
+                            "Name": "Big Key Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 25,
+                            "Name": "West Water Maze Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 26,
+                            "Name": "East Stalactite Room Heart Piece",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 27,
+                            "Name": "Morpheel",
+                            "Conditions": "False"
+                        }
+                    ]
+                },
+                {
+                    "Id": 96,
+                    "Kind": "Block",
+                    "Name": "City In The Sky",
+                    "Positions": {
+                        "x": 277,
+                        "y": 385
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Ooccoo",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Southwest Underwater Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Underwater Southeast Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "West First Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "Dungeon Map Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "East Tile Worm Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "East After-Dinofols Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "East After-Dinofols Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "Double Clawshot Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "Compass Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "West Baba Serpent Alcove Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "West Narrow Ledge Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "West Tile Worm Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "Big Baba Tower West Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Big Baba Tower North Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 15,
+                            "Name": "Big Baba Tower Heart Piece Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 16,
+                            "Name": "West Gardens Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 17,
+                            "Name": "West Gardens Poe Island Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 18,
+                            "Name": "West Gardens Lower Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 19,
+                            "Name": "West Gardens Heart Piece Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 20,
+                            "Name": "Central Outside Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 21,
+                            "Name": "Central Outside Poe Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 22,
+                            "Name": "Big Key Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 23,
+                            "Name": "Central Upper Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 24,
+                            "Name": "North Fan Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 25,
+                            "Name": "Argorok",
+                            "Conditions": "False"
+                        }
+                    ]
+                },
+                {
+                    "Id": 97,
+                    "Kind": "Block",
+                    "Name": "Lanayru Spring",
+                    "Positions": {
+                        "x": 314,
+                        "y": 396
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Underwater Left Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Underwater Right Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Southern Room Left Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Southern Room Right Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "Heart Piece Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "West Double Clawshot Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "East Double Clawshot Chest",
+                            "Conditions": "False"
+                        }
+                    ]
+                },
+                {
+                    "Id": 98,
+                    "Kind": "Block",
+                    "Name": "Lake Hylia Lantern Cave",
+                    "Positions": {
+                        "x": 299,
+                        "y": 426
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "First Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Second Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Third Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Fourth Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "Fifth Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Sixth Chest (Lantern Chest)",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "Seventh Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "Eighth Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "Ninth Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "Tenth Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "Eleventh Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "Twelfth Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "Thirteenth Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "Fourteenth Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Heart Piece Chest",
+                            "Conditions": "False"
+                        }
+                    ]
+                },
+                {
+                    "Id": 99,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Skultulla Chest",
+                    "Positions": {
+                        "x": 250,
+                        "y": 461
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 100,
+                    "Kind": "SimpleCheck",
+                    "Name": "Peahat Chest",
+                    "Positions": {
+                        "x": 219,
+                        "y": 459
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 101,
+                    "Kind": "SimpleCheck",
+                    "Name": "East Canyon Chest",
+                    "Positions": {
+                        "x": 219,
+                        "y": 434
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 102,
+                    "Kind": "SimpleCheck",
+                    "Name": "South Chest Behind Gate",
+                    "Positions": {
+                        "x": 196,
+                        "y": 466
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 103,
+                    "Kind": "SimpleCheck",
+                    "Name": "Gerudo Desert Skybook Letter",
+                    "Positions": {
+                        "x": 158,
+                        "y": 464
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 104,
+                    "Kind": "SimpleCheck",
+                    "Name": "Gerudo Desert Owl Statue Chest",
+                    "Positions": {
+                        "x": 158,
+                        "y": 452
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 105,
+                    "Kind": "SimpleCheck",
+                    "Name": "Lone Small Chest",
+                    "Positions": {
+                        "x": 171,
+                        "y": 439
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 106,
+                    "Kind": "SimpleCheck",
+                    "Name": "Grotto - Poe and Boulder Chest",
+                    "Positions": {
+                        "x": 166,
+                        "y": 387
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 107,
+                    "Kind": "SimpleCheck",
+                    "Name": "West Canyon Chest",
+                    "Positions": {
+                        "x": 112,
+                        "y": 439
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 108,
+                    "Kind": "SimpleCheck",
+                    "Name": "Bottom Left Small Chest by Campfire",
+                    "Positions": {
+                        "x": 117,
+                        "y": 407
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 109,
+                    "Kind": "SimpleCheck",
+                    "Name": "Top Left Small Chest by Campfire",
+                    "Positions": {
+                        "x": 117,
+                        "y": 397
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 110,
+                    "Kind": "SimpleCheck",
+                    "Name": "Right Small Chest by Campfire",
+                    "Positions": {
+                        "x": 127,
+                        "y": 397
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 111,
+                    "Kind": "SimpleCheck",
+                    "Name": "Mortal Draw",
+                    "Positions": {
+                        "x": 110,
+                        "y": 366
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 112,
+                    "Kind": "SimpleCheck",
+                    "Name": "Small Chest With Boxes",
+                    "Positions": {
+                        "x": 128,
+                        "y": 368
+                    },
+                    "Conditions": "False"
+                }, 
+                {
+                    "Id": 113,
+                    "Kind": "SimpleCheck",
+                    "Name": "Light Sword",
+                    "Positions": {
+                        "x": 118,
+                        "y": 303
+                    },
+                    "Conditions": "False"
+                },
+                {
+                    "Id": 114,
+                    "Kind": "Block",
+                    "Name": "Bublin Camp",
+                    "Positions": {
+                        "x": 117,
+                        "y": 342
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Outside Watchtower Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Inner Tent Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Cooked Boar Heart Piece",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Outside Arbiter Grounds Lantern Chest",
+                            "Conditions": "False"
+                        }
+                    ]
+                },
+                {
+                    "Id": 115,
+                    "Kind": "Block",
+                    "Name": "Arbiter's Grounds",
+                    "Positions": {
+                        "x": 117,
+                        "y": 317
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "Entrance Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "Poe Scent",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "Lobby Heart Piece Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Dungeon Map Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "East Redead Lower Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "Compass Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "East Upper Turnable Readed Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "Ghoul Rat Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "West Small Chest Behind Block",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "West Chandelier Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "Stalfos West Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "Stalfos Northeast Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "North Turning Room Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "Ooccoo",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Spinner Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 15,
+                            "Name": "Spinner Room First Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 16,
+                            "Name": "Spinner Room Second Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 17,
+                            "Name": "Spinner Room Lower Central Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 18,
+                            "Name": "Spinner Room Heart Piece Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 19,
+                            "Name": "Spinner Room Lower North Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 20,
+                            "Name": "Big Key Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 21,
+                            "Name": "Stalord",
+                            "Conditions": "False"
+                        }
+                    ]
+                },
+                {
+                    "Id": 116,
+                    "Kind": "Block",
+                    "Name": "Palace of Twilight",
+                    "Positions": {
+                        "x": 117,
+                        "y": 289
+                    },
+                    "Checks" : [
+                        {
+                            "Id": 0,
+                            "Name": "West First Room Central Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 1,
+                            "Name": "West First Room Heart Piece Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 2,
+                            "Name": "West Second Room Central Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 3,
+                            "Name": "Compass Chest Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 4,
+                            "Name": "West Second Room Southeast Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 5,
+                            "Name": "East First Room Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 6,
+                            "Name": "East First Room North Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 7,
+                            "Name": "East Second Room Northeast Small Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 8,
+                            "Name": "East Second Room Northwest Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 9,
+                            "Name": "Dungeon Map Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 10,
+                            "Name": "East Second Room Southeast Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 11,
+                            "Name": "East First Room Heart Piece Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 12,
+                            "Name": "East First Room West Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 13,
+                            "Name": "Central First Room Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 14,
+                            "Name": "Big Key Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 15,
+                            "Name": "Central Outdoor Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 16,
+                            "Name": "Central Tower Chest",
+                            "Conditions": "False"
+                        },
+                        {
+                            "Id": 17,
+                            "Name": "Zant",
+                            "Conditions": "False"
+                        }
+                    ]
+                }                                                                                                      
+            ]
+    }
+]

@@ -57,7 +57,7 @@ class SimpleCheck:
                            self.pin_rect.w / 2)
         pygame.draw.circle(screen, pygame.Color("black"),
                            (self.pin_rect.x + (self.pin_rect.w / 2), self.pin_rect.y + (self.pin_rect.h / 2)),
-                           self.pin_rect.w / 2, 1)
+                           self.pin_rect.w / 2, int(1 * self.map.tracker.core_service.zoom))
         # pygame.draw.circle(screen, self.pin_color, (self.pin_rect.x + (self.pin_rect.w / 2), self.pin_rect.y + (self.pin_rect.h / 2)), self.pin_rect.w / 2)
         # pygame.draw.circle(screen, pygame.Color("black"), (self.pin_rect.x + (self.pin_rect.w / 2), self.pin_rect.y + (self.pin_rect.h / 2)), self.pin_rect.w / 2, 1)
 
