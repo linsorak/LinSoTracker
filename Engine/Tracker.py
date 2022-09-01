@@ -606,6 +606,15 @@ class Tracker:
             datas.append({
                 "maps": maps_datas
             })
+
+            rules_datas = []
+            for rule in self.rules_options_list_window.list_items:
+                rules_datas.append(rule.get_data())
+
+            datas.append({
+                "rules": rules_datas
+            })
+
         return datas
 
     def load_data(self, datas):
@@ -622,6 +631,14 @@ class Tracker:
                         if maps_datas["name"] == map_data.get_name():
                             map_data.load_data(maps_datas)
                             map_data.update()
+                            break
+
+            if len(datas) > 3 and "rules" in datas[3]:
+                for rules_datas in datas[3]["rules"]:
+                    for rule in self.rules_options_list_window.list_items:
+                        if rules_datas["name"] == rule.name:
+                            rule.set_data(rules_datas)
+                            rule.update()
                             break
 
     def change_zoom(self, value):
