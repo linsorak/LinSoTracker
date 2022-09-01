@@ -182,10 +182,10 @@ class Tracker:
                                                      ident=i,
                                                      name=rules[i],
                                                      position=positions,
-                                                     checked=False)
+                                                     checked=True)
                     self.rules_options_items_list.append(temp_rule)
 
-        self.change_map(self.map_name_items_list[0])
+            self.change_map(self.map_name_items_list[0])
         self.update()
 
     def update_popup(self, popup, popup_datas, title, title_font, background_image, items_list):
@@ -271,7 +271,6 @@ class Tracker:
                               title_font="rulesOptionsFontTitle",
                               background_image=self.rules_options_list_background,
                               items_list=self.rules_options_items_list)
-            print("Update Popup")
 
     def change_map_by_map_name(self, map_name):
         for map_item in self.map_name_items_list:
@@ -698,6 +697,7 @@ class Tracker:
 
     def keyup(self, button, screen):
         if button == pygame.K_ESCAPE:
+            self.rules("eee")
             if not self.menu.get_menu().is_enabled():
                 self.menu.active(screen)
 
@@ -728,7 +728,16 @@ class Tracker:
         actions_list = self.tracker_json_data[4]["ActionsConditions"]
         if action in actions_list:
             if type(actions_list[action]) == str:
-                action_do = actions_list[action].replace("have(", "self.have(").replace("do(", "self.do(")
+                action_do = actions_list[action].replace("have(", "self.have(").replace("do(", "self.do(").replace("rules(", "self.rules(")
             else:
                 action_do = action
             return eval(action_do)
+
+    def rules(self, rule):
+        if self.rules_options_list_window.list_items:
+            for rule_option in self.rules_options_list_window.list_items:
+                if rule_option.name == rule:
+                    return rule_option.is_active()
+            return False
+        else:
+            return False

@@ -10,12 +10,17 @@ class RulesOptionsListItem(CheckListItem):
     def __init__(self, ident, name, position, tracker, checked):
         super().__init__(ident, name, position, None, tracker)
         self.checked = checked
+        self.update()
 
     def update(self):
+        self.color = None
         font = self.tracker.core_service.get_font("mapFont")
         font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), font["Name"])
 
-        self.color = self.tracker.core_service.get_color_from_font(font, "Normal")
+        if self.checked:
+            self.color = self.tracker.core_service.get_color_from_font(font, "Done")
+        else:
+            self.color = self.tracker.core_service.get_color_from_font(font, "Normal")
 
         temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
         temp_surface = temp_surface.convert_alpha()
@@ -28,9 +33,8 @@ class RulesOptionsListItem(CheckListItem):
             position=(self.position["x"], self.position["y"]),
             outline=1 * self.tracker.core_service.zoom)
 
-    def left_click(self):
+    def is_active(self):
         if self.checked:
-            self.checked = True
+            return False
         else:
-            self.checked = False
-        self.update()
+            return True

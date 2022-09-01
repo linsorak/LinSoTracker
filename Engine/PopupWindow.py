@@ -151,7 +151,6 @@ class PopupWindow:
                 x_left + self.left_arrow.get_rect().w)
         y = y_left + ((self.left_arrow.get_rect().h / 2) - (self.surface_pages_information.get_rect().h / 2))
         self.position_pages_information = (x, y)
-        print(self.title, "Open", self.open)
 
     def draw(self, screen):
         screen.blit(self.background_image, (self.index_positions[0] * self.tracker.core_service.zoom,
@@ -198,6 +197,7 @@ class PopupWindow:
                                                        element_dimension=check.get_dimensions()):
                 click_found = True
                 check.left_click()
+                self.update()
             # self.right_arrow_click()
 
         x_left, y_left, x_right, y_right = self.get_arrows_positions()

@@ -31,6 +31,7 @@ class CheckListItem(Sprite):
         if type(self.conditions) == str:
             self.conditions = self.conditions.replace("have(", "self.tracker.have(")
             self.conditions = self.conditions.replace("do(", "self.tracker.do(")
+            self.conditions = self.conditions.replace("rules(", "self.tracker.rules(")
         self.update()
 
 
