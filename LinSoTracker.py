@@ -10,10 +10,6 @@ from Tools.CoreService import CoreService
 
 core_service = CoreService()
 
-os.environ['TCL_LIBRARY'] = 'system/tcl/tcl8.6'
-os.environ['TK_LIBRARY'] = 'system/tcl/tk8.6'
-
-
 def main():
     os.environ["SDL_MOUSE_FOCUS_CLICKTHROUGH"] = "1"
     main_menu = MainMenu()

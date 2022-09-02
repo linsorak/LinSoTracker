@@ -33,7 +33,7 @@ class CoreService(metaclass=Singleton):
         self.tracker_temp_path = None
         self.dev_version = True
         self.app_name = "LinSoTracker"
-        self.version = "2.0.6.0-BETA"
+        self.version = "2.0.6.0-DEV"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
