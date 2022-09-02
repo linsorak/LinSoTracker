@@ -1,9 +1,5 @@
 pygame==2.1.2
 pygame_menu==4.2.5
-pyinstaller
-pyinstaller-hooks-contrib
+pyinstaller==3.1.0
 Pillow
 cryptography
-nuitka
-ordered-set
-zstandard

@@ -213,6 +213,7 @@ class MainMenu:
                 position=(5, 5),
                 outline=1)
 
+            pos_dev_y = surf_title.get_rect().h + 5
             if self.new_version:
                 surf_update, pos_update = self.draw_text(
                     text="The version {} is now available. Please update!".format(self.new_version),
@@ -220,8 +221,21 @@ class MainMenu:
                     color=self.font_data["color_update"],
                     font_size=self.font_data["size"],
                     surface=screen,
-                    position=(5, surf_title.get_rect().h + 5),
+                    position=(5, pos_dev_y),
                     outline=1)
+
+                pos_dev_y = pos_dev_y + surf_update.get_rect().h + 5
+
+            if self.core_service.dev_version:
+                if self.new_version:
+                    surf_dev, pos_dev = self.draw_text(
+                        text="DEVELOPER VERSION - DO NOT USE WITHOUT AUTHORIZATION",
+                        font_name=self.font_data["path"],
+                        color=self.font_data["color_official"],
+                        font_size=self.font_data["size"] - 2,
+                        surface=screen,
+                        position=(5, pos_dev_y),
+                        outline=1)
 
             if self.moved_tracker:
                 template_valid = self.template_list[self.selected_menu_index]["valid"]

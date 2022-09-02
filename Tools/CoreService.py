@@ -31,8 +31,9 @@ class CoreService(metaclass=Singleton):
         self.new_version = None
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
+        self.dev_version = True
         self.app_name = "LinSoTracker"
-        self.version = "2.0.5.2-BETA"
+        self.version = "2.0.6.0-BETA"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -130,11 +131,13 @@ class CoreService(metaclass=Singleton):
                 if self.get_version() != data_json["lastest_version"]:
                     self.new_version = data_json["lastest_version"]
 
-                if "block_old_beta" and "block_only_windows" in data_json:
+                if ("block_old_beta" and "block_only_windows" in data_json) and self.dev_version == False:
                     if not data_json["block_old_beta"]:
-                        if (self.get_version() != data_json["lastest_version"]) and data_json["block_only_windows"] and self.detect_os() == "win" and ("url_base" in data_json):
+                        if (self.get_version() != data_json["lastest_version"]) and data_json[
+                            "block_only_windows"] and self.detect_os() == "win" and ("url_base" in data_json):
                             MsgBox = messagebox.askquestion('New version detected',
-                                                            'Do you want to download the new version ?', icon='question')
+                                                            'Do you want to download the new version ?',
+                                                            icon='question')
                             if MsgBox == 'yes':
                                 webbrowser.open(
                                     data_json["url_base"].format(self.detect_os(), data_json["lastest_version"]))

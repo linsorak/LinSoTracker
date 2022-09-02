@@ -1,3 +1,8 @@
-conda activate pygameDev
-pyinstaller --noconfirm --onefile --windowed --icon "icon.ico" "LinSoTracker.py" --version-file "file_version_info.txt"
-python -m nuitka --enable-plugin=tk-inter --onefile --windows-icon-from-ico="icon.ico" --version-file="file_version_info.txt" "LinSoTracker.py"
+call activate LinSoTracker
+
+set TCL_LIBRARY=C:\Users\LinSo\.conda\envs\LinSoTracker\Library\lib\tcl8.6
+set TK_LIBRARY=C:\Users\LinSo\.conda\envs\LinSoTracker\Library\lib\tcl8.6
+
+pyinstaller --noconfirm --onefile --windowed --icon "icon.ico"  "LinSoTracker.py"
+
+call conda deactivate
