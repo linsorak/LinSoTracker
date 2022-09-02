@@ -731,10 +731,16 @@ class Tracker:
         del self.items
         gc.collect()
 
-    def have(self, item_name):
+    def have(self, item_name, index=None):
         for item in self.items:
             if item.name == item_name:
                 if item.enable:
+                    if index:
+                        new_index = "item.value {}".format(index)
+                        if eval(new_index):
+                            return True
+                        else:
+                            return False
                     return True
                 else:
                     return False
