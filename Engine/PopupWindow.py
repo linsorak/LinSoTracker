@@ -217,6 +217,9 @@ class PopupWindow:
             self.right_arrow_click()
             click_found = True
 
+        if self.tracker.current_map:
+            self.tracker.current_map.update()
+
         if not click_found:
             self.close_window()
             self.current_check_page = 1

@@ -479,6 +479,9 @@ class Tracker:
                 if button == 3:
                     item.right_click()
 
+                if self.current_map:
+                    self.current_map.update()
+
                 if self.core_service.sound_active and (button == 1 or button == 3):
                     if item.enable:
                         self.sound_select.play()
@@ -500,7 +503,7 @@ class Tracker:
                 self.current_map.click(mouse_position, button)
                 self.current_map.update()
 
-                if not self.current_map.checks_list_open:
+                if not self.current_map.checks_list_open and self.maps_list_window.is_open() == False and self.rules_options_list_window.is_open() == False:
                     self.items_click(self.items, mouse_position, button)
                     self.current_map.update()
 
@@ -526,13 +529,13 @@ class Tracker:
                                                    element_dimension=(
                                                            self.rules_options_button_rect.w,
                                                            self.rules_options_button_rect.h)):
-                    self.rules_options_list_window.open = True
+                    # self.rules_options_list_window.open = True
                     self.rules_options_list_window.open_window()
 
-
-
             else:
-                self.items_click(self.items, mouse_position, button)
+                if not self.rules_options_list_window.is_open() or not self.maps_list_window.is_open():
+                    self.items_click(self.items, mouse_position, button)
+
                 if self.current_map:
                     self.current_map.update()
 
@@ -745,13 +748,21 @@ class Tracker:
                 else:
                     return False
 
+            if type(item) == SubMenuItem:
+                for sub_item in item.items:
+                    if sub_item.name == item_name:
+                        if sub_item.enable:
+                            return True
+                        else:
+                            return False
         return False
 
     def do(self, action):
         actions_list = self.tracker_json_data[4]["ActionsConditions"]
         if action in actions_list:
             if type(actions_list[action]) == str:
-                action_do = actions_list[action].replace("have(", "self.have(").replace("do(", "self.do(").replace("rules(", "self.rules(")
+                action_do = actions_list[action].replace("have(", "self.have(").replace("do(", "self.do(").replace(
+                    "rules(", "self.rules(")
             else:
                 action_do = action
             return eval(action_do)
