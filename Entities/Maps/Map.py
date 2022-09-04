@@ -5,7 +5,7 @@ import pygame
 from Engine.PopupWindow import PopupWindow
 from Entities.Maps.BlockChecks import BlockChecks
 from Entities.Maps.CheckListItem import CheckListItem
-from Entities.Maps.SimpleCheck import SimpleCheck
+from Entities.Maps.SimpleCheck import SimpleCheck, ConditionsType
 
 
 class Map:
@@ -131,6 +131,28 @@ class Map:
                         check.left_click(mouse_position)
 
         self.update()
+
+    def get_count_checks(self):
+        cpt_logic = 0
+        cpt_left = 0
+        for check in self.checks_list:
+            if type(check) == BlockChecks:
+                for block_check in check.list_checks:
+                    if block_check.state == ConditionsType.LOGIC:
+                        cpt_logic += 1
+                        cpt_left += 1
+
+                    if block_check.state == ConditionsType.NOT_LOGIC:
+                        cpt_left += 1
+            else:
+                if check.state == ConditionsType.LOGIC:
+                    cpt_logic += 1
+                    cpt_left += 1
+
+                if check.state == ConditionsType.NOT_LOGIC:
+                    cpt_left += 1
+
+        return cpt_logic, cpt_left
 
     def get_name(self):
         return self.map_datas[0]["Datas"]["Name"]

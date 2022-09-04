@@ -38,6 +38,7 @@ class SimpleCheck:
             self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "NotLogic")
 
         if self.checked:
+            self.state = ConditionsType.DONE
             self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "Done")
 
         simple_check_datas = self.map.tracker.tracker_json_data[4]["SizeSimpleCheck"]

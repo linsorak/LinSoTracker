@@ -3,7 +3,7 @@ import os
 import pygame
 
 from Engine import MainMenu
-from Entities.Maps.SimpleCheck import SimpleCheck
+from Entities.Maps.SimpleCheck import SimpleCheck, ConditionsType
 
 
 class BlockChecks(SimpleCheck):
@@ -33,7 +33,7 @@ class BlockChecks(SimpleCheck):
             if not check.checked:
                 self.checked = False
 
-            if check.is_logic:
+            if check.state == ConditionsType.LOGIC:
                 self.logic_cpt += 1
             else:
                 self.all_logic = False

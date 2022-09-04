@@ -1,6 +1,5 @@
 import gc
 import os
-import sys
 import tkinter
 
 import pygame
@@ -9,6 +8,7 @@ from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
 
 core_service = CoreService()
+
 
 def main():
     os.environ["SDL_MOUSE_FOCUS_CLICKTHROUGH"] = "1"

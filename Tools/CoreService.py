@@ -26,6 +26,7 @@ class Singleton(type):
 
 class CoreService(metaclass=Singleton):
     def __init__(self):
+        self.show_hint_on_item = None
         self.temp_dir_delete = None
         self.official_template = None
         self.new_version = None
@@ -33,7 +34,7 @@ class CoreService(metaclass=Singleton):
         self.tracker_temp_path = None
         self.dev_version = True
         self.app_name = "LinSoTracker"
-        self.version = "2.0.6.1-DEV"
+        self.version = "2.0.6.2-DEV"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -95,6 +96,7 @@ class CoreService(metaclass=Singleton):
             data["defaultZoom"] = 0
             data["soundWhenItemActive"] = False
             data["showESCLabel"] = True
+            data["showHint"] = True
 
             with open(user_configuration, 'w') as f:
                 json.dump(data, f, indent=2)
@@ -102,6 +104,7 @@ class CoreService(metaclass=Singleton):
             self.zoom_index = data["defaultZoom"]
             self.sound_active = data["soundWhenItemActive"]
             self.draw_esc_menu_label = data["showESCLabel"]
+            self.show_hint_on_item = data["showHint"]
         else:
             with open(user_configuration) as f:
                 data = json.load(f)
@@ -120,6 +123,11 @@ class CoreService(metaclass=Singleton):
                     self.draw_esc_menu_label = data["showESCLabel"]
                 else:
                     self.draw_esc_menu_label = True
+
+                if "showHint" in data:
+                    self.show_hint_on_item = data["showHint"]
+                else:
+                    self.show_hint_on_item = True
 
     def read_checker(self):
         url = "http://linsotracker.com/tracker_data/checker.json"

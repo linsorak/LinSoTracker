@@ -24,7 +24,6 @@ class CheckListItem(Sprite):
         self.conditions = conditions
         self.tracker = tracker
         self.checked = False
-        self.is_logic = False
         self.color = None
         self.show = False
 
@@ -43,11 +42,9 @@ class CheckListItem(Sprite):
         if eval(self.conditions):
             self.state = ConditionsType.LOGIC
             self.color = self.tracker.core_service.get_color_from_font(font, "Logic")
-            self.is_logic = True
         else:
             self.state = ConditionsType.NOT_LOGIC
             self.color = self.tracker.core_service.get_color_from_font(font, "NotLogic")
-            self.is_logic = False
 
         if self.checked:
             self.state = ConditionsType.DONE
