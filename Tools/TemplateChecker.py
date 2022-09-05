@@ -112,7 +112,8 @@ class TemplateChecker:
     def __check_incremental_item(self, section, index):
         if len(section.keys()) >= 9:
             if "StartIncrementIndex" in section.keys():
-                self.__check_element_is_in_section_and_valid("StartIncrementIndex", section, "Item ID = {}".format(index), int)
+                self.__check_element_is_in_section_and_valid("StartIncrementIndex", section,
+                                                             "Item ID = {}".format(index), int)
             if "Increment" in section:
                 if isinstance(section["Increment"], list):
                     if len(section["Increment"]) > 0:
@@ -184,7 +185,8 @@ class TemplateChecker:
     def __check_alternate_count_item(self, section, index):
         if len(section.keys()) == 10:
             self.__check_element_is_in_section_and_valid("maxValue", section, "Item ID = {}".format(index), int)
-            self.__check_element_is_in_section_and_valid("maxValueAlternate", section, "Item ID = {}".format(index), int)
+            self.__check_element_is_in_section_and_valid("maxValueAlternate", section, "Item ID = {}".format(index),
+                                                         int)
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
@@ -195,7 +197,9 @@ class TemplateChecker:
                     if len(section["LabelList"]) > 0:
                         for label in section["LabelList"]:
                             if not isinstance(label, str):
-                                self.errors.append(self.ERROR_IS_NOT_IN_EXCEPTED_TYPE.format("LabelList in Item ID = {}".format(index), str))
+                                self.errors.append(
+                                    self.ERROR_IS_NOT_IN_EXCEPTED_TYPE.format("LabelList in Item ID = {}".format(index),
+                                                                              str))
                     else:
                         self.errors.append("LabelList list is empty on Item ID = {}".format(index))
                 else:

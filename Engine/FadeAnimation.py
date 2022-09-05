@@ -6,6 +6,7 @@ class FadeMode(Enum):
     REPEAT = 0
     FADE = 1
 
+
 class FadeAnimation:
     def __init__(self, fadeStart, fadeEnd, fadeStep, mode):
         self.amount = None
@@ -21,7 +22,7 @@ class FadeAnimation:
         self.fadeValue = self.fadeStart
         self.amount = 0
         self.done = False
-        
+
     def update(self):
         if not self.done:
             self.amount = self.amount + self.fadeStep

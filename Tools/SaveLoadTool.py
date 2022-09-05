@@ -1,9 +1,9 @@
 import json
-import tkinter
+from tkinter import filedialog, messagebox
+
+from cryptography.fernet import Fernet
 
 from Tools.CoreService import CoreService
-from tkinter import filedialog, messagebox
-from cryptography.fernet import Fernet
 
 core_service = CoreService()
 

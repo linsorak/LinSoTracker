@@ -19,6 +19,26 @@ Here you can find used libraries and their versions
 | pyinstaller | 5.3     |
 | python      | 3.10.0  |
 
+## Build version with no false positive virus
+
+ - Download lastest version of pyinstaller : https://github.com/pyinstaller/pyinstaller/tree/develop
+ - Open CMD and go to bootloader directory
+ - Run this command :
+```bash
+    python.exe ./waf all --target-arch=64bit
+```
+ - Run CMD as admin
+ - cd to root Pyinstaller directory
+ - Run this command
+```bash
+    python.exe setup.py install
+``` 
+ - Go to your LinSoTracker directory and delete "__build__", "__dist__", "__pycache__"
+ - Run CMD as admin
+```bash
+  pyinstaller --clean --onefile --windowed --version-file "properties.rc" --icon "icon.ico"  "LinSoTracker.py"
+``` 
+
 ## Special Thanks
 
 I would like to thank :

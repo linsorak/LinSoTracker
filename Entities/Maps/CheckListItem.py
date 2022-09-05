@@ -33,7 +33,6 @@ class CheckListItem(Sprite):
             self.conditions = self.conditions.replace("rules(", "self.tracker.rules(")
         self.update()
 
-
     def update(self):
         self.color = None
         font = self.tracker.core_service.get_font("mapFont")
@@ -88,8 +87,9 @@ class CheckListItem(Sprite):
         # screen.blit(self.surface_shadow, (self.position_draw[0] + 1, self.position_draw[1] + 1))
         screen.blit(self.surface, self.position_draw)
         if self.checked:
-            #pygame.draw.line(screen, pygame.Color("black"), (self.x_line_start, self.y_line_start), (self.x_line_end , self.y_line_end ), int(4 * self.tracker.core_service.zoom))
-            pygame.draw.line(screen, self.color, (self.x_line_start, self.y_line_start), (self.x_line_end , self.y_line_end), int(2 * self.tracker.core_service.zoom))
+            # pygame.draw.line(screen, pygame.Color("black"), (self.x_line_start, self.y_line_start), (self.x_line_end , self.y_line_end ), int(4 * self.tracker.core_service.zoom))
+            pygame.draw.line(screen, self.color, (self.x_line_start, self.y_line_start),
+                             (self.x_line_end, self.y_line_end), int(2 * self.tracker.core_service.zoom))
 
     def get_data(self):
         data = {

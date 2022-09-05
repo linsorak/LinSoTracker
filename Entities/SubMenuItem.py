@@ -1,4 +1,3 @@
-import json
 import os
 
 import pygame
@@ -9,7 +8,8 @@ from Tools.Bank import Bank
 
 
 class SubMenuItem(Item):
-    def __init__(self, id, name, image, position, enable, opacity_disable, hint, background_image, resources_path, tracker, items_list, show_numbers_items_active, show_numbers_checked_items):
+    def __init__(self, id, name, image, position, enable, opacity_disable, hint, background_image, resources_path,
+                 tracker, items_list, show_numbers_items_active, show_numbers_checked_items):
         self.background_image_name = background_image
         self.background_image = None
         self.base_image = None
@@ -95,7 +95,6 @@ class SubMenuItem(Item):
         if self.show:
             self.show = self.tracker.items_click(self.items, mouse_position, button)
 
-
     def get_data(self):
         data = Item.get_data(self)
         items_datas = []
@@ -115,6 +114,3 @@ class SubMenuItem(Item):
                     break
 
         Item.set_data(self, datas)
-
-
-

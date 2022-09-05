@@ -114,9 +114,10 @@ class MainMenu:
             os.path.join(self.resources_path, self.menu_json_data[0]["DescriptionBox"]))
 
         session_font = self.menu_json_data[0]["HomeMenuFont"]
+        self.core_service.set_menu_font(os.path.join(self.resources_path, session_font["Name"]))
         session_font_color = session_font["Colors"]
         self.font_data = {
-            "path": os.path.join(self.resources_path, session_font["Name"]),
+            "path": self.core_service.get_menu_font(),
             "size": session_font["Size"],
             "description_size": session_font["DescriptionSize"],
             "page_size": session_font["PageSize"],
@@ -168,9 +169,9 @@ class MainMenu:
                 for j in range(0, self.max_column):
                     if len(self.template_list) > index_templates:
                         content_x = (self.content.get_rect().w * (
-                                    j + 1) + self.content.get_rect().w) + self.x_offset + (self.space_offset * j)
+                                j + 1) + self.content.get_rect().w) + self.x_offset + (self.space_offset * j)
                         content_y = (self.content.get_rect().h * (
-                                    i + 1) + self.content.get_rect().h) + self.y_offset + (self.space_offset * i)
+                                i + 1) + self.content.get_rect().h) + self.y_offset + (self.space_offset * i)
                         icon_x = content_x + 10
                         icon_y = content_y + 5
                         if self.template_list[index_templates]["valid"]:
@@ -457,7 +458,6 @@ class MainMenu:
                     self.fade_engine.reset()
         else:
             self.loaded_tracker.mouse_move(mouse_position)
-
 
     def set_tracker(self, tracker_name):
         self.loaded_tracker = Tracker(tracker_name, self)

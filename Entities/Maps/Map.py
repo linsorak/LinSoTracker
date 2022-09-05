@@ -175,4 +175,3 @@ class Map:
                 if (check.id == data["id"]) and (check.name == data["name"]):
                     check.set_data(data)
                     break
-

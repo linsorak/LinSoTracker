@@ -1,5 +1,3 @@
-pygame==2.1.2
+pygame
 pygame_menu
-pyinstaller
-Pillow
 cryptography

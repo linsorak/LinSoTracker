@@ -1,8 +1,8 @@
-import json
 import webbrowser
 from tkinter import messagebox
 from typing import Tuple, Any
 
+import pygame
 import pygame_menu
 from pygame_menu import Theme
 
@@ -13,27 +13,27 @@ from Tools.SaveLoadTool import SaveLoadTool
 class Menu:
     def __init__(self, dimensions, tracker):
         self.tracker = tracker
+        self.core_service = CoreService()
         self.saveTool = SaveLoadTool()
+        font = pygame.font.Font(self.core_service.get_menu_font(), 20)
         theme = Theme(background_color=(0, 0, 0, 50),  # transparent background
-                      title_font=pygame_menu.font.FONT_NEVIS,
+                      title_font=font,#pygame_menu.font.FONT_NEVIS,
                       title_background_color=(4, 47, 126),
                       title_bar_style=pygame_menu.widgets.MENUBAR_STYLE_UNDERLINE,
                       title_font_size=25,
-                      widget_font=pygame_menu.font.FONT_NEVIS,
+                      widget_font=font,
                       widget_font_size=20)
 
         self.menu = pygame_menu.Menu('Options', dimensions[0], dimensions[1], theme=theme)
         self.zoom_selector = self.menu.add.selector('Zoom :', [('x1', 1),
-                                          ('x1.25', 1.25),
-                                          ('x1.5', 1.5),
-                                          ('x1.75', 1.75),
-                                          ('x2', 2),
-                                          ('x0.9', 0.9),
-                                          ('x0.85', 0.85),
-                                          ('x0.75', 0.75),
-                                          ], onchange=self.change_zoom)
-
-        self.core_service = CoreService()
+                                                               ('x1.25', 1.25),
+                                                               ('x1.5', 1.5),
+                                                               ('x1.75', 1.75),
+                                                               ('x2', 2),
+                                                               ('x0.9', 0.9),
+                                                               ('x0.85', 0.85),
+                                                               ('x0.75', 0.75),
+                                                               ], onchange=self.change_zoom)
 
         self.menu.add.button('Save tracker state', self.save)
         self.menu.add.button('Load tracker state', self.load)
@@ -130,8 +130,8 @@ class Menu:
 
     @staticmethod
     def open_paypal():
-        webbrowser.open("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3RNQCK64GWBMS&source=url")    \
-
+        webbrowser.open("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3RNQCK64GWBMS&source=url") \
+ \
     @staticmethod
     def open_website():
         webbrowser.open("http://www.linsotracker.com/")

@@ -4,7 +4,7 @@ from Entities.Item import Item
 
 
 class LabelItem(Item):
-    def __init__(self, id, name, position, image, opacity_disable, hint, enable, label_list, label_offset = 0):
+    def __init__(self, id, name, position, image, opacity_disable, hint, enable, label_list, label_offset=0):
         self.label_count = 0
         self.label_list = label_list
         self.label_offset = label_offset
@@ -42,4 +42,3 @@ class LabelItem(Item):
     def set_data(self, datas):
         self.label_count = datas["label_count"]
         Item.set_data(self, datas)
-

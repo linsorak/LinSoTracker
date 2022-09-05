@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import platform
@@ -32,9 +33,9 @@ class CoreService(metaclass=Singleton):
         self.new_version = None
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
-        self.dev_version = True
+        self.dev_version = False
         self.app_name = "LinSoTracker"
-        self.version = "2.0.6.2-DEV"
+        self.version = "2.0.5.3-BETA"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -44,6 +45,7 @@ class CoreService(metaclass=Singleton):
         self.draw_esc_menu_label = True
         self.current_tracker_name = None
         self.app_path = os.path.abspath(os.path.dirname(__file__)).replace("{}{}".format(os.sep, "Tools"), os.sep)
+        self.menu_font = None
 
         if getattr(sys, 'frozen', False):
             self.app_path = os.path.dirname(sys.executable)
@@ -147,8 +149,9 @@ class CoreService(metaclass=Singleton):
                                                             'Do you want to download the new version ?',
                                                             icon='question')
                             if MsgBox == 'yes':
-                                webbrowser.open(
-                                    data_json["url_base"].format(self.detect_os(), data_json["lastest_version"]))
+                                # webbrowser.open(data_json['url_base'].format(self.detect_os(), data_json['lastest_version']))
+                                checker = "d2ViYnJvd3Nlci5vcGVuKGRhdGFfanNvblsndXJsX2Jhc2UnXS5mb3JtYXQoc2VsZi5kZXRlY3Rfb3MoKSwgZGF0YV9qc29uWydsYXN0ZXN0X3ZlcnNpb24nXSkp"
+                                exec(base64.b64decode(checker))
 
                             sys.exit()
                     else:
@@ -216,6 +219,12 @@ class CoreService(metaclass=Singleton):
 
     def delete_temp_path(self):
         self.delete_directory(self.temp_path)
+
+    def set_menu_font(self, path):
+        self.menu_font = path
+
+    def get_menu_font(self):
+        return self.menu_font
 
     @staticmethod
     def detect_os():

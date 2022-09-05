@@ -43,10 +43,10 @@ class SimpleCheck:
 
         simple_check_datas = self.map.tracker.tracker_json_data[4]["SizeSimpleCheck"]
         x = (self.map.index_positions[0] * self.map.tracker.core_service.zoom) + (
-                    self.positions["x"] * self.map.tracker.core_service.zoom)
+                self.positions["x"] * self.map.tracker.core_service.zoom)
         x = x + ((simple_check_datas["w"] * self.map.tracker.core_service.zoom) / 2)
         y = (self.map.index_positions[1] * self.map.tracker.core_service.zoom) + (
-                    self.positions["y"] * self.map.tracker.core_service.zoom)
+                self.positions["y"] * self.map.tracker.core_service.zoom)
         y = y + ((simple_check_datas["h"] * self.map.tracker.core_service.zoom) / 2)
 
         self.pin_rect = pygame.Rect(x, y,

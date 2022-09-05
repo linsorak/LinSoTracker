@@ -1,11 +1,13 @@
 call activate LinSoTracker
 
-@REM set TCL_LIBRARY=C:\Users\LinSo\.conda\envs\LinSoTracker\Library\lib\tcl8.6
-@REM set TK_LIBRARY=C:\Users\LinSo\.conda\envs\LinSoTracker\Library\lib\tcl8.6
+rmdir /s /q "dist"
+rmdir /s /q "_pycache_"
+rmdir /s /q "build"
+del "LinSoTracker.spec"
 
-@REM https://www.youtube.com/watch?v=gxeRv-cuSas
+pyinstaller --clean --onefile --version-file "properties.rc" --icon "icon.ico"  "LinSoTracker.py"
 
-pyinstaller --clean --onefile --windowed --version-file "properties.rc" --icon "icon.ico"  "LinSoTracker.py"
-@REM pyinstaller --noconfirm --clean --onedir --windowed --version-file "properties.rc" --icon "icon.ico"  "LinSoTracker.py"
+robocopy "templates" "dist/templates" /E
+copy tracker.data dist\tracker.data /Y
 
 call conda deactivate

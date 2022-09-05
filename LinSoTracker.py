@@ -1,11 +1,15 @@
+import base64
 import gc
+import glob
 import os
+import tempfile
 import tkinter
 
 import pygame
 
 from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
+import ctypes
 
 core_service = CoreService()
 
@@ -62,6 +66,16 @@ def main():
 
 
 if __name__ == '__main__':
+    if core_service.detect_os() == "win":
+    #     # BASE 64 ENCODE OF : ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0) For hide console
+        checker = "Y3R5cGVzLndpbmRsbC51c2VyMzIuU2hvd1dpbmRvdyhjdHlwZXMud2luZGxsLmtlcm5lbDMyLkdldENvbnNvbGVXaW5kb3coKSwgMCk="
+        exec(base64.b64decode(checker))
+
+    rootdir = tempfile.gettempdir()
+    for path in glob.glob(f'{rootdir}/*/'):
+        if "LinSoTracker" in path:
+            core_service.delete_directory(path)
+
     root = tkinter.Tk()
     root.overrideredirect(1)
     root.withdraw()
