@@ -36,7 +36,7 @@ Here you can find used libraries and their versions
  - Go to your LinSoTracker directory and delete "__build__", "__dist__", "__pycache__"
  - Run CMD as admin
 ```bash
-  pyinstaller --clean --onefile --windowed --version-file "properties.rc" --icon "icon.ico"  "LinSoTracker.py"
+    pyinstaller --clean --onefile --version-file "properties.rc" --icon "icon.ico"  "LinSoTracker.py"
 ``` 
 
 ## Special Thanks
