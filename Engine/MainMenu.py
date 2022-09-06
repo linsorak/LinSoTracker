@@ -362,7 +362,6 @@ class MainMenu:
                 "illustration": pygame.image.load(io.BytesIO(tracker_illustration)),
                 "valid": template_checker.is_valid()
             }
-
             if "Comments" in data[0]["Informations"]:
                 template_data["Comments"] = data[0]["Informations"]["Comments"]
 
@@ -425,6 +424,7 @@ class MainMenu:
                                                        element_dimension=menu["dimensions"]):
                         if menu["template"]["valid"]:
                             self.set_tracker(menu["template"]["filename"])
+                        # self.set_tracker(menu["template"]["filename"])
         else:
             self.loaded_tracker.click(mouse_position, button)
 

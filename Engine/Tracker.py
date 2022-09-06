@@ -30,6 +30,7 @@ from Tools.SaveLoadTool import SaveLoadTool
 
 class Tracker:
     def __init__(self, template_name, main_menu):
+        self.list_items_sheets = None
         self.position_draw_label_checks_cpt = None
         self.surface_label_checks_cpt = None
         self.cpt_all_checks = None
@@ -134,11 +135,25 @@ class Tracker:
         # if self.map_image:
         #     self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
 
-        json_data_item_sheet = self.tracker_json_data[1]["Datas"]["ItemSheet"]
-        json_data_item_sheet_dimensions = self.tracker_json_data[1]["Datas"]["ItemSheetDimensions"]
-        self.items_sheet = self.bank.addImage(os.path.join(self.resources_path, json_data_item_sheet))
-        self.items_sheet_data = ImageSheet(self.items_sheet, json_data_item_sheet_dimensions["width"],
-                                           json_data_item_sheet_dimensions["height"])
+        # json_data_item_sheet = self.tracker_json_data[1]["Datas"]["ItemSheet"]
+        # json_data_item_sheet_dimensions = self.tracker_json_data[1]["Datas"]["ItemSheetDimensions"]
+        # self.items_sheet = self.bank.addImage(os.path.join(self.resources_path, json_data_item_sheet))
+        # self.items_sheet_data = ImageSheet(self.items_sheet, json_data_item_sheet_dimensions["width"],
+        #                                    json_data_item_sheet_dimensions["height"])
+        items_sheets = self.tracker_json_data[1]["Datas"]["Items"]
+        self.list_items_sheets = []
+        for sheet_datas in items_sheets:
+            image_sheet = self.bank.addImage(os.path.join(self.resources_path, items_sheets[sheet_datas]["ItemsSheet"]))
+            items_sheet_data = ImageSheet(image_sheet, items_sheets[sheet_datas]["ItemsSheetDimensions"]["width"],
+                                          items_sheets[sheet_datas]["ItemsSheetDimensions"]["height"])
+            image_sheet_dimensions = items_sheets[sheet_datas]["ItemsSheetDimensions"]
+
+            items_sheet = {
+                "Name": sheet_datas,
+                "ImageSheet": items_sheet_data,
+                "ImageSheetDimensions": image_sheet_dimensions
+            }
+            self.list_items_sheets.append(items_sheet)
 
         background_color_r = self.tracker_json_data[1]["Datas"]["BackgroundColor"]["r"]
         background_color_g = self.tracker_json_data[1]["Datas"]["BackgroundColor"]["g"]
@@ -316,9 +331,15 @@ class Tracker:
         # print("map", map_infos)
 
     def init_item(self, item, item_list, items_sheet_image):
-        item_image = self.core_service.zoom_image(
-            items_sheet_image.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
-                                                       column=item["SheetPositions"]["column"]))
+        # item_image = self.core_service.zoom_image(
+        #     items_sheet_image.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
+        #                                                column=item["SheetPositions"]["column"]))
+        item_image = None
+        for items_sheet in self.list_items_sheets:
+            if items_sheet["Name"] == item["SheetInformation"]["SpriteSheet"]:
+                item_image = self.core_service.zoom_image(
+                    items_sheet["ImageSheet"].getImageWithRowAndColumn(row=item["SheetInformation"]["row"],
+                                                                       column=item["SheetInformation"]["column"]))
 
         if item["Kind"] == "AlternateCountItem":
             _item = AlternateCountItem(name=item["Name"],
@@ -345,9 +366,15 @@ class Tracker:
                                id=item["Id"])
             item_list.add(_item)
         elif item["Kind"] == "CheckItem":
-            check_image = self.core_service.zoom_image(
-                items_sheet_image.getImageWithRowAndColumn(row=item["CheckImageSheetPositions"]["row"],
-                                                           column=item["CheckImageSheetPositions"]["column"]))
+
+            check_image = None
+            for items_sheet in self.list_items_sheets:
+                if items_sheet["Name"] == item["CheckImageSheetInformation"]["SpriteSheet"]:
+                    check_image = self.core_service.zoom_image(
+                        items_sheet["ImageSheet"].getImageWithRowAndColumn(
+                            row=item["CheckImageSheetInformation"]["row"],
+                            column=item["CheckImageSheetInformation"]["column"]))
+
             _item = CheckItem(name=item["Name"],
                               image=item_image,
                               position=(item["Positions"]["x"] * self.core_service.zoom,
@@ -393,9 +420,18 @@ class Tracker:
             for next_item in item["NextItems"]:
                 temp_item = {}
                 temp_item["Name"] = next_item["Name"]
-                temp_item["Image"] = self.core_service.zoom_image(
-                    items_sheet_image.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"],
-                                                               column=next_item["SheetPositions"]["column"]))
+
+                temp_item_image = None
+                for items_sheet in self.list_items_sheets:
+                    if items_sheet["Name"] == next_item["SheetInformation"]["SpriteSheet"]:
+                        temp_item["Image"] = self.core_service.zoom_image(
+                            items_sheet["ImageSheet"].getImageWithRowAndColumn(row=next_item["SheetInformation"]["row"],
+                                                                               column=next_item["SheetInformation"][
+                                                                                   "column"]))
+
+                # temp_item["Image"] = self.core_service.zoom_image(
+                #     items_sheet_image.getImageWithRowAndColumn(row=next_item["SheetPositions"]["row"],
+                #                                                column=next_item["SheetPositions"]["column"]))
                 temp_item["Label"] = next_item["Label"]
                 if "AlternativeLabel" in next_item:
                     temp_item["AlternativeLabel"] = next_item["AlternativeLabel"]

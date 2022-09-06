@@ -59,15 +59,16 @@ class TemplateChecker:
                 self.__check_element_is_in_section_and_valid("x", section[element], element, int)
                 self.__check_element_is_in_section_and_valid("y", section[element], element, int)
             else:
-                self.errors.append(self.ERROR_EXCEPTED_NUMBER_ELEMENTS.format(element))
+                self.errors.append(self.ERROR_EXCEPTED_NUMBER_ELEMENTS.format(section))
         else:
             self.errors.append(self.ERROR_MISSING_SECTION_IN.format(element, section_name))
 
     def __sheet_positions_check(self, element, section, section_name):
         if element in section.keys():
-            if len(section[element]) == 2:
+            if len(section[element]) == 3:
                 self.__check_element_is_in_section_and_valid("row", section[element], element, int)
                 self.__check_element_is_in_section_and_valid("column", section[element], element, int)
+                self.__check_element_is_in_section_and_valid("SpriteSheet", section[element], element, str)
             else:
                 self.errors.append(self.ERROR_EXCEPTED_NUMBER_ELEMENTS.format(element))
         else:
@@ -96,7 +97,7 @@ class TemplateChecker:
         self.__check_element_is_in_section_and_valid("Kind", section, "Item ID = {}".format(index), str)
         self.__check_element_is_in_section_and_valid("Name", section, "Item ID = {}".format(index), str)
         self.__positions_check("Positions", section, "Item ID = {}".format(index))
-        self.__sheet_positions_check("SheetPositions", section, "Item ID = {}".format(index))
+        self.__sheet_positions_check("SheetInformation", section, "Item ID = {}".format(index))
         self.__check_element_is_in_section_and_valid("isActive", section, "Item ID = {}".format(index), bool)
 
         if "Hint" in section.keys():
@@ -167,7 +168,7 @@ class TemplateChecker:
         if len(section.keys()) >= 4:
             self.__check_element_is_in_section_and_valid("Id", section, "Item ID = {}".format(index), int)
             self.__check_element_is_in_section_and_valid("Name", section, "Item ID = {}".format(index), str)
-            self.__sheet_positions_check("SheetPositions", section, "Item ID = {}".format(index))
+            self.__sheet_positions_check("SheetInformation", section, "Item ID = {}".format(index))
             self.__check_label(section, "Item ID = {}".format(index))
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
@@ -210,7 +211,7 @@ class TemplateChecker:
 
     def _check_check_item(self, section, index):
         if len(section.keys()) == 9:
-            self.__sheet_positions_check("CheckImageSheetPositions", section, "Item ID = {}".format(index))
+            self.__sheet_positions_check("CheckImageSheetInformation", section, "Item ID = {}".format(index))
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
@@ -246,12 +247,11 @@ class TemplateChecker:
     def __is_datas_valid(self):
         datas = self.template_json_data[1]["Datas"]
 
-        if len(datas.keys()) == 5:
+        if len(datas.keys()) == 4:
             self.__dimension_check("Dimensions", datas, "Datas")
-            # self.__check_element_is_in_section_and_valid("Zoom", datas, "Datas", float)
             self.__check_element_is_in_section_and_valid("Background", datas, "Datas", str)
             self.__color_check("BackgroundColor", datas, "Datas")
-            self.__dimension_check("ItemSheetDimensions", datas, "Datas")
+            # self.__dimension_check("ItemSheetDimensions", datas, "Datas")
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Datas"))
 
