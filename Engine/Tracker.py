@@ -662,13 +662,14 @@ class Tracker:
                         found = True
             else:
                 for submenu in self.submenus:
-                    for item in submenu.items:
-                        if self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                           element_positons=item.get_position(),
-                                                           element_dimension=(item.get_rect().w, item.get_rect().h)):
-                            self.current_item_on_mouse = item
-                            self.update_hint(self.current_item_on_mouse, "labelItemFont", False)
-                            found = True
+                    if submenu.show:
+                        for item in submenu.items:
+                            if self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                               element_positons=item.get_position(),
+                                                               element_dimension=(item.get_rect().w, item.get_rect().h)):
+                                self.current_item_on_mouse = item
+                                self.update_hint(self.current_item_on_mouse, "labelItemFont", False)
+                                found = True
 
             if not found:
                 self.current_item_on_mouse = None

@@ -72,6 +72,11 @@ class SubMenuItem(Item):
 
     def draw_submenu(self, screen):
         if self.show:
+            info_object = pygame.display.Info()
+            s = pygame.Surface((info_object.current_w, info_object.current_h), pygame.SRCALPHA)  # per-pixel alpha
+            s.fill((0, 0, 0, 209))  # notice the alpha value in the color
+            screen.blit(s, (0, 0))
+
             screen.blit(self.background_image, (0, 0))
             self.items.draw(screen)
 
