@@ -795,9 +795,6 @@ class Tracker:
         if self.core_service.draw_esc_menu_label:
             screen.blit(self.esc_menu_image, (2, 2))
 
-        for submenu in self.submenus:
-            submenu.draw_submenu(screen)
-
         if self.current_map:
             self.current_map.draw(screen)
             screen.blit(self.surface_label_map_name, self.position_draw_label_map_name)
@@ -828,6 +825,10 @@ class Tracker:
                     pygame.draw.rect(screen, (0, 0, 0), temp_rect)
                     screen.blit(self.surface_check_hint, self.position_check_hint)
             # self.surface_label_checks_cpt, self.position_draw_label_checks_cpt
+
+        for submenu in self.submenus:
+            submenu.draw_submenu(screen)
+
         else:
             if self.current_item_on_mouse and self.core_service.show_hint_on_item:
                 temp_rect = pygame.Rect(self.position_check_hint[0],
@@ -875,7 +876,13 @@ class Tracker:
             if type(item) == SubMenuItem:
                 for sub_item in item.items:
                     if sub_item.name == item_name:
-                        if sub_item.enable:
+                        if index:
+                            if index:
+                                new_index = "sub_item.value {}".format(index)
+                                if eval(new_index):
+                                    return True
+                                else:
+                                    return False
                             return True
                         else:
                             return False
@@ -887,9 +894,17 @@ class Tracker:
             if type(actions_list[action]) == str:
                 action_do = actions_list[action].replace("have(", "self.have(").replace("do(", "self.do(").replace(
                     "rules(", "self.rules(")
+                # print(action_do)
             else:
                 action_do = action
-            return eval(action_do)
+
+            try:
+                test = eval(action_do)
+                return test
+            except TypeError:
+                print(action_do)
+                return False
+            # return eval(action_do)
 
     def rules(self, rule):
         if self.rules_options_list_window.list_items:

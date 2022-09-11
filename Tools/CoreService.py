@@ -33,9 +33,9 @@ class CoreService(metaclass=Singleton):
         self.new_version = None
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
-        self.dev_version = False
+        self.dev_version = True
         self.app_name = "LinSoTracker"
-        self.version = "2.0.5.4-BETA"
+        self.version = "2.0.5.6-DEV"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -132,7 +132,7 @@ class CoreService(metaclass=Singleton):
                     self.show_hint_on_item = True
 
     def read_checker(self):
-        url = "http://linsotracker.com/tracker_data/checker.json"
+        url = "https://linsotracker.com/tracker_data/checker.json"
         try:
             response = urlopen(url)
             data_json = json.loads(response.read())

@@ -1,5 +1,5 @@
 # LinSoTracker
-<img src="http://linsotracker.com/tracker/gitbanner.png"></img>
+<img src="https://linsotracker.com/tracker/gitbanner.png"></img>
 ## Installation
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install LinSoTracker.

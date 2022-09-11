@@ -134,4 +134,4 @@ class Menu:
  \
     @staticmethod
     def open_website():
-        webbrowser.open("http://www.linsotracker.com/")
+        webbrowser.open("https://www.linsotracker.com/")
