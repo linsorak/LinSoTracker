@@ -5,13 +5,14 @@ import platform
 import shutil
 import sys
 import tempfile
-import webbrowser
+import urllib
 from contextlib import contextmanager
 from tkinter import messagebox
 from urllib.error import URLError
 from urllib.request import urlopen
 
 import pygame
+from cryptography.fernet import Fernet
 
 from Tools import ptext
 
@@ -76,6 +77,7 @@ class CoreService(metaclass=Singleton):
 
     def set_current_tracker_name(self, name):
         self.current_tracker_name = name
+        self.generate_seed()
 
     def get_current_tracker_name(self):
         return self.current_tracker_name
@@ -90,6 +92,28 @@ class CoreService(metaclass=Singleton):
 
             with open(user_configuration, 'w') as f:
                 json.dump(data, f, indent=2)
+
+    def generate_seed(self):
+        import requests
+        import pyperclip
+
+        ip = requests.get('https://checkip.amazonaws.com').text.strip()
+        port = 3100
+        seed_base = f"{ip}:{port}/{self.current_tracker_name}"
+        encoded_seed = base64.b64encode(seed_base.encode('ascii'))
+        fernet = Fernet(self.key_encryption)
+        encoded_seed = fernet.encrypt(encoded_seed)
+        pyperclip.copy(encoded_seed.decode("utf-8"))
+
+        self.decode_seed(encoded_seed.decode("utf-8"))
+
+    def decode_seed(self, encrypted_seed):
+        fernet = Fernet(self.key_encryption)
+        decoded_seed = fernet.decrypt(encrypted_seed.encode("utf-8"))
+        decoded_seed = base64.b64decode(decoded_seed)
+        print(decoded_seed.decode("utf-8"))
+
+
 
     def load_default_configuration(self):
         user_configuration = os.path.join(self.temp_path_fixe, "user.conf")
@@ -290,3 +314,9 @@ class CoreService(metaclass=Singleton):
     def launch_app(path):
         if os.path.exists(path):
             os.startfile(path)
+
+    @staticmethod
+    def my_exec(code):
+        exec('global i; i = %s' % code)
+        global i
+        return i
