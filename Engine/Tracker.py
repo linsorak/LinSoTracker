@@ -30,6 +30,7 @@ from Tools.SaveLoadTool import SaveLoadTool
 
 class Tracker:
     def __init__(self, template_name, main_menu):
+        self.rules_options_show = None
         self.list_items_sheets = None
         self.position_draw_label_checks_cpt = None
         self.surface_label_checks_cpt = None
@@ -236,62 +237,65 @@ class Tracker:
 
     def update(self):
         if self.current_map:
-            self.box_label_map_name_rect = self.tracker_json_data[4]["MapsList"]["MapListButtonLabelRect"]
-            self.box_label_map_name_rect = pygame.Rect(
-                self.box_label_map_name_rect["x"] * self.core_service.zoom,
-                self.box_label_map_name_rect["y"] * self.core_service.zoom,
-                self.box_label_map_name_rect["w"] * self.core_service.zoom,
-                self.box_label_map_name_rect["h"] * self.core_service.zoom
-            )
+            if "MapsList" in self.tracker_json_data[4]:
+                self.box_label_map_name_rect = self.tracker_json_data[4]["MapsList"]["MapListButtonLabelRect"]
+                self.box_label_map_name_rect = pygame.Rect(
+                    self.box_label_map_name_rect["x"] * self.core_service.zoom,
+                    self.box_label_map_name_rect["y"] * self.core_service.zoom,
+                    self.box_label_map_name_rect["w"] * self.core_service.zoom,
+                    self.box_label_map_name_rect["h"] * self.core_service.zoom
+                )
 
-            font = self.core_service.get_font("mapFontListMaps")
-            font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+                font = self.core_service.get_font("mapFontListMaps")
+                font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
 
-            temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
-            temp_surface = temp_surface.convert_alpha()
-            self.surface_label_map_name, self.position_draw_label_map_name = MainMenu.MainMenu.draw_text(
-                text=self.current_map.get_name(),
-                font_name=font_path,
-                color=(255, 255, 255),
-                font_size=font["Size"] * self.core_service.zoom,
-                surface=temp_surface,
-                position=(self.box_label_map_name_rect.x, self.box_label_map_name_rect.y),
-                outline=1 * self.core_service.zoom)
+                temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
+                temp_surface = temp_surface.convert_alpha()
+                self.surface_label_map_name, self.position_draw_label_map_name = MainMenu.MainMenu.draw_text(
+                    text=self.current_map.get_name(),
+                    font_name=font_path,
+                    color=(255, 255, 255),
+                    font_size=font["Size"] * self.core_service.zoom,
+                    surface=temp_surface,
+                    position=(self.box_label_map_name_rect.x, self.box_label_map_name_rect.y),
+                    outline=1 * self.core_service.zoom)
 
-            x = (self.box_label_map_name_rect.w / 2) - (
-                    self.surface_label_map_name.get_rect().w / 2) + self.box_label_map_name_rect.x
-            y = (self.box_label_map_name_rect.h / 2) - (
-                    self.surface_label_map_name.get_rect().h / 2) + self.box_label_map_name_rect.y
-            self.position_draw_label_map_name = (x, y)
+                x = (self.box_label_map_name_rect.w / 2) - (
+                        self.surface_label_map_name.get_rect().w / 2) + self.box_label_map_name_rect.x
+                y = (self.box_label_map_name_rect.h / 2) - (
+                        self.surface_label_map_name.get_rect().h / 2) + self.box_label_map_name_rect.y
+                self.position_draw_label_map_name = (x, y)
 
-            maps_list_box_datas = self.tracker_json_data[4]["MapsList"]["MapsListBox"]
-            self.maps_list_background = self.bank.addZoomImage(
-                os.path.join(self.resources_path, maps_list_box_datas["SubMenuBackground"]))
+                maps_list_box_datas = self.tracker_json_data[4]["MapsList"]["MapsListBox"]
+                self.maps_list_background = self.bank.addZoomImage(
+                    os.path.join(self.resources_path, maps_list_box_datas["SubMenuBackground"]))
 
-            self.update_popup(popup=self.maps_list_window,
-                              popup_datas=maps_list_box_datas,
-                              title="Maps",
-                              title_font="mapFontTitle",
-                              background_image=self.maps_list_background,
-                              items_list=self.map_name_items_list)
+                self.update_popup(popup=self.maps_list_window,
+                                  popup_datas=maps_list_box_datas,
+                                  title="Maps",
+                                  title_font="mapFontTitle",
+                                  background_image=self.maps_list_background,
+                                  items_list=self.map_name_items_list)
 
-            self.rules_options_button_rect = self.tracker_json_data[4]["RulesOptionsList"]["RulesOptionsListButtonRect"]
-            self.rules_options_button_rect = pygame.Rect(
-                self.rules_options_button_rect["x"] * self.core_service.zoom,
-                self.rules_options_button_rect["y"] * self.core_service.zoom,
-                self.rules_options_button_rect["w"] * self.core_service.zoom,
-                self.rules_options_button_rect["h"] * self.core_service.zoom
-            )
+            if "RulesOptionsList" in self.tracker_json_data[4]:
+                self.rules_options_button_rect = self.tracker_json_data[4]["RulesOptionsList"][
+                    "RulesOptionsListButtonRect"]
+                self.rules_options_button_rect = pygame.Rect(
+                    self.rules_options_button_rect["x"] * self.core_service.zoom,
+                    self.rules_options_button_rect["y"] * self.core_service.zoom,
+                    self.rules_options_button_rect["w"] * self.core_service.zoom,
+                    self.rules_options_button_rect["h"] * self.core_service.zoom
+                )
 
-            rules_options_box_datas = self.tracker_json_data[4]["RulesOptionsList"]["RulesOptionListBox"]
-            self.rules_options_list_background = self.bank.addZoomImage(
-                os.path.join(self.resources_path, rules_options_box_datas["SubMenuBackground"]))
-            self.update_popup(popup=self.rules_options_list_window,
-                              popup_datas=rules_options_box_datas,
-                              title="Rules Options",
-                              title_font="rulesOptionsFontTitle",
-                              background_image=self.rules_options_list_background,
-                              items_list=self.rules_options_items_list)
+                rules_options_box_datas = self.tracker_json_data[4]["RulesOptionsList"]["RulesOptionListBox"]
+                self.rules_options_list_background = self.bank.addZoomImage(
+                    os.path.join(self.resources_path, rules_options_box_datas["SubMenuBackground"]))
+                self.update_popup(popup=self.rules_options_list_window,
+                                  popup_datas=rules_options_box_datas,
+                                  title="Rules Options",
+                                  title_font="rulesOptionsFontTitle",
+                                  background_image=self.rules_options_list_background,
+                                  items_list=self.rules_options_items_list)
 
     def update_cpt(self):
         self.cpt_checks_logics = 0
@@ -301,7 +305,7 @@ class Tracker:
             self.cpt_checks_logics += logic_checks_cpt
             self.cpt_all_checks += all_checks_cpt
 
-        font = self.core_service.get_font("mapFont")
+        font = self.core_service.get_font("mapFontChecksNumber")
         font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
         cpt_checks_position = self.tracker_json_data[4]["CptChecksPosition"]
 
@@ -313,7 +317,7 @@ class Tracker:
             color=(255, 255, 255),
             font_size=font["Size"] * self.core_service.zoom,
             surface=temp_surface,
-            position=(cpt_checks_position["x"], cpt_checks_position["y"]),
+            position=(cpt_checks_position["x"] * self.core_service.zoom, cpt_checks_position["y"] * self.core_service.zoom),
             outline=1 * self.core_service.zoom)
 
     def change_map_by_map_name(self, map_name):
@@ -583,22 +587,22 @@ class Tracker:
                 if self.rules_options_list_window.is_open():
                     self.rules_options_list_window.left_click(mouse_position)
 
-                if self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                   element_positons=(
-                                                           self.box_label_map_name_rect.x,
-                                                           self.box_label_map_name_rect.y),
-                                                   element_dimension=(
-                                                           self.box_label_map_name_rect.w,
-                                                           self.box_label_map_name_rect.h)):
+                if self.box_label_map_name_rect and self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                                                    element_positons=(
+                                                                                            self.box_label_map_name_rect.x,
+                                                                                            self.box_label_map_name_rect.y),
+                                                                                    element_dimension=(
+                                                                                            self.box_label_map_name_rect.w,
+                                                                                            self.box_label_map_name_rect.h)):
                     self.maps_list_window.open_window()
 
-                if self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                   element_positons=(
-                                                           self.rules_options_button_rect.x,
-                                                           self.rules_options_button_rect.y),
-                                                   element_dimension=(
-                                                           self.rules_options_button_rect.w,
-                                                           self.rules_options_button_rect.h)):
+                if self.rules_options_button_rect and self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                                                      element_positons=(
+                                                                                              self.rules_options_button_rect.x,
+                                                                                              self.rules_options_button_rect.y),
+                                                                                      element_dimension=(
+                                                                                              self.rules_options_button_rect.w,
+                                                                                              self.rules_options_button_rect.h)):
                     # self.rules_options_list_window.open = True
                     self.rules_options_list_window.open_window()
                 # self.cpt_checks_logics = 0
@@ -666,7 +670,8 @@ class Tracker:
                         for item in submenu.items:
                             if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                                element_positons=item.get_position(),
-                                                               element_dimension=(item.get_rect().w, item.get_rect().h)):
+                                                               element_dimension=(
+                                                               item.get_rect().w, item.get_rect().h)):
                                 self.current_item_on_mouse = item
                                 self.update_hint(self.current_item_on_mouse, "labelItemFont", False)
                                 found = True
@@ -722,13 +727,14 @@ class Tracker:
                 "maps": maps_datas
             })
 
-            rules_datas = []
-            for rule in self.rules_options_list_window.list_items:
-                rules_datas.append(rule.get_data())
+            if self.rules_options_list_window.list_items:
+                rules_datas = []
+                for rule in self.rules_options_list_window.list_items:
+                    rules_datas.append(rule.get_data())
 
-            datas.append({
-                "rules": rules_datas
-            })
+                datas.append({
+                    "rules": rules_datas
+                })
 
         return datas
 
@@ -776,17 +782,10 @@ class Tracker:
         self.menu.get_menu().resize(width=w, height=h)
         self.load_data(datas)
         self.update()
+        self.update_cpt()
 
     def draw(self, screen):
         screen.blit(self.background_image, (0, 0))
-        self.items.draw(screen)
-
-        for item in self.items:
-            if type(item) == GoModeItem:
-                if item.enable:
-                    item.draw()
-                    break
-
             # pygame.draw.rect(screen, (255, 255, 255),item.rect)
 
         if self.menu.get_menu().is_enabled():
@@ -796,8 +795,23 @@ class Tracker:
             screen.blit(self.esc_menu_image, (2, 2))
 
         if self.current_map:
+            self.current_map.draw_background(screen)
+
+            try:
+                self.items.draw(screen)
+
+                for item in self.items:
+                    if type(item) == GoModeItem:
+                        if item.enable:
+                            item.draw()
+                            break
+            except AttributeError:
+                pass
+
             self.current_map.draw(screen)
-            screen.blit(self.surface_label_map_name, self.position_draw_label_map_name)
+            if self.surface_label_map_name:
+                screen.blit(self.surface_label_map_name, self.position_draw_label_map_name)
+
             screen.blit(self.surface_label_checks_cpt, self.position_draw_label_checks_cpt)
 
             if self.maps_list_window.is_open():
@@ -824,6 +838,18 @@ class Tracker:
 
                     pygame.draw.rect(screen, (0, 0, 0), temp_rect)
                     screen.blit(self.surface_check_hint, self.position_check_hint)
+        else:
+            try:
+                self.items.draw(screen)
+
+                for item in self.items:
+                    if type(item) == GoModeItem:
+                        if item.enable:
+                            item.draw()
+                            break
+            except AttributeError:
+                pass
+
             # self.surface_label_checks_cpt, self.position_draw_label_checks_cpt
 
         for submenu in self.submenus:

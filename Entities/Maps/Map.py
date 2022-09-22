@@ -89,11 +89,13 @@ class Map:
     def open_window(self):
         self.check_window.open = True
 
-    def draw(self, screen):
+    def draw_background(self, screen):
         if self.active:
             screen.blit(self.map_background, (self.index_positions[0] * self.tracker.core_service.zoom,
                                               self.index_positions[1] * self.tracker.core_service.zoom))
 
+    def draw(self, screen):
+        if self.active:
             for check in self.checks_list:
                 check.draw(screen)
 
