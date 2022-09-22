@@ -876,7 +876,7 @@ class Tracker:
             if type(item) == SubMenuItem:
                 for sub_item in item.items:
                     if sub_item.name == item_name:
-                        if index:
+                        if sub_item.enable:
                             if index:
                                 new_index = "sub_item.value {}".format(index)
                                 if eval(new_index):
