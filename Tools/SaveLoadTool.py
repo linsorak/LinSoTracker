@@ -35,7 +35,6 @@ class SaveLoadTool:
             return None
 
     def saveFileDialog(self, data):
-
         filename = filedialog.asksaveasfilename(initialdir="/", title="Saving tracker informations",
                                                 filetypes=self.filetypes)
         if filename:

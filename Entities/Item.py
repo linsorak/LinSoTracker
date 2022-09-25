@@ -155,7 +155,7 @@ class Item(pygame.sprite.Sprite):
     def get_data(self):
         data = {
             "id": self.id,
-            "name": self.name,
+            "name": self.base_name,
             "enable": self.enable,
             "hint_show": self.hint_show
         }

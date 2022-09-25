@@ -106,7 +106,7 @@ class Menu:
         try:
             if data and data[0]["template_name"] == self.tracker.template_name:
                 self.tracker.load_data(data)
-                self.menu.disable()
+                self.tracker.update_cpt()
             else:
                 messagebox.showerror('Error', 'This save is for the template {}'.format(data[0]["template_name"]))
         except:
@@ -130,8 +130,8 @@ class Menu:
 
     @staticmethod
     def open_paypal():
-        webbrowser.open("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3RNQCK64GWBMS&source=url") \
- \
+        webbrowser.open("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3RNQCK64GWBMS&source=url")
+
     @staticmethod
     def open_website():
         webbrowser.open("https://www.linsotracker.com/")

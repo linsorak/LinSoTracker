@@ -78,13 +78,10 @@ class BlockChecks(SimpleCheck):
         self.position_logic_indicator = (x_number, y_number)
 
     def draw(self, screen):
-        self.draw_rect(screen, self.pin_color, (0, 0, 0), self.pin_rect, 2 * self.map.tracker.core_service.zoom)
-        if self.logic_cpt > 0:
-            screen.blit(self.surface_logic_indicator, self.position_logic_indicator)
-
-    def draw_checks(self, screen):
-        for check in self.list_checks:
-            check.draw(screen)
+        if not self.all_check_hidden():
+            self.draw_rect(screen, self.pin_color, (0, 0, 0), self.pin_rect, 2 * self.map.tracker.core_service.zoom)
+            if self.logic_cpt > 0:
+                screen.blit(self.surface_logic_indicator, self.position_logic_indicator)
 
     def left_click(self, mouse_position):
         if not self.map.current_block_checks:
@@ -113,8 +110,18 @@ class BlockChecks(SimpleCheck):
         return data
 
     def set_data(self, datas):
+        i = 0
         for data in datas["checks_datas"]:
             for check in self.list_checks:
                 if (check.id == data["id"]) and (check.name == data["name"]):
+                    i = i + 1
                     check.set_data(data)
                     break
+
+    def all_check_hidden(self):
+        hidden = 0
+        for check in self.list_checks:
+            if check.hide:
+                hidden = hidden + 1
+
+        return hidden == len(self.list_checks)

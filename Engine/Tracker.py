@@ -202,9 +202,10 @@ class Tracker:
                 for i in range(0, len(rules)):
                     temp_rule = RulesOptionsListItem(tracker=self,
                                                      ident=i,
-                                                     name=rules[i],
+                                                     name=rules[i]["Name"],
                                                      position=positions,
-                                                     checked=True)
+                                                     checked=True,
+                                                     hide_checks=rules[i]["HideChecks"])
                     self.rules_options_items_list.append(temp_rule)
 
             self.change_map(self.map_name_items_list[0])
@@ -296,29 +297,33 @@ class Tracker:
                                   title_font="rulesOptionsFontTitle",
                                   background_image=self.rules_options_list_background,
                                   items_list=self.rules_options_items_list)
+                self.update_cpt()
 
     def update_cpt(self):
-        self.cpt_checks_logics = 0
-        self.cpt_all_checks = 0
-        for map_item in self.maps_list:
-            logic_checks_cpt, all_checks_cpt = map_item.get_count_checks()
-            self.cpt_checks_logics += logic_checks_cpt
-            self.cpt_all_checks += all_checks_cpt
+        if self.current_map:
+            self.cpt_checks_logics = 0
+            self.cpt_all_checks = 0
+            for map_item in self.maps_list:
+                logic_checks_cpt, all_checks_cpt = map_item.get_count_checks()
+                self.cpt_checks_logics += logic_checks_cpt
+                self.cpt_all_checks += all_checks_cpt
 
-        font = self.core_service.get_font("mapFontChecksNumber")
-        font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
-        cpt_checks_position = self.tracker_json_data[4]["CptChecksPosition"]
+            font = self.core_service.get_font("mapFontChecksNumber")
+            font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+            cpt_checks_position = self.tracker_json_data[4]["CptChecksPosition"]
 
-        temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
-        temp_surface = temp_surface.convert_alpha()
-        self.surface_label_checks_cpt, self.position_draw_label_checks_cpt = MainMenu.MainMenu.draw_text(
-            text="Checks : {} logics / {} lefts".format(self.cpt_checks_logics, self.cpt_all_checks),
-            font_name=font_path,
-            color=(255, 255, 255),
-            font_size=font["Size"] * self.core_service.zoom,
-            surface=temp_surface,
-            position=(cpt_checks_position["x"] * self.core_service.zoom, cpt_checks_position["y"] * self.core_service.zoom),
-            outline=1 * self.core_service.zoom)
+            temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
+            temp_surface = temp_surface.convert_alpha()
+            self.surface_label_checks_cpt, self.position_draw_label_checks_cpt = MainMenu.MainMenu.draw_text(
+                text="Checks : {} logics / {} lefts".format(self.cpt_checks_logics, self.cpt_all_checks),
+                font_name=font_path,
+                color=(255, 255, 255),
+                font_size=font["Size"] * self.core_service.zoom,
+                surface=temp_surface,
+                position=(
+                    cpt_checks_position["x"] * self.core_service.zoom,
+                    cpt_checks_position["y"] * self.core_service.zoom),
+                outline=1 * self.core_service.zoom)
 
     def change_map_by_map_name(self, map_name):
         for map_item in self.map_name_items_list:
@@ -331,8 +336,6 @@ class Tracker:
         self.current_map.update()
         self.update()
         self.update_cpt()
-
-        # print("map", map_infos)
 
     def init_item(self, item, item_list, items_sheet_image):
         # item_image = self.core_service.zoom_image(
@@ -575,9 +578,9 @@ class Tracker:
         if can_click:
             if self.current_map:
                 self.current_map.click(mouse_position, button)
-                self.current_map.update()
+                # self.current_map.update()
 
-                if not self.current_map.checks_list_open and self.maps_list_window.is_open() == False and self.rules_options_list_window.is_open() == False:
+                if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open() and not self.current_map.check_window.is_open():
                     self.items_click(self.items, mouse_position, button)
                     self.current_map.update()
 
@@ -603,20 +606,16 @@ class Tracker:
                                                                                       element_dimension=(
                                                                                               self.rules_options_button_rect.w,
                                                                                               self.rules_options_button_rect.h)):
-                    # self.rules_options_list_window.open = True
                     self.rules_options_list_window.open_window()
-                # self.cpt_checks_logics = 0
-                # self.cpt_all_checks = 0
-                # for map_item in self.maps_list:
-                #     logic_checks_cpt, all_checks_cpt = map_item.get_count_checks()
-                #     self.cpt_checks_logics += logic_checks_cpt
-                #     self.cpt_all_checks += all_checks_cpt
+
+                self.update_cpt()
             else:
                 if not self.rules_options_list_window.is_open() or not self.maps_list_window.is_open():
                     self.items_click(self.items, mouse_position, button)
 
                 if self.current_map:
                     self.current_map.update()
+                    self.update_cpt()
 
         else:
             for submenu in self.submenus:
@@ -626,8 +625,8 @@ class Tracker:
                     for item in self.items:
                         if type(item) == SubMenuItem:
                             item.update()
-        if self.current_map:
-            self.update_cpt()
+        # if self.current_map:
+        #     self.update_cpt()
 
     def mouse_move(self, mouse_position):
         submenu_found = False
@@ -637,13 +636,16 @@ class Tracker:
                 submenu_found = True
                 break
 
-        if self.current_map and self.current_map.checks_list and not self.current_map.check_window.is_open() and submenu_found == False:
+        if self.current_map and self.current_map.check_window.is_open():
+            submenu_found = True
+
+        if self.current_map and self.current_map.checks_list and not submenu_found:
             found = False
             for check in self.current_map.checks_list:
                 if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                    element_positons=check.get_position(),
                                                    element_dimension=(
-                                                           check.get_rect().w, check.get_rect().h)):
+                                                           check.get_rect().w, check.get_rect().h)) and not check.hide and not check.all_check_hidden():
                     self.mouse_check_found = check
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     self.update_hint(self.mouse_check_found, "mapFontCheckHint", True)
@@ -654,7 +656,7 @@ class Tracker:
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
                 self.mouse_check_found = None
 
-        if self.maps_list_window.is_open() == False and self.rules_options_list_window.is_open() == False:
+        if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open():
             found = False
             if not submenu_found:
                 for item in self.items:
@@ -671,7 +673,7 @@ class Tracker:
                             if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                                element_positons=item.get_position(),
                                                                element_dimension=(
-                                                               item.get_rect().w, item.get_rect().h)):
+                                                                       item.get_rect().w, item.get_rect().h)):
                                 self.current_item_on_mouse = item
                                 self.update_hint(self.current_item_on_mouse, "labelItemFont", False)
                                 found = True
@@ -742,7 +744,7 @@ class Tracker:
         if datas[0]["template_name"] == self.template_name:
             for data in datas[1]["items"]:
                 for item in self.items:
-                    if data["name"] == item.name and data["id"] == item.id:
+                    if data["name"] == item.base_name and data["id"] == item.id:
                         item.set_data(data)
                         break
 
@@ -762,6 +764,10 @@ class Tracker:
                             rule.update()
                             break
 
+            if self.current_map:
+                self.update()
+                self.update_cpt()
+
     def change_zoom(self, value):
         datas = self.save_data()
         self.core_service.zoom = value
@@ -774,9 +780,6 @@ class Tracker:
         if "MapsList" in self.tracker_json_data:
             maps_rect = self.tracker_json_data[4]["MapsList"]["MapsListBox"]["MapsListRect"]
 
-        if self.current_map:
-            self.current_map.update()
-
         pygame.display.set_mode((w, h))
         self.init_items()
         self.menu.get_menu().resize(width=w, height=h)
@@ -784,9 +787,12 @@ class Tracker:
         self.update()
         self.update_cpt()
 
+        if self.current_map:
+            self.current_map.update()
+
     def draw(self, screen):
         screen.blit(self.background_image, (0, 0))
-            # pygame.draw.rect(screen, (255, 255, 255),item.rect)
+        # pygame.draw.rect(screen, (255, 255, 255),item.rect)
 
         if self.menu.get_menu().is_enabled():
             self.menu.get_menu().mainloop(screen)
@@ -928,7 +934,6 @@ class Tracker:
                 test = eval(action_do)
                 return test
             except TypeError:
-                print(action_do)
                 return False
             # return eval(action_do)
 

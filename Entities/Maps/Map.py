@@ -119,7 +119,7 @@ class Map:
                     if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
                                                                element_positons=check.get_position(),
                                                                element_dimension=(
-                                                                       check.get_rect().w, check.get_rect().h)):
+                                                                       check.get_rect().w, check.get_rect().h)) and not check.all_check_hidden() and not check.all_check_hidden():
                         if button == 1:
                             check.left_click(mouse_position)
                             if not self.check_window.is_open():
@@ -128,7 +128,7 @@ class Map:
             if type(check) == SimpleCheck:
                 if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
                                                            element_positons=check.get_position(),
-                                                           element_dimension=(check.get_rect().w, check.get_rect().h)):
+                                                           element_dimension=(check.get_rect().w, check.get_rect().h)) and not check.hide:
                     if button == 1:
                         check.left_click(mouse_position)
 
@@ -140,19 +140,21 @@ class Map:
         for check in self.checks_list:
             if type(check) == BlockChecks:
                 for block_check in check.list_checks:
-                    if block_check.state == ConditionsType.LOGIC:
+                    if not block_check.hide:
+                        if block_check.state == ConditionsType.LOGIC:
+                            cpt_logic += 1
+                            cpt_left += 1
+
+                        if block_check.state == ConditionsType.NOT_LOGIC:
+                            cpt_left += 1
+            else:
+                if not check.hide:
+                    if check.state == ConditionsType.LOGIC:
                         cpt_logic += 1
                         cpt_left += 1
 
-                    if block_check.state == ConditionsType.NOT_LOGIC:
+                    if check.state == ConditionsType.NOT_LOGIC:
                         cpt_left += 1
-            else:
-                if check.state == ConditionsType.LOGIC:
-                    cpt_logic += 1
-                    cpt_left += 1
-
-                if check.state == ConditionsType.NOT_LOGIC:
-                    cpt_left += 1
 
         return cpt_logic, cpt_left
 
@@ -171,9 +173,11 @@ class Map:
         return data
 
     def load_data(self, datas):
+        i = 0
         checks_datas = datas["checks_datas"]
         for data in checks_datas:
             for check in self.checks_list:
                 if (check.id == data["id"]) and (check.name == data["name"]):
+                    i = i + 1
                     check.set_data(data)
                     break

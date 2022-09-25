@@ -115,3 +115,8 @@ class EvolutionItem(Item):
     def set_data(self, datas):
         self.next_item_index = datas["next_item_index"]
         Item.set_data(self, datas)
+        if datas["next_item_index"] != -1:
+            next_item = self.next_items[self.next_item_index]
+            self.name = next_item["Name"]
+        else:
+            self.name = self.base_name

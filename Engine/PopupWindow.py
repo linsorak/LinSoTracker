@@ -87,7 +87,15 @@ class PopupWindow:
         self.position_draw = (base_x / self.tracker.core_service.zoom, self.position_draw[1])
 
         try:
-            get_check = self.list_items.get_checks()
+            # get_check = self.list_items.get_checks()
+            new_list = []
+
+            for check in self.list_items.get_checks():
+                if not check.hide:
+                    new_list.append(check)
+
+            get_check = new_list
+
         except AttributeError:
             get_check = self.list_items
 

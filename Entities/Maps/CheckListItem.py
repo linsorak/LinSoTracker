@@ -8,7 +8,7 @@ from Entities.Maps.SimpleCheck import ConditionsType
 
 
 class CheckListItem(Sprite):
-    def __init__(self, ident, name, position, conditions, tracker):
+    def __init__(self, ident, name, position, conditions, tracker, hide=False):
         Sprite.__init__(self)
         self.y_line_end = None
         self.x_line_end = None
@@ -26,6 +26,7 @@ class CheckListItem(Sprite):
         self.checked = False
         self.color = None
         self.show = False
+        self.hide = hide
 
         if type(self.conditions) == str:
             self.conditions = self.conditions.replace("have(", "self.tracker.have(")
@@ -94,10 +95,12 @@ class CheckListItem(Sprite):
         data = {
             "id": self.id,
             "name": self.name,
-            "checked": self.checked
+            "checked": self.checked,
+            "hide": self.hide
         }
         return data
 
     def set_data(self, datas):
         self.checked = datas["checked"]
+        self.hide = datas["hide"]
         self.update()

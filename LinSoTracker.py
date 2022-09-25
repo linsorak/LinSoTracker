@@ -67,7 +67,7 @@ def main():
 
 if __name__ == '__main__':
     if core_service.detect_os() == "win" and not core_service.dev_version:
-    #     # BASE 64 ENCODE OF : ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0) For hide console
+        #     # BASE 64 ENCODE OF : ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0) For hide console
         checker = "Y3R5cGVzLndpbmRsbC51c2VyMzIuU2hvd1dpbmRvdyhjdHlwZXMud2luZGxsLmtlcm5lbDMyLkdldENvbnNvbGVXaW5kb3coKSwgMCk="
         exec(base64.b64decode(checker))
 

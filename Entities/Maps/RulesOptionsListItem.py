@@ -3,14 +3,18 @@ import os
 import pygame
 
 from Engine import MainMenu
+from Entities.Maps.BlockChecks import BlockChecks
 from Entities.Maps.CheckListItem import CheckListItem
+from Entities.Maps.SimpleCheck import SimpleCheck
 
 
 class RulesOptionsListItem(CheckListItem):
-    def __init__(self, ident, name, position, tracker, checked):
+    def __init__(self, ident, name, position, tracker, checked, hide_checks):
         super().__init__(ident, name, position, None, tracker)
         self.checked = checked
+        self.hide_checks = hide_checks
         self.update()
+        self.set_hidden_checks()
 
     def update(self):
         self.color = None
@@ -38,3 +42,34 @@ class RulesOptionsListItem(CheckListItem):
             return False
         else:
             return True
+
+    def set_hidden_checks(self):
+        if self.hide_checks:
+            for hidden_check in self.hide_checks:
+                for map in self.tracker.maps_list:
+                    for check in map.checks_list:
+                        if type(check) == SimpleCheck and hidden_check["Kind"] == "SimpleCheck":
+                            for hidden_check_name in hidden_check["Checks"]:
+                                if hidden_check_name == check.name:
+                                    if self.checked:
+                                        check.hide = True
+                                    else:
+                                        check.hide = False
+                                    break
+                        elif type(check) == BlockChecks and hidden_check["Kind"] == "Block":
+                            if hidden_check["Name"] == check.name:
+                                for check_item in check.list_checks:
+                                    for block_hidden_check in hidden_check["Checks"]:
+                                        if check_item.name == block_hidden_check:
+                                            if self.checked:
+                                                check_item.hide = True
+                                            else:
+                                                check_item.hide = False
+                                            break
+
+    def left_click(self):
+        super().left_click()
+        self.set_hidden_checks()
+
+
+
