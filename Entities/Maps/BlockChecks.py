@@ -88,6 +88,7 @@ class BlockChecks(SimpleCheck):
             self.map.current_block_checks = self
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
             self.update()
+            self.map.update()
 
     def get_rect(self):
         return self.pin_rect

@@ -7,6 +7,8 @@ from Entities.Maps.BlockChecks import BlockChecks
 from Entities.Maps.CheckListItem import CheckListItem
 from Entities.Maps.SimpleCheck import SimpleCheck, ConditionsType
 
+import threading
+
 
 class Map:
     def __init__(self, map_datas, index_positions, tracker, active=False):
@@ -22,12 +24,10 @@ class Map:
         self.check_window = PopupWindow(tracker=self.tracker, index_positions=self.index_positions)
         self.processing()
         self.processing_checks()
-        self.update()
 
     def processing(self):
         self.map_image_filename = self.map_datas[0]["Datas"]["Background"]
         self.checks_list_background_filename = self.map_datas[0]["Datas"]["SubMenuBackground"]
-        self.update()
 
     def get_name(self):
         return self.map_datas[0]["Datas"]["Name"]
@@ -50,6 +50,11 @@ class Map:
                 self.checks_list.append(simple_check)
 
     def update(self):
+        update_map = threading.Thread(target=self.update_thread)
+        update_map.start()
+        update_map.join()
+
+    def update_thread(self):
         self.map_background = self.tracker.bank.addZoomImage(
             os.path.join(self.tracker.resources_path, self.map_image_filename))
 
@@ -86,6 +91,8 @@ class Map:
             for check in self.checks_list:
                 check.update()
 
+
+        self.tracker.update_cpt()
     def open_window(self):
         self.check_window.open = True
 
@@ -131,8 +138,6 @@ class Map:
                                                            element_dimension=(check.get_rect().w, check.get_rect().h)) and not check.hide:
                     if button == 1:
                         check.left_click(mouse_position)
-
-        self.update()
 
     def get_count_checks(self):
         cpt_logic = 0

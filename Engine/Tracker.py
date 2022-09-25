@@ -297,7 +297,6 @@ class Tracker:
                                   title_font="rulesOptionsFontTitle",
                                   background_image=self.rules_options_list_background,
                                   items_list=self.rules_options_items_list)
-                self.update_cpt()
 
     def update_cpt(self):
         if self.current_map:
@@ -335,7 +334,7 @@ class Tracker:
         self.current_map.active = True
         self.current_map.update()
         self.update()
-        self.update_cpt()
+
 
     def init_item(self, item, item_list, items_sheet_image):
         # item_image = self.core_service.zoom_image(
@@ -582,7 +581,8 @@ class Tracker:
 
                 if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open() and not self.current_map.check_window.is_open():
                     self.items_click(self.items, mouse_position, button)
-                    self.current_map.update()
+                    # self.current_map.update()
+                    # print('bump')
 
                 if self.maps_list_window.is_open():
                     self.maps_list_window.left_click(mouse_position)
@@ -608,14 +608,10 @@ class Tracker:
                                                                                               self.rules_options_button_rect.h)):
                     self.rules_options_list_window.open_window()
 
-                self.update_cpt()
+
             else:
                 if not self.rules_options_list_window.is_open() or not self.maps_list_window.is_open():
                     self.items_click(self.items, mouse_position, button)
-
-                if self.current_map:
-                    self.current_map.update()
-                    self.update_cpt()
 
         else:
             for submenu in self.submenus:
@@ -625,8 +621,6 @@ class Tracker:
                     for item in self.items:
                         if type(item) == SubMenuItem:
                             item.update()
-        # if self.current_map:
-        #     self.update_cpt()
 
     def mouse_move(self, mouse_position):
         submenu_found = False
@@ -785,7 +779,6 @@ class Tracker:
         self.menu.get_menu().resize(width=w, height=h)
         self.load_data(datas)
         self.update()
-        self.update_cpt()
 
         if self.current_map:
             self.current_map.update()
