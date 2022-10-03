@@ -114,6 +114,11 @@ class Map:
                 position * self.tracker.core_service.zoom)
 
     def click(self, mouse_position, button):
+        click_map = threading.Thread(target=self.click_map, args=(mouse_position, button))
+        click_map.start()
+        click_map.join()
+
+    def click_map(self, mouse_position, button):
         if self.check_window.is_open():
             self.check_window.left_click(mouse_position)
             self.current_block_checks.update()
@@ -131,6 +136,7 @@ class Map:
                             check.left_click(mouse_position)
                             if not self.check_window.is_open():
                                 self.check_window.open = True
+                            break
 
             if type(check) == SimpleCheck:
                 if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
@@ -138,6 +144,11 @@ class Map:
                                                            element_dimension=(check.get_rect().w, check.get_rect().h)) and not check.hide:
                     if button == 1:
                         check.left_click(mouse_position)
+                        self.update()
+                        break
+
+            if self.check_window.is_open():
+                self.check_window.update()
 
     def get_count_checks(self):
         cpt_logic = 0

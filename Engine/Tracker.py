@@ -21,11 +21,13 @@ from Entities.LabelItem import LabelItem
 from Entities.Maps.Map import Map
 from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
+from Entities.Maps.SimpleCheck import SimpleCheck
 from Entities.SubMenuItem import SubMenuItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
 from Tools.ImageSheet import ImageSheet
 from Tools.SaveLoadTool import SaveLoadTool
+from Entities.Maps.BlockChecks import BlockChecks
 
 
 class Tracker:
@@ -938,3 +940,15 @@ class Tracker:
             return False
         else:
             return False
+
+
+    def haveCheck(self, checkName, blockName=None):
+        for map in self.maps_list:
+            for check in map.checks_list:
+                if isinstance(check, BlockChecks):
+                    if blockName is not None and check.name == blockName:
+                        sub_check = [sub for sub in check.list_checks if sub.name == checkName][0]
+                        return sub_check.checked
+                elif isinstance(check, SimpleCheck) and check.name == checkName:
+                    return check.checked
+
