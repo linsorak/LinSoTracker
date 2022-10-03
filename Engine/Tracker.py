@@ -951,4 +951,3 @@ class Tracker:
                         return sub_check.checked
                 elif isinstance(check, SimpleCheck) and check.name == checkName:
                     return check.checked
-

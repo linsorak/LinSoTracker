@@ -39,7 +39,7 @@ class CheckListItem(Sprite):
         self.color = None
         font = self.tracker.core_service.get_font("mapFont")
         font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), font["Name"])
-        print(self.conditions)
+        # print(self.conditions)
         if eval(self.conditions):
             self.state = ConditionsType.LOGIC
             self.color = self.tracker.core_service.get_color_from_font(font, "Logic")

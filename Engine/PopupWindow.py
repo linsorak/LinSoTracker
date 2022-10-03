@@ -87,13 +87,7 @@ class PopupWindow:
         self.position_draw = (base_x / self.tracker.core_service.zoom, self.position_draw[1])
 
         try:
-            # get_check = self.list_items.get_checks()
-            new_list = []
-
-            for check in self.list_items.get_checks():
-                if not check.hide:
-                    new_list.append(check)
-
+            new_list = [check for check in self.list_items.get_checks() if not check.hide]
             get_check = new_list
 
         except AttributeError:
@@ -110,7 +104,7 @@ class PopupWindow:
             index_end = len(get_check)
 
         for check in get_check:
-            check.update()
+            #check.update()
             check.show = False
 
         for i in range(index_start, index_end):
