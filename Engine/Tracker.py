@@ -202,12 +202,16 @@ class Tracker:
                     "y": self.background_image.get_rect().y
                 }
                 for i in range(0, len(rules)):
+                    hide_checks = None
+                    if "HideChecks" in rules[i]:
+                        hide_checks = rules[i]["HideChecks"]
+
                     temp_rule = RulesOptionsListItem(tracker=self,
                                                      ident=i,
                                                      name=rules[i]["Name"],
                                                      position=positions,
                                                      checked=True,
-                                                     hide_checks=rules[i]["HideChecks"])
+                                                     hide_checks=hide_checks)
                     self.rules_options_items_list.append(temp_rule)
 
             self.change_map(self.map_name_items_list[0])
