@@ -126,7 +126,7 @@ class Menu:
 
     @staticmethod
     def open_discord():
-        webbrowser.open("https://discord.gg/5MQvh7MAGN")
+        webbrowser.open("https://discord.gg/n7AzcMpwXf")
 
     @staticmethod
     def open_paypal():

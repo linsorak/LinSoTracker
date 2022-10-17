@@ -2,6 +2,7 @@ import glob
 import io
 import json
 import os
+import threading
 from zipfile import ZipFile
 
 import pygame
@@ -10,6 +11,7 @@ from pygame.rect import Rect
 from Engine.FadeAnimation import FadeAnimation, FadeMode
 from Engine.Menu import Menu
 from Engine.Tracker import Tracker
+from Engine.Update import Update
 from Tools import ptext
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
@@ -67,6 +69,9 @@ class MainMenu:
         self.btn_paypal = None
         self.btn_discord = None
         self.init_btns()
+
+
+        # self.core_service.read_checker()
 
     def init_btns(self):
         dimensions = self.get_dimension()

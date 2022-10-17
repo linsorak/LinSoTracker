@@ -1,10 +1,13 @@
 import base64
 import json
 import os
+import pathlib
 import platform
 import shutil
 import sys
 import tempfile
+import threading
+import urllib
 import webbrowser
 from contextlib import contextmanager
 from tkinter import messagebox
@@ -27,6 +30,8 @@ class Singleton(type):
 
 class CoreService(metaclass=Singleton):
     def __init__(self):
+        self.download_directory = None
+        self.downloading = None
         self.show_hint_on_item = None
         self.temp_dir_delete = None
         self.official_template = None
@@ -58,7 +63,6 @@ class CoreService(metaclass=Singleton):
             self.temp_path = tmpdirname
 
         self.create_directory(path=self.temp_path_fixe)
-        self.read_checker()
         self.load_default_configuration()
 
     @contextmanager
@@ -69,7 +73,6 @@ class CoreService(metaclass=Singleton):
         finally:
             try:
                 ptext.clean()
-                shutil.rmtree(path)
                 # self.delete_directory(path)
             except IOError:
                 sys.stderr.write('Failed to clean up temp dir {}'.format(path))
@@ -131,7 +134,40 @@ class CoreService(metaclass=Singleton):
                 else:
                     self.show_hint_on_item = True
 
+    def download_update(self, directory, file):
+        self.downloading = True
+        urllib.request.urlretrieve(file, os.path.join(directory, os.path.basename(file)))
+        self.downloading = False
     def read_checker(self):
+        url = "https://linsotracker.com/tracker/update.json"
+        try:
+            response = urlopen(url)
+            data_json = json.loads(response.read())
+
+            if "lastest_version" in data_json:
+                if self.get_version() != data_json["lastest_version"]:
+
+                    # self.create_directory(download_directory)
+                    self.download_directory = os.path.join(self.get_temp_path(), "downloads")
+                    self.create_directory(self.download_directory)
+
+
+                    file = data_json['url_base'].format(self.detect_os(), data_json['lastest_version'])
+                    urllib.request.urlretrieve(file, os.path.join(self.download_directory, os.path.basename(file)))
+
+                    self.new_version = data_json["lastest_version"]
+                    print(self.download_directory)
+
+
+            print(data_json)
+
+
+            if "official_template" in data_json:
+                self.official_template = data_json["official_template"]
+        except URLError:
+            pass
+
+    def read_checker_old(self):
         url = "https://linsotracker.com/tracker_data/checker.json"
         try:
             response = urlopen(url)

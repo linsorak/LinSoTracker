@@ -57,11 +57,9 @@ def main():
             if not loop:
                 del main_menu
                 gc.collect()
-                core_service.delete_temp_path()
 
         pygame.quit()
     except SystemExit:
-        core_service.delete_temp_path()
         pygame.quit()
 
 
