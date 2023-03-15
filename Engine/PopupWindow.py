@@ -196,7 +196,7 @@ class PopupWindow:
         for check in get_check:
             if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
                                                        element_positons=check.get_position_draw(),
-                                                       element_dimension=check.get_dimensions()):
+                                                       element_dimension=check.get_dimensions()) and check.show:
                 click_found = True
                 check.left_click()
                 self.update()

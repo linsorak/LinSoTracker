@@ -32,7 +32,7 @@ class CheckListItem(Sprite):
             self.conditions = self.conditions.replace("have(", "self.tracker.have(")
             self.conditions = self.conditions.replace("do(", "self.tracker.do(")
             self.conditions = self.conditions.replace("rules(", "self.tracker.rules(")
-            self.conditions = self.conditions.replace("haveCheck(", "self.tracker.haveCheck(")
+            self.conditions = self.conditions.replace("haveCheck(", "self.tracker.have_check(")
         self.update()
 
     def update(self):
@@ -62,12 +62,13 @@ class CheckListItem(Sprite):
             position=(self.position["x"], self.position["y"]),
             outline=1 * self.tracker.core_service.zoom)
 
+        # print(f"Check : {self.name} - {self.checked}")
+
     def left_click(self):
         if self.checked:
             self.checked = False
         else:
             self.checked = True
-        self.tracker.current_map.check_window.update()
         self.tracker.current_map.update()
         self.update()
 

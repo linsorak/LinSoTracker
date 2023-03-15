@@ -946,12 +946,12 @@ class Tracker:
             return False
 
 
-    def haveCheck(self, checkName, blockName=None):
+    def have_check(self, check_name, block_name=None):
         for map in self.maps_list:
             for check in map.checks_list:
                 if isinstance(check, BlockChecks):
-                    if blockName is not None and check.name == blockName:
-                        sub_check = [sub for sub in check.list_checks if sub.name == checkName][0]
+                    if block_name is not None and check.name == block_name:
+                        sub_check = [sub for sub in check.list_checks if sub.name == check_name][0]
                         return sub_check.checked
-                elif isinstance(check, SimpleCheck) and check.name == checkName:
+                elif isinstance(check, SimpleCheck) and check.name == check_name:
                     return check.checked
