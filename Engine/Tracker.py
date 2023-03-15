@@ -134,17 +134,9 @@ class Tracker:
         pygame.display.set_mode((w, h))
         self.core_service.setgamewindowcenter(w, h)
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
-
-        # if self.map_image:
-        #     self.map_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.map_image_filename))
-
-        # json_data_item_sheet = self.tracker_json_data[1]["Datas"]["ItemSheet"]
-        # json_data_item_sheet_dimensions = self.tracker_json_data[1]["Datas"]["ItemSheetDimensions"]
-        # self.items_sheet = self.bank.addImage(os.path.join(self.resources_path, json_data_item_sheet))
-        # self.items_sheet_data = ImageSheet(self.items_sheet, json_data_item_sheet_dimensions["width"],
-        #                                    json_data_item_sheet_dimensions["height"])
         items_sheets = self.tracker_json_data[1]["Datas"]["Items"]
         self.list_items_sheets = []
+
         for sheet_datas in items_sheets:
             image_sheet = self.bank.addImage(os.path.join(self.resources_path, items_sheets[sheet_datas]["ItemsSheet"]))
             items_sheet_data = ImageSheet(image_sheet, items_sheets[sheet_datas]["ItemsSheetDimensions"]["width"],
@@ -203,15 +195,21 @@ class Tracker:
                 }
                 for i in range(0, len(rules)):
                     hide_checks = None
+                    actions = None
                     if "HideChecks" in rules[i]:
                         hide_checks = rules[i]["HideChecks"]
+
+                    if "Actions" in rules[i]:
+                        actions = rules[i]["Actions"]
 
                     temp_rule = RulesOptionsListItem(tracker=self,
                                                      ident=i,
                                                      name=rules[i]["Name"],
                                                      position=positions,
                                                      checked=True,
-                                                     hide_checks=hide_checks)
+                                                     hide_checks=hide_checks,
+                                                     actions=actions)
+
                     self.rules_options_items_list.append(temp_rule)
 
             self.change_map(self.map_name_items_list[0])

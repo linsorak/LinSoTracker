@@ -13,10 +13,7 @@ class TemplateChecker:
         self.__validation()
 
     def is_valid(self):
-        if len(self.errors) > 0:
-            return False
-        else:
-            return True
+        return not bool(self.errors)
 
     def __validation(self):
         self.__is_structure_valid()

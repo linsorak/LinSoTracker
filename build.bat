@@ -1,4 +1,4 @@
-call activate LinSoTrackerRelease
+call activate LinSoTracker
 
 rmdir /s /q "dist"
 rmdir /s /q "_pycache_"

@@ -9,10 +9,11 @@ from Entities.Maps.SimpleCheck import SimpleCheck
 
 
 class RulesOptionsListItem(CheckListItem):
-    def __init__(self, ident, name, position, tracker, checked, hide_checks):
+    def __init__(self, ident, name, position, tracker, checked, hide_checks, actions):
         super().__init__(ident, name, position, None, tracker)
         self.checked = checked
         self.hide_checks = hide_checks
+        self.actions = actions
         self.update()
         self.set_hidden_checks()
 
@@ -40,35 +41,43 @@ class RulesOptionsListItem(CheckListItem):
         # print(f"Rules : {self.name} - {self.checked}")
 
     def is_active(self):
-        if self.checked:
-            return False
-        else:
-            return True
+        return not self.checked
 
     def set_hidden_checks(self):
         if self.hide_checks:
-            for hidden_check in self.hide_checks:
-                for map in self.tracker.maps_list:
-                    for check in map.checks_list:
-                        if type(check) == SimpleCheck and hidden_check["Kind"] == "SimpleCheck":
-                            for hidden_check_name in hidden_check["Checks"]:
-                                if hidden_check_name == check.name:
-                                    if self.checked:
-                                        check.hide = True
-                                    else:
-                                        check.hide = False
-                                    break
-                        elif type(check) == BlockChecks and hidden_check["Kind"] == "Block":
-                            if hidden_check["Name"] == check.name:
-                                for check_item in check.list_checks:
-                                    for block_hidden_check in hidden_check["Checks"]:
-                                        if check_item.name == block_hidden_check:
-                                            if self.checked:
-                                                check_item.hide = True
-                                            else:
-                                                check_item.hide = False
-                                            break
+            for hidden_check_dict in self.hide_checks:
+                kind = hidden_check_dict["Kind"]
+                name = hidden_check_dict.get("Name")
+                check_names = hidden_check_dict.get("Checks")
+                if kind == "SimpleCheck":
+                    for map_item in self.tracker.maps_list:
+                        for check_item in filter(lambda c: isinstance(c, SimpleCheck), map_item.checks_list):
+                            if check_item.name in check_names:
+                                check_item.hide = self.checked
+                elif kind == "Block":
+                    for map_item in self.tracker.maps_list:
+                        for check_item in filter(lambda c: isinstance(c, BlockChecks) and c.name == name,
+                                                 map_item.checks_list):
+                            for block_check_item in filter(lambda c: isinstance(c, SimpleCheck), check_item.list_checks):
+                                if block_check_item.name in check_names:
+                                    block_check_item.hide = self.checked
+
+    def do_actions(self):
+        if self.actions:
+            for action_dict in self.actions:
+                if "SetRule" not in action_dict:
+                    continue
+                rule_action = action_dict["SetRule"]
+                rule_name = rule_action["RuleName"]
+                rule_active = rule_action["Active"]
+                matching_rules = filter(lambda rule_item: rule_item.name == rule_name,
+                                        self.tracker.rules_options_items_list)
+                matching_rule = next(matching_rules, None)
+                if matching_rule:
+                    matching_rule.checked = not rule_active
+                    matching_rule.update()
 
     def left_click(self):
         super().left_click()
         self.set_hidden_checks()
+        self.do_actions()
