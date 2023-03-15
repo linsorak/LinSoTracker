@@ -63,7 +63,7 @@ class RulesOptionsListItem(CheckListItem):
                                     block_check_item.hide = self.checked
 
     def do_actions(self):
-        if self.actions:
+        if self.actions and not self.checked:
             for action_dict in self.actions:
                 if "SetRule" not in action_dict:
                     continue
