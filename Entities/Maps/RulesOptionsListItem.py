@@ -37,6 +37,8 @@ class RulesOptionsListItem(CheckListItem):
             position=(self.position["x"], self.position["y"]),
             outline=1 * self.tracker.core_service.zoom)
 
+        # print(f"Rules : {self.name} - {self.checked}")
+
     def is_active(self):
         if self.checked:
             return False
@@ -70,6 +72,3 @@ class RulesOptionsListItem(CheckListItem):
     def left_click(self):
         super().left_click()
         self.set_hidden_checks()
-
-
-

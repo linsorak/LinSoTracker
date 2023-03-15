@@ -21,11 +21,13 @@ from Entities.LabelItem import LabelItem
 from Entities.Maps.Map import Map
 from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
+from Entities.Maps.SimpleCheck import SimpleCheck
 from Entities.SubMenuItem import SubMenuItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
 from Tools.ImageSheet import ImageSheet
 from Tools.SaveLoadTool import SaveLoadTool
+from Entities.Maps.BlockChecks import BlockChecks
 
 
 class Tracker:
@@ -200,12 +202,16 @@ class Tracker:
                     "y": self.background_image.get_rect().y
                 }
                 for i in range(0, len(rules)):
+                    hide_checks = None
+                    if "HideChecks" in rules[i]:
+                        hide_checks = rules[i]["HideChecks"]
+
                     temp_rule = RulesOptionsListItem(tracker=self,
                                                      ident=i,
                                                      name=rules[i]["Name"],
                                                      position=positions,
                                                      checked=True,
-                                                     hide_checks=rules[i]["HideChecks"])
+                                                     hide_checks=hide_checks)
                     self.rules_options_items_list.append(temp_rule)
 
             self.change_map(self.map_name_items_list[0])
@@ -938,3 +944,14 @@ class Tracker:
             return False
         else:
             return False
+
+
+    def have_check(self, check_name, block_name=None):
+        for map in self.maps_list:
+            for check in map.checks_list:
+                if isinstance(check, BlockChecks):
+                    if block_name is not None and check.name == block_name:
+                        sub_check = [sub for sub in check.list_checks if sub.name == check_name][0]
+                        return sub_check.checked
+                elif isinstance(check, SimpleCheck) and check.name == check_name:
+                    return check.checked

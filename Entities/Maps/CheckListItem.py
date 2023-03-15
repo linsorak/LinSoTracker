@@ -32,12 +32,14 @@ class CheckListItem(Sprite):
             self.conditions = self.conditions.replace("have(", "self.tracker.have(")
             self.conditions = self.conditions.replace("do(", "self.tracker.do(")
             self.conditions = self.conditions.replace("rules(", "self.tracker.rules(")
+            self.conditions = self.conditions.replace("haveCheck(", "self.tracker.have_check(")
         self.update()
 
     def update(self):
         self.color = None
         font = self.tracker.core_service.get_font("mapFont")
         font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), font["Name"])
+        # print(self.conditions)
         if eval(self.conditions):
             self.state = ConditionsType.LOGIC
             self.color = self.tracker.core_service.get_color_from_font(font, "Logic")
@@ -60,11 +62,14 @@ class CheckListItem(Sprite):
             position=(self.position["x"], self.position["y"]),
             outline=1 * self.tracker.core_service.zoom)
 
+        # print(f"Check : {self.name} - {self.checked}")
+
     def left_click(self):
         if self.checked:
             self.checked = False
         else:
             self.checked = True
+        self.tracker.current_map.update()
         self.update()
 
     def get_surface_label(self):
