@@ -49,4 +49,4 @@ I would like to thank :
 
 ## Discord 
 
-Join our discord : https://discord.gg/n7AzcMpwXf
+Join our discord : https://discord.com/invite/5MQvh7MAGN
