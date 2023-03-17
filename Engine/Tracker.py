@@ -339,7 +339,6 @@ class Tracker:
         self.current_map.update()
         self.update()
 
-
     def init_item(self, item, item_list, items_sheet_image):
         # item_image = self.core_service.zoom_image(
         #     items_sheet_image.getImageWithRowAndColumn(row=item["SheetPositions"]["row"],
@@ -612,7 +611,6 @@ class Tracker:
                                                                                               self.rules_options_button_rect.h)):
                     self.rules_options_list_window.open_window()
 
-
             else:
                 if not self.rules_options_list_window.is_open() or not self.maps_list_window.is_open():
                     self.items_click(self.items, mouse_position, button)
@@ -643,7 +641,8 @@ class Tracker:
                 if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                    element_positons=check.get_position(),
                                                    element_dimension=(
-                                                           check.get_rect().w, check.get_rect().h)) and not check.hide and not check.all_check_hidden():
+                                                           check.get_rect().w,
+                                                           check.get_rect().h)) and not check.hide and not check.all_check_hidden():
                     self.mouse_check_found = check
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     self.update_hint(self.mouse_check_found, "mapFontCheckHint", True)
@@ -942,7 +941,6 @@ class Tracker:
             return False
         else:
             return False
-
 
     def have_check(self, check_name, block_name=None):
         for map in self.maps_list:

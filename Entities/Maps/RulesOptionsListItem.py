@@ -45,22 +45,27 @@ class RulesOptionsListItem(CheckListItem):
 
     def set_hidden_checks(self):
         if self.hide_checks:
-            for hidden_check_dict in self.hide_checks:
-                kind = hidden_check_dict["Kind"]
-                name = hidden_check_dict.get("Name")
-                check_names = hidden_check_dict.get("Checks")
-                if kind == "SimpleCheck":
-                    for map_item in self.tracker.maps_list:
-                        for check_item in filter(lambda c: isinstance(c, SimpleCheck), map_item.checks_list):
-                            if check_item.name in check_names:
-                                check_item.hide = self.checked
-                elif kind == "Block":
-                    for map_item in self.tracker.maps_list:
-                        for check_item in filter(lambda c: isinstance(c, BlockChecks) and c.name == name,
-                                                 map_item.checks_list):
-                            for block_check_item in filter(lambda c: isinstance(c, SimpleCheck), check_item.list_checks):
-                                if block_check_item.name in check_names:
-                                    block_check_item.hide = self.checked
+            for hidden_check in self.hide_checks:
+                for map in self.tracker.maps_list:
+                    for check in map.checks_list:
+                        if type(check) == SimpleCheck and hidden_check["Kind"] == "SimpleCheck":
+                            for hidden_check_name in hidden_check["Checks"]:
+                                if hidden_check_name == check.name:
+                                    if self.checked:
+                                        check.hide = True
+                                    else:
+                                        check.hide = False
+                                    break
+                        elif type(check) == BlockChecks and hidden_check["Kind"] == "Block":
+                            if hidden_check["Name"] == check.name:
+                                for check_item in check.list_checks:
+                                    for block_hidden_check in hidden_check["Checks"]:
+                                        if check_item.name == block_hidden_check:
+                                            if self.checked:
+                                                check_item.hide = True
+                                            else:
+                                                check_item.hide = False
+                                            break
 
     def do_actions(self):
         if self.actions and not self.checked:

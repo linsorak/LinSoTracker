@@ -35,10 +35,13 @@ class EvolutionItem(Item):
             next_item = self.next_items[self.next_item_index]
             self.name = next_item["Name"]
         else:
-            if self.next_item_index >= 0:
+            if self.next_item_index > 0:
                 self.next_item_index = self.next_item_index - 1
                 next_item = self.next_items[self.next_item_index]
                 self.name = next_item["Name"]
+            elif self.next_item_index == 0:
+                self.next_item_index = self.next_item_index - 1
+                self.name = self.base_name
             else:
                 self.enable = False
                 self.name = self.base_name
@@ -49,8 +52,6 @@ class EvolutionItem(Item):
         font = self.core_service.get_font("evolutionItemFont")
         font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
         position = "right"
-
-        draw_label = ""
 
         if self.label_center:
             position = "center"
@@ -86,8 +87,6 @@ class EvolutionItem(Item):
                                                base_image=image_draw,
                                                image_surface=image_draw,
                                                text_position=position)
-
-
 
         elif self.enable:
             color_category = "Normal"
