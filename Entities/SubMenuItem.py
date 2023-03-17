@@ -33,39 +33,29 @@ class SubMenuItem(Item):
     def update(self):
         Item.update(self)
 
-        if self.show_numbers_items_active:
-            self.counter_enable = 0
-            self.counter_check = 0
-            for item in self.items:
-                if item.enable:
-                    self.counter_enable += 1
-                if type(item) == CheckItem:
-                    if item.check:
-                        self.counter_check += 1
+        if not self.show_numbers_items_active:
+            return
 
-            font = self.core_service.get_font("subMenuItemFont")
-            font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+        self.counter_enable = sum(1 for item in self.items if item.enable)
+        self.counter_check = sum(1 for item in self.items if isinstance(item, CheckItem) and item.check)
 
-            color_category = "Normal"
+        font = self.core_service.get_font("subMenuItemFont")
+        font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
 
-            if self.counter_enable == len(self.items):
-                color_category = "Max"
+        color_category = "Normal" if self.counter_enable != len(self.items) else "Max"
 
-            text_draw = "{}/{}"
+        text_draw = "{}/{}".format(self.counter_check,
+                                   self.counter_enable) if self.show_numbers_checked_items else "{}/{}".format(
+            self.counter_enable, len(self.items))
 
-            if self.show_numbers_checked_items:
-                text_draw = text_draw = text_draw.format(self.counter_check, self.counter_enable)
-            else:
-                text_draw = text_draw.format(self.counter_enable, len(self.items))
-
-            self.image = self.get_drawing_text(font=font,
-                                               color_category=color_category,
-                                               text=text_draw,
-                                               font_path=font_path,
-                                               base_image=self.image,
-                                               image_surface=self.image,
-                                               text_position="right",
-                                               offset=10)
+        self.image = self.get_drawing_text(font=font,
+                                           color_category=color_category,
+                                           text=text_draw,
+                                           font_path=font_path,
+                                           base_image=self.image,
+                                           image_surface=self.image,
+                                           text_position="right",
+                                           offset=10)
 
     def update_background(self):
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.background_image_name))

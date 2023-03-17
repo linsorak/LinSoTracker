@@ -5,6 +5,7 @@ import platform
 import shutil
 import sys
 import tempfile
+import urllib
 import webbrowser
 from contextlib import contextmanager
 from tkinter import messagebox
@@ -132,7 +133,7 @@ class CoreService(metaclass=Singleton):
                     self.show_hint_on_item = True
 
     def read_checker(self):
-        url = "https://linsotracker.com/tracker_data/checker.json"
+        url = "https://linsotracker.com/tracker/update.json"
         try:
             response = urlopen(url)
             data_json = json.loads(response.read())
@@ -290,3 +291,13 @@ class CoreService(metaclass=Singleton):
     def launch_app(path):
         if os.path.exists(path):
             os.startfile(path)
+
+    def download_and_replace(self, url, destination_path, destination_filename):
+        download_path_location_file = os.path.join(self.temp_path, destination_filename)
+        urllib.request.urlretrieve(url, download_path_location_file)
+        destination_path_file = os.path.join(destination_path, destination_filename)
+
+        if os.path.exists(destination_path_file):
+            os.remove(destination_path_file)
+
+        shutil.copy(download_path_location_file, destination_path_file)

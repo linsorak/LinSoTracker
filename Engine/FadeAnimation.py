@@ -24,26 +24,26 @@ class FadeAnimation:
         self.done = False
 
     def update(self):
-        if not self.done:
-            self.amount = self.amount + self.fadeStep
-            angle = self.amount * math.pi / 1000
-            self.fadeValue = round((self.fadeEnd - self.fadeStart) * math.sin(angle)) + self.fadeStart
-
-            if self.mode == FadeMode.REPEAT:
-                if self.fadeValue <= self.fadeStart:
-                    self.reset()
-
-            if self.mode == FadeMode.FADE:
-                if self.fadeStart < self.fadeEnd:
-                    if self.fadeValue >= self.fadeEnd:
-                        self.fadeValue = self.fadeEnd
-                        self.done = True
-                else:
-                    if self.fadeValue <= self.fadeEnd:
-                        self.fadeValue = self.fadeEnd
-                        self.done = True
-        else:
+        if self.done:
             return self.fadeValue
+
+        self.amount += self.fadeStep
+        angle = self.amount * math.pi / 1000
+        self.fadeValue = round((self.fadeEnd - self.fadeStart) * math.sin(angle)) + self.fadeStart
+
+        if self.mode == FadeMode.REPEAT and self.fadeValue <= self.fadeStart:
+            self.reset()
+
+        if self.mode == FadeMode.FADE:
+            if self.fadeStart < self.fadeEnd:
+                if self.fadeValue >= self.fadeEnd:
+                    self.fadeValue = self.fadeEnd
+                    self.done = True
+            else:
+                if self.fadeValue <= self.fadeEnd:
+                    self.fadeValue = self.fadeEnd
+                    self.done = True
+
         return self.fadeValue
 
     def getFadeValue(self):

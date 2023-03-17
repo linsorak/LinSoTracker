@@ -2,6 +2,7 @@ import glob
 import io
 import json
 import os
+from tkinter import messagebox
 from zipfile import ZipFile
 
 import pygame
@@ -22,14 +23,11 @@ class MainMenu:
         self.x_offset = -60
         self.y_offset = 60
         self.space_offset = 10
-
         self.max_row = 3
         self.max_column = 5
-
         self.max_icon_per_page = self.max_row * self.max_column
         self.current_page = 1
         self.max_pages = None
-
         self.official_template = None
         self.new_version = None
         self.menu_content = []
@@ -40,12 +38,15 @@ class MainMenu:
         self.font_data = None
         self.selected_error = None
         self.selected = None
+        self.selected_update = None
         self.selected_position = None
         self.content_error = None
         self.content = None
+        self.content_update = None
         self.arrow_right = None
         self.arrow_left = None
         self.icon = None
+        self.icon_update = None
         self.background_image = None
         self.description_menu = None
         self.menu_json_data = None
@@ -102,14 +103,19 @@ class MainMenu:
         self.background_image = self.bank.addImage(os.path.join(self.resources_path, self.background_image))
         self.icon = self.menu_json_data[0]["Icon"]
         self.icon = self.bank.addImage(os.path.join(self.resources_path, self.icon))
+        self.icon_update = self.menu_json_data[0]["UpdateIcon"]
+        self.icon_update = self.bank.addImage(os.path.join(self.resources_path, self.icon_update))
         self.arrow_left = self.bank.addImage(os.path.join(self.resources_path, "arrow-left.png"))
         self.arrow_right = self.bank.addImage(os.path.join(self.resources_path, "arrow-right.png"))
         self.content = self.menu_json_data[0]["BoxTrackerContentImage"]
         self.content = self.bank.addImage(os.path.join(self.resources_path, self.content))
         self.content_error = self.menu_json_data[0]["BoxTrackerContentImageNotCompatible"]
         self.content_error = self.bank.addImage(os.path.join(self.resources_path, self.content_error))
+        self.content_update = self.menu_json_data[0]["BoxTrackerContentImageUpdate"]
+        self.content_update = self.bank.addImage(os.path.join(self.resources_path, self.content_update))
         self.selected = self.bank.addImage(os.path.join(self.resources_path, "glow.png"))
         self.selected_error = self.bank.addImage(os.path.join(self.resources_path, "glow-error.png"))
+        self.selected_update = self.bank.addImage(os.path.join(self.resources_path, "glow-update.png"))
         self.description_menu = self.bank.addImage(
             os.path.join(self.resources_path, self.menu_json_data[0]["DescriptionBox"]))
 
@@ -165,20 +171,29 @@ class MainMenu:
 
             index_templates = 0 + (self.max_icon_per_page * (self.current_page - 1))
             self.menu_content = []
-            for i in range(0, self.max_row):
-                for j in range(0, self.max_column):
-                    if len(self.template_list) > index_templates:
-                        content_x = (self.content.get_rect().w * (
-                                j + 1) + self.content.get_rect().w) + self.x_offset + (self.space_offset * j)
-                        content_y = (self.content.get_rect().h * (
-                                i + 1) + self.content.get_rect().h) + self.y_offset + (self.space_offset * i)
+            for i in range(self.max_row):
+                for j in range(self.max_column):
+                    if index_templates < len(self.template_list):
+                        content_rect = self.content.get_rect()
+                        content_x = (content_rect.w * (j + 1) + content_rect.w) + self.x_offset + (
+                                    self.space_offset * j)
+                        content_y = (content_rect.h * (i + 1) + content_rect.h) + self.y_offset + (
+                                    self.space_offset * i)
                         icon_x = content_x + 10
                         icon_y = content_y + 5
-                        if self.template_list[index_templates]["valid"]:
-                            screen.blit(self.content, (content_x, content_y))
+
+                        if "outdated" in self.template_list[index_templates] and self.template_list[index_templates]["outdated"]:
+                            screen.blit(self.content_update, (content_x, content_y))
                         else:
-                            screen.blit(self.content_error, (content_x, content_y))
+                            if self.template_list[index_templates]["valid"]:
+                                screen.blit(self.content, (content_x, content_y))
+                            else:
+                                screen.blit(self.content_error, (content_x, content_y))
+
                         screen.blit(self.template_list[index_templates]["icon"], (icon_x, icon_y))
+
+                        if "outdated" in self.template_list[index_templates] and self.template_list[index_templates]["outdated"]:
+                            screen.blit(self.icon_update, (content_x, content_y))
 
                         self.menu_content.append({"positions": (content_x, content_y),
                                                   "dimensions": (self.content.get_rect().w, self.content.get_rect().h),
@@ -240,7 +255,6 @@ class MainMenu:
 
             if self.moved_tracker:
                 template_valid = self.template_list[self.selected_menu_index]["valid"]
-
                 self.fade_engine.update()
                 self.fade_value = self.fade_engine.getFadeValue()
                 transparent_illustration = self.illustration.copy()
@@ -250,6 +264,9 @@ class MainMenu:
                     glow = self.selected.copy()
                 else:
                     glow = self.selected_error.copy()
+
+                if "outdated" in self.template_list[self.selected_menu_index] and self.template_list[self.selected_menu_index]["outdated"]:
+                    glow = self.selected_update.copy()
 
                 glow_position_x, glow_position_y = self.selected_position
                 glow_position_x = glow_position_x - 38
@@ -345,6 +362,7 @@ class MainMenu:
 
     def process_templates_list(self):
         temp_list = []
+        self.template_list = []
         for file in glob.glob("{}{}*.template".format(self.template_directory, os.sep)):
             archive = ZipFile(file, 'r')
             tracker_json = archive.read("tracker.json")
@@ -369,6 +387,10 @@ class MainMenu:
                 for off_template in self.official_template:
                     if off_template["template_name"] == template_data["filename"]:
                         template_data["official"] = off_template["lastest_version"]
+
+                        if data[0]["Informations"]["Version"] != template_data["official"]:
+                            template_data["outdated"] = True
+
                         self.template_list.append(template_data)
                         break
 
@@ -423,7 +445,21 @@ class MainMenu:
                                                        element_positons=menu["positions"],
                                                        element_dimension=menu["dimensions"]):
                         if menu["template"]["valid"]:
-                            self.set_tracker(menu["template"]["filename"])
+                            if "outdated" in self.template_list[self.selected_menu_index] and self.template_list[self.selected_menu_index]["outdated"]:
+                                MsgBox = messagebox.askquestion('New version detected',
+                                                                f'Do you want to update : {self.template_list[self.selected_menu_index]["information"]["Informations"]["Name"]} ?',
+                                                                icon='question')
+                                if MsgBox == 'yes':
+                                    url = f"http://linsotracker.com/tracker/templates/{self.template_list[self.selected_menu_index]['filename']}-{self.template_list[self.selected_menu_index]['official']}.template"
+                                    # print(self.template_directory)
+                                    self.core_service.download_and_replace(url, self.template_directory, self.template_list[self.selected_menu_index]['filename'] + ".template")
+                                    self.set_check()
+                                    self.process_templates_list()
+                                else:
+                                    self.set_tracker(menu["template"]["filename"])
+
+                            else:
+                                self.set_tracker(menu["template"]["filename"])
                         # self.set_tracker(menu["template"]["filename"])
         else:
             self.loaded_tracker.click(mouse_position, button)

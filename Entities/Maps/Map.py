@@ -126,45 +126,45 @@ class Map:
             self.current_block_checks = None
 
         for check in self.checks_list:
-            if type(check) == BlockChecks:
+            if isinstance(check, BlockChecks):
                 if not self.current_block_checks:
-                    if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
-                                                               element_positons=check.get_position(),
-                                                               element_dimension=(
-                                                                       check.get_rect().w, check.get_rect().h)) and not check.all_check_hidden() and not check.all_check_hidden():
+                    pos = check.get_position()
+                    dim = check.get_rect().size
+                    if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos,
+                                                               element_dimension=dim) and not check.all_check_hidden():
                         if button == 1:
                             check.left_click(mouse_position)
                             if not self.check_window.is_open():
                                 self.check_window.open = True
                             break
 
-            if type(check) == SimpleCheck:
-                if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
-                                                           element_positons=check.get_position(),
-                                                           element_dimension=(check.get_rect().w, check.get_rect().h)) and not check.hide:
+            elif isinstance(check, SimpleCheck):
+                pos = check.get_position()
+                dim = check.get_rect().size
+                if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos,
+                                                           element_dimension=dim) and not check.hide:
                     if button == 1:
                         check.left_click(mouse_position)
                         self.update()
                         break
 
-            if self.check_window.is_open():
-                self.check_window.update()
+        if self.check_window.is_open():
+            self.check_window.update()
 
     def get_count_checks(self):
         cpt_logic = 0
         cpt_left = 0
         for check in self.checks_list:
-            if type(check) == BlockChecks:
-                for block_check in check.list_checks:
-                    if not block_check.hide:
+            if not check.hide:
+                if isinstance(check, BlockChecks):
+                    for block_check in check.list_checks:
                         if block_check.state == ConditionsType.LOGIC:
                             cpt_logic += 1
                             cpt_left += 1
 
                         if block_check.state == ConditionsType.NOT_LOGIC:
                             cpt_left += 1
-            else:
-                if not check.hide:
+                else:
                     if check.state == ConditionsType.LOGIC:
                         cpt_logic += 1
                         cpt_left += 1
