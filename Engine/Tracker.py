@@ -822,31 +822,24 @@ class Tracker:
 
     def have(self, item_name, index=None):
         for item in self.items:
-            if item.name == item_name:
-                if item.enable:
-                    if index:
-                        new_index = "item.value {}".format(index)
-                        if eval(new_index):
-                            return True
-                        else:
-                            return False
+            if item.name == item_name and item.enable:
+                if not index:
                     return True
-                else:
-                    return False
+
+                value = getattr(item, "value {}".format(index), None)
+                if value:
+                    return True
 
             if type(item) == SubMenuItem:
                 for sub_item in item.items:
-                    if sub_item.name == item_name:
-                        if sub_item.enable:
-                            if index:
-                                new_index = "sub_item.value {}".format(index)
-                                if eval(new_index):
-                                    return True
-                                else:
-                                    return False
+                    if sub_item.name == item_name and sub_item.enable:
+                        if not index:
                             return True
-                        else:
-                            return False
+
+                        value = getattr(sub_item, "value {}".format(index), None)
+                        if value:
+                            return True
+
         return False
 
     def do(self, action):

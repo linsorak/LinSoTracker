@@ -43,10 +43,12 @@ class MainMenu:
         self.content_error = None
         self.content = None
         self.content_update = None
+        self.content_official = None
         self.arrow_right = None
         self.arrow_left = None
         self.icon = None
         self.icon_update = None
+        self.icon_official = None
         self.background_image = None
         self.description_menu = None
         self.menu_json_data = None
@@ -105,6 +107,8 @@ class MainMenu:
         self.icon = self.bank.addImage(os.path.join(self.resources_path, self.icon))
         self.icon_update = self.menu_json_data[0]["UpdateIcon"]
         self.icon_update = self.bank.addImage(os.path.join(self.resources_path, self.icon_update))
+        self.icon_official = self.menu_json_data[0]["OfficialIcon"]
+        self.icon_official = self.bank.addImage(os.path.join(self.resources_path, self.icon_official))
         self.arrow_left = self.bank.addImage(os.path.join(self.resources_path, "arrow-left.png"))
         self.arrow_right = self.bank.addImage(os.path.join(self.resources_path, "arrow-right.png"))
         self.content = self.menu_json_data[0]["BoxTrackerContentImage"]
@@ -113,9 +117,12 @@ class MainMenu:
         self.content_error = self.bank.addImage(os.path.join(self.resources_path, self.content_error))
         self.content_update = self.menu_json_data[0]["BoxTrackerContentImageUpdate"]
         self.content_update = self.bank.addImage(os.path.join(self.resources_path, self.content_update))
+        self.content_official = self.menu_json_data[0]["BoxTrackerContentImageOfficial"]
+        self.content_official = self.bank.addImage(os.path.join(self.resources_path, self.content_official))
         self.selected = self.bank.addImage(os.path.join(self.resources_path, "glow.png"))
         self.selected_error = self.bank.addImage(os.path.join(self.resources_path, "glow-error.png"))
         self.selected_update = self.bank.addImage(os.path.join(self.resources_path, "glow-update.png"))
+        self.selected_official = self.bank.addImage(os.path.join(self.resources_path, "glow-official.png"))
         self.description_menu = self.bank.addImage(
             os.path.join(self.resources_path, self.menu_json_data[0]["DescriptionBox"]))
 
@@ -151,15 +158,11 @@ class MainMenu:
     def draw(self, screen):
         if not self.loaded_tracker:
             screen.blit(self.background_image, (0, 0))
-            l_arrow = self.arrow_left.copy()
-            r_arrow = self.arrow_right.copy()
-
-            x_left_arrow = 285
-            y_left_arrow = 530
-            x_right_arrow = x_left_arrow + self.content.get_rect().w
-            y_right_arrow = y_left_arrow
-            self.left_arrow_positions = (x_left_arrow, y_left_arrow)
-            self.right_arrow_positions = (x_right_arrow, y_right_arrow)
+            l_arrow, r_arrow = self.arrow_left.copy(), self.arrow_right.copy()
+            x_left_arrow, y_left_arrow = 285, 530
+            x_right_arrow, y_right_arrow = x_left_arrow + self.content.get_rect().w, y_left_arrow
+            self.left_arrow_positions, self.right_arrow_positions = (x_left_arrow, y_left_arrow), (
+                x_right_arrow, y_right_arrow)
 
             if self.current_page == 1:
                 self.core_service.convert_to_gs(l_arrow)
@@ -171,41 +174,50 @@ class MainMenu:
 
             index_templates = 0 + (self.max_icon_per_page * (self.current_page - 1))
             self.menu_content = []
+
             for i in range(self.max_row):
                 for j in range(self.max_column):
                     if index_templates < len(self.template_list):
                         content_rect = self.content.get_rect()
                         content_x = (content_rect.w * (j + 1) + content_rect.w) + self.x_offset + (
-                                    self.space_offset * j)
+                                self.space_offset * j)
                         content_y = (content_rect.h * (i + 1) + content_rect.h) + self.y_offset + (
-                                    self.space_offset * i)
-                        icon_x = content_x + 10
-                        icon_y = content_y + 5
+                                self.space_offset * i)
+                        icon_x, icon_y = content_x + 10, content_y + 5
+                        current_template = self.template_list[index_templates]
+                        outdated, valid = "outdated" in current_template and current_template["outdated"], \
+                                          current_template["valid"]
 
-                        if "outdated" in self.template_list[index_templates] and self.template_list[index_templates]["outdated"]:
-                            screen.blit(self.content_update, (content_x, content_y))
-                        else:
-                            if self.template_list[index_templates]["valid"]:
-                                screen.blit(self.content, (content_x, content_y))
+                        if valid:
+                            if outdated:
+                                content_image = self.content_update
                             else:
-                                screen.blit(self.content_error, (content_x, content_y))
+                                if "official" in current_template:
+                                    content_image = self.content_official
+                                else:
+                                    content_image = self.content
+                        else:
+                            content_image = self.content_error
 
-                        screen.blit(self.template_list[index_templates]["icon"], (icon_x, icon_y))
+                        screen.blit(content_image, (content_x, content_y))
+                        screen.blit(current_template["icon"], (icon_x, icon_y))
 
-                        if "outdated" in self.template_list[index_templates] and self.template_list[index_templates]["outdated"]:
+                        if outdated:
                             screen.blit(self.icon_update, (content_x, content_y))
 
+                        if "official" in current_template and not outdated:
+                            screen.blit(self.icon_official, (content_x, content_y))
+
                         self.menu_content.append({"positions": (content_x, content_y),
-                                                  "dimensions": (self.content.get_rect().w, self.content.get_rect().h),
-                                                  "template": self.template_list[index_templates]})
+                                                  "dimensions": (content_rect.w, content_rect.h),
+                                                  "template": current_template})
 
                         index_templates += 1
 
             screen.blit(l_arrow, self.left_arrow_positions)
             screen.blit(r_arrow, self.right_arrow_positions)
 
-            temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
-            temp_surface = temp_surface.convert_alpha()
+            temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32).convert_alpha()
             pages, pos_pages = self.draw_text(text="{}/{}".format(self.current_page, self.max_pages),
                                               font_name=self.font_data["path"],
                                               color=self.font_data["color_normal"],
@@ -213,152 +225,162 @@ class MainMenu:
                                               surface=temp_surface,
                                               position=(0, 0),
                                               outline=1)
+
             space_between_arrow = x_right_arrow - x_left_arrow
             x_pages = (space_between_arrow / 2 - pages.get_rect().w / 2) + x_left_arrow + (l_arrow.get_rect().w / 2)
             y_pages = (l_arrow.get_rect().h / 2) - (pages.get_rect().h / 2) + y_left_arrow
 
             screen.blit(pages, (x_pages, y_pages))
+            pos_dev_y = self.draw_info_text(screen)
 
-            surf_title, pos_title = self.draw_text(
-                text="{} v{} - Developed by LinSoraK#7235".format(self.core_service.app_name,
-                                                                  self.core_service.version),
+            if self.moved_tracker:
+                self.draw_fade_effect(screen, pos_dev_y)
+        else:
+            self.loaded_tracker.draw(screen)
+
+    def draw_info_text(self, screen):
+        surf_title, pos_title = self.draw_text(
+            text="{} v{} - Developed by LinSoraK#7235".format(self.core_service.app_name,
+                                                              self.core_service.version),
+            font_name=self.font_data["path"],
+            color=self.font_data["color_normal"],
+            font_size=self.font_data["size"],
+            surface=screen,
+            position=(5, 5),
+            outline=1)
+
+        pos_dev_y = surf_title.get_rect().h + 5
+        if self.new_version:
+            surf_update, pos_update = self.draw_text(
+                text="The version {} is now available. Please update!".format(self.new_version),
                 font_name=self.font_data["path"],
-                color=self.font_data["color_normal"],
+                color=self.font_data["color_update"],
                 font_size=self.font_data["size"],
                 surface=screen,
-                position=(5, 5),
+                position=(5, pos_dev_y),
                 outline=1)
 
-            pos_dev_y = surf_title.get_rect().h + 5
+            pos_dev_y = pos_dev_y + surf_update.get_rect().h + 5
+
+        if self.core_service.dev_version:
             if self.new_version:
-                surf_update, pos_update = self.draw_text(
-                    text="The version {} is now available. Please update!".format(self.new_version),
+                surf_dev, pos_dev = self.draw_text(
+                    text="DEVELOPER VERSION - DO NOT USE WITHOUT AUTHORIZATION",
                     font_name=self.font_data["path"],
-                    color=self.font_data["color_update"],
-                    font_size=self.font_data["size"],
+                    color=self.font_data["color_official"],
+                    font_size=self.font_data["size"] - 2,
                     surface=screen,
                     position=(5, pos_dev_y),
                     outline=1)
 
-                pos_dev_y = pos_dev_y + surf_update.get_rect().h + 5
+        return pos_dev_y
 
-            if self.core_service.dev_version:
-                if self.new_version:
-                    surf_dev, pos_dev = self.draw_text(
-                        text="DEVELOPER VERSION - DO NOT USE WITHOUT AUTHORIZATION",
-                        font_name=self.font_data["path"],
-                        color=self.font_data["color_official"],
-                        font_size=self.font_data["size"] - 2,
-                        surface=screen,
-                        position=(5, pos_dev_y),
-                        outline=1)
-
-            if self.moved_tracker:
-                template_valid = self.template_list[self.selected_menu_index]["valid"]
-                self.fade_engine.update()
-                self.fade_value = self.fade_engine.getFadeValue()
-                transparent_illustration = self.illustration.copy()
-                transparent_illustration.fill((255, 255, 255, self.fade_value),
-                                              special_flags=pygame.BLEND_RGBA_MULT)
-                if template_valid:
-                    glow = self.selected.copy()
-                else:
-                    glow = self.selected_error.copy()
-
-                if "outdated" in self.template_list[self.selected_menu_index] and self.template_list[self.selected_menu_index]["outdated"]:
-                    glow = self.selected_update.copy()
-
-                glow_position_x, glow_position_y = self.selected_position
-                glow_position_x = glow_position_x - 38
-                glow_position_y = glow_position_y - 15
-                glow.fill((255, 255, 255, self.fade_value), special_flags=pygame.BLEND_RGBA_MULT)
-
-                description_menu = self.description_menu.copy()
-                description_menu.fill((255, 255, 255, self.fade_value),
+    def draw_fade_effect(self, screen, pos_dev_y):
+        template_valid = self.template_list[self.selected_menu_index]["valid"]
+        self.fade_engine.update()
+        self.fade_value = self.fade_engine.getFadeValue()
+        transparent_illustration = self.illustration.copy()
+        transparent_illustration.fill((255, 255, 255, self.fade_value),
                                       special_flags=pygame.BLEND_RGBA_MULT)
-
-                x_description_menu = screen.get_rect().w - description_menu.get_rect().w
-                y_description_menu = 410
-
-                screen.blit(transparent_illustration, (0, 0))
-                screen.blit(glow, (glow_position_x, glow_position_y))
-                screen.blit(description_menu, (x_description_menu, y_description_menu))
-
-                x_title = x_description_menu + 17
-                y_title = y_description_menu + 13
-
-                self.draw_text(
-                    text=self.template_list[self.selected_menu_index]["information"]["Informations"]["Name"],
-                    font_name=self.font_data["path"],
-                    color=self.font_data["color_normal"],
-                    font_size=self.font_data["title_size"],
-                    surface=screen,
-                    position=(x_title, y_title),
-                    outline=1)
-
-                x_creator = x_title + 15
-                y_creator = y_title + 55
-                self.draw_text(
-                    text="Creator : {}".format(
-                        self.template_list[self.selected_menu_index]["information"]["Informations"]["Creator"]),
-                    font_name=self.font_data["path"],
-                    color=self.font_data["color_normal"],
-                    font_size=self.font_data["description_size"],
-                    surface=screen,
-                    position=(x_creator, y_creator),
-                    outline=1.5)
-
-                x_version = x_creator
-                y_version = y_creator + 22
-                self.draw_text(
-                    text="Version : {}".format(
-                        self.template_list[self.selected_menu_index]["information"]["Informations"]["Version"]),
-                    font_name=self.font_data["path"],
-                    color=self.font_data["color_normal"],
-                    font_size=self.font_data["description_size"],
-                    surface=screen,
-                    position=(x_version, y_version),
-                    outline=1.5)
-
-                if "official" in self.template_list[self.selected_menu_index]:
-                    x_official = x_description_menu + description_menu.get_rect().w - 90
-                    y_official = y_description_menu + description_menu.get_rect().h - 35
-                    self.draw_text(
-                        text="OFFICIAL",
-                        font_name=self.font_data["path"],
-                        color=self.font_data["color_official"],
-                        font_size=self.font_data["size"],
-                        surface=screen,
-                        position=(x_official, y_official),
-                        outline=1.5)
-
-                if not self.template_list[self.selected_menu_index]["valid"]:
-                    x_not_valid = x_description_menu + 17
-                    y_not_valid = y_description_menu + description_menu.get_rect().h - 35
-                    self.draw_text(
-                        text="NOT VALID - PLEASE UPDATE",
-                        font_name=self.font_data["path"],
-                        color=self.font_data["color_error"],
-                        font_size=self.font_data["size"],
-                        surface=screen,
-                        position=(x_not_valid, y_not_valid),
-                        outline=1.5)
-
-                if "Comments" in self.template_list[self.selected_menu_index]:
-                    x_comments = x_creator
-                    y_comments = y_version + 22
-                    self.draw_text(
-                        text="Comments : {}".format(
-                            self.template_list[self.selected_menu_index]["information"]["Informations"]["Comments"]),
-                        font_name=self.font_data["path"],
-                        color=self.font_data["color_normal"],
-                        font_size=self.font_data["description_size"] * 0.85,
-                        surface=screen,
-                        position=(x_comments, y_comments),
-                        outline=1.5)
-
+        if template_valid:
+            glow = self.selected.copy()
+            if "official" in self.template_list[self.selected_menu_index]:
+                glow = self.selected_official.copy()
         else:
-            self.loaded_tracker.draw(screen)
+            glow = self.selected_error.copy()
+
+        if "outdated" in self.template_list[self.selected_menu_index] and self.template_list[self.selected_menu_index][
+            "outdated"]:
+            glow = self.selected_update.copy()
+
+        glow_position_x, glow_position_y = self.selected_position
+        glow_position_x = glow_position_x - 38
+        glow_position_y = glow_position_y - 15
+        glow.fill((255, 255, 255, self.fade_value), special_flags=pygame.BLEND_RGBA_MULT)
+
+        description_menu = self.description_menu.copy()
+        description_menu.fill((255, 255, 255, self.fade_value),
+                              special_flags=pygame.BLEND_RGBA_MULT)
+
+        x_description_menu = screen.get_rect().w - description_menu.get_rect().w
+        y_description_menu = 410
+
+        screen.blit(transparent_illustration, (0, 0))
+        screen.blit(glow, (glow_position_x, glow_position_y))
+        screen.blit(description_menu, (x_description_menu, y_description_menu))
+
+        x_title = x_description_menu + 17
+        y_title = y_description_menu + 13
+
+        self.draw_text(
+            text=self.template_list[self.selected_menu_index]["information"]["Informations"]["Name"],
+            font_name=self.font_data["path"],
+            color=self.font_data["color_normal"],
+            font_size=self.font_data["title_size"],
+            surface=screen,
+            position=(x_title, y_title),
+            outline=1)
+
+        x_creator = x_title + 15
+        y_creator = y_title + 55
+        self.draw_text(
+            text="Creator : {}".format(
+                self.template_list[self.selected_menu_index]["information"]["Informations"]["Creator"]),
+            font_name=self.font_data["path"],
+            color=self.font_data["color_normal"],
+            font_size=self.font_data["description_size"],
+            surface=screen,
+            position=(x_creator, y_creator),
+            outline=1.5)
+
+        x_version = x_creator
+        y_version = y_creator + 22
+        self.draw_text(
+            text="Version : {}".format(
+                self.template_list[self.selected_menu_index]["information"]["Informations"]["Version"]),
+            font_name=self.font_data["path"],
+            color=self.font_data["color_normal"],
+            font_size=self.font_data["description_size"],
+            surface=screen,
+            position=(x_version, y_version),
+            outline=1.5)
+
+        if "official" in self.template_list[self.selected_menu_index]:
+            x_official = x_description_menu + description_menu.get_rect().w - 90
+            y_official = y_description_menu + description_menu.get_rect().h - 35
+            self.draw_text(
+                text="OFFICIAL",
+                font_name=self.font_data["path"],
+                color=self.font_data["color_official"],
+                font_size=self.font_data["size"],
+                surface=screen,
+                position=(x_official, y_official),
+                outline=1.5)
+
+        if not self.template_list[self.selected_menu_index]["valid"]:
+            x_not_valid = x_description_menu + 17
+            y_not_valid = y_description_menu + description_menu.get_rect().h - 35
+            self.draw_text(
+                text="NOT VALID - PLEASE UPDATE",
+                font_name=self.font_data["path"],
+                color=self.font_data["color_error"],
+                font_size=self.font_data["size"],
+                surface=screen,
+                position=(x_not_valid, y_not_valid),
+                outline=1.5)
+
+        if "Comments" in self.template_list[self.selected_menu_index]:
+            x_comments = x_creator
+            y_comments = y_version + 22
+            self.draw_text(
+                text="Comments : {}".format(
+                    self.template_list[self.selected_menu_index]["information"]["Informations"]["Comments"]),
+                font_name=self.font_data["path"],
+                color=self.font_data["color_normal"],
+                font_size=self.font_data["description_size"] * 0.85,
+                surface=screen,
+                position=(x_comments, y_comments),
+                outline=1.5)
 
     def process_templates_list(self):
         temp_list = []
@@ -445,14 +467,17 @@ class MainMenu:
                                                        element_positons=menu["positions"],
                                                        element_dimension=menu["dimensions"]):
                         if menu["template"]["valid"]:
-                            if "outdated" in self.template_list[self.selected_menu_index] and self.template_list[self.selected_menu_index]["outdated"]:
+                            if "outdated" in self.template_list[self.selected_menu_index] and \
+                                    self.template_list[self.selected_menu_index]["outdated"]:
                                 MsgBox = messagebox.askquestion('New version detected',
                                                                 f'Do you want to update : {self.template_list[self.selected_menu_index]["information"]["Informations"]["Name"]} ?',
                                                                 icon='question')
                                 if MsgBox == 'yes':
                                     url = f"http://linsotracker.com/tracker/templates/{self.template_list[self.selected_menu_index]['filename']}-{self.template_list[self.selected_menu_index]['official']}.template"
                                     # print(self.template_directory)
-                                    self.core_service.download_and_replace(url, self.template_directory, self.template_list[self.selected_menu_index]['filename'] + ".template")
+                                    self.core_service.download_and_replace(url, self.template_directory,
+                                                                           self.template_list[self.selected_menu_index][
+                                                                               'filename'] + ".template")
                                     self.set_check()
                                     self.process_templates_list()
                                 else:

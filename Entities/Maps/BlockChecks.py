@@ -24,57 +24,50 @@ class BlockChecks(SimpleCheck):
         return self.list_checks
 
     def update(self):
+        self.logic_cpt = 0
         self.all_logic = True
         self.checked = True
-        self.logic_cpt = 0
+
         for check in self.list_checks:
             check.update()
-
-            if not check.checked:
-                self.checked = False
-
-            if check.state == ConditionsType.LOGIC:
-                self.logic_cpt += 1
-            else:
-                self.all_logic = False
+            self.checked &= check.checked
+            self.all_logic &= check.state == ConditionsType.LOGIC
+            self.logic_cpt += check.state == ConditionsType.LOGIC
 
         font = self.map.tracker.core_service.get_font("mapFont")
         map_font_path = os.path.join(self.map.tracker.core_service.get_tracker_temp_path(), font["Name"])
         font_number = self.map.tracker.core_service.get_font("mapFontChecksNumber")
         font_path = os.path.join(self.map.tracker.core_service.get_tracker_temp_path(), font_number["Name"])
         groups_datas = self.map.tracker.tracker_json_data[4]["SizeGroupChecks"]
-        self.pin_rect = pygame.Rect((self.map.index_positions[0] * self.map.tracker.core_service.zoom) + (
-                self.positions["x"] * self.map.tracker.core_service.zoom),
-                                    (self.map.index_positions[1] * self.map.tracker.core_service.zoom) + (
-                                            self.positions["y"] * self.map.tracker.core_service.zoom),
-                                    groups_datas["w"] * self.map.tracker.core_service.zoom,
-                                    groups_datas["h"] * self.map.tracker.core_service.zoom)
+        zoom = self.map.tracker.core_service.zoom
+        index_positions = self.map.index_positions
 
-        if self.checked:
-            self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "Done")
-        else:
-            if self.all_logic:
-                self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "Logic")
-            else:
-                self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "NotLogic")
+        self.pin_rect = pygame.Rect(
+            (index_positions[0] * zoom) + (self.positions["x"] * zoom),
+            (index_positions[1] * zoom) + (self.positions["y"] * zoom),
+            groups_datas["w"] * zoom,
+            groups_datas["h"] * zoom
+        )
 
-        temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
-        temp_surface = temp_surface.convert_alpha()
+        self.pin_color = self.map.tracker.core_service.get_color_from_font(
+            font, "Done" if self.checked else ("Logic" if self.all_logic else "NotLogic")
+        )
+
+        temp_surface = pygame.Surface((0, 0), pygame.SRCALPHA, 32).convert_alpha()
 
         self.surface_logic_indicator, self.position_logic_indicator = MainMenu.MainMenu.draw_text(
-            text="{}".format(self.logic_cpt),
+            text=f"{self.logic_cpt}",
             font_name=font_path,
             color=self.map.tracker.core_service.get_color_from_font(font_number, "Normal"),
-            font_size=font_number["Size"] * self.map.tracker.core_service.zoom,
+            font_size=font_number["Size"] * zoom,
             surface=temp_surface,
             position=(self.pin_rect.x, self.pin_rect.y),
-            outline=0.5 * self.map.tracker.core_service.zoom)
+            outline=0.5 * zoom
+        )
 
-        x_number = self.pin_rect.x + (self.pin_rect.w / 2) - (self.surface_logic_indicator.get_rect().w / 2) + (
-                0.5 * self.map.tracker.core_service.zoom)
-        # x_number = self.pin_rect.x + self.pin_rect.w
-        y_number = self.pin_rect.y + (self.pin_rect.h / 2) - (self.surface_logic_indicator.get_rect().h / 2) + (
-                1.5 * self.map.tracker.core_service.zoom)
+        rect = self.surface_logic_indicator.get_rect()
+        x_number = self.pin_rect.x + (self.pin_rect.w / 2) - (rect.w / 2) + (0.5 * zoom)
+        y_number = self.pin_rect.y + (self.pin_rect.h / 2) - (rect.h / 2) + (1.5 * zoom)
         self.position_logic_indicator = (x_number, y_number)
 
     def draw(self, screen):

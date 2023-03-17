@@ -91,8 +91,8 @@ class Map:
             for check in self.checks_list:
                 check.update()
 
-
         self.tracker.update_cpt()
+
     def open_window(self):
         self.check_window.open = True
 
