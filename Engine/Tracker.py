@@ -697,13 +697,14 @@ class Tracker:
                 map_data.load_data(next((m for m in maps if m["name"] == map_name), None))
                 map_data.update()
 
-        rules = datas[3].get("rules")
-        if rules:
-            for rule_data in rules:
-                rule = next((r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]), None)
-                if rule:
-                    rule.set_data(rule_data)
-                    rule.update()
+        if "rules" in datas:
+            rules = datas[3].get("rules")
+            if rules:
+                for rule_data in rules:
+                    rule = next((r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]), None)
+                    if rule:
+                        rule.set_data(rule_data)
+                        rule.update()
 
         if self.current_map:
             self.update()

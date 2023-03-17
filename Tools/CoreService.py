@@ -95,11 +95,7 @@ class CoreService(metaclass=Singleton):
     def load_default_configuration(self):
         user_configuration = os.path.join(self.temp_path_fixe, "user.conf")
         if not os.path.exists(user_configuration):
-            data = {}
-            data["defaultZoom"] = 0
-            data["soundWhenItemActive"] = False
-            data["showESCLabel"] = True
-            data["showHint"] = True
+            data = {"defaultZoom": 0, "soundWhenItemActive": False, "showESCLabel": True, "showHint": True}
 
             with open(user_configuration, 'w') as f:
                 json.dump(data, f, indent=2)
