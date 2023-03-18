@@ -62,8 +62,6 @@ class CheckListItem(Sprite):
             position=(self.position["x"], self.position["y"]),
             outline=1 * self.tracker.core_service.zoom)
 
-        # print(f"Check : {self.name} - {self.checked}")
-
     def left_click(self):
         if self.checked:
             self.checked = False

@@ -524,7 +524,7 @@ class MainMenu:
         self.loaded_tracker = Tracker(tracker_name, self)
 
     def reset_tracker(self):
-        self.loaded_tracker.delete_data()
+        # self.loaded_tracker.delete_data()
         del self.loaded_tracker
         self.loaded_tracker = None
         dimension = self.get_dimension()

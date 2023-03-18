@@ -240,6 +240,9 @@ class Tracker:
         popup.set_arrows_positions(left_arrow, right_arrow)
         popup.update()
 
+        for item in items_list:
+            item.update()
+
     def update(self):
         if self.current_map:
             if "MapsList" in self.tracker_json_data[4]:

@@ -37,7 +37,6 @@ class RulesOptionsListItem(CheckListItem):
             surface=temp_surface,
             position=(self.position["x"], self.position["y"]),
             outline=1 * self.tracker.core_service.zoom)
-
         # print(f"Rules : {self.name} - {self.checked}")
 
     def is_active(self):
