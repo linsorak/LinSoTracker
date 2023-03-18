@@ -701,7 +701,8 @@ class Tracker:
             rules = datas[3].get("rules")
             if rules:
                 for rule_data in rules:
-                    rule = next((r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]), None)
+                    rule = next((r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]),
+                                None)
                     if rule:
                         rule.set_data(rule_data)
                         rule.update()
@@ -821,26 +822,25 @@ class Tracker:
         del self.items
         gc.collect()
 
+    @staticmethod
+    def _item_has_index(item, index):
+        if index is None:
+            return True
+
+        new_index = "item.value {}".format(index)
+        return eval(new_index)
+
+    @staticmethod
+    def _check_item(item, item_name, index):
+        return item.name == item_name and item.enable and Tracker._item_has_index(item, index)
+
     def have(self, item_name, index=None):
-        for item in self.items:
-            if item.name == item_name and item.enable:
-                if not index:
-                    return True
+        items_to_check = [item for item in self.items if type(item) != SubMenuItem]
+        sub_items_to_check = [sub_item for item in self.items if type(item) == SubMenuItem for sub_item in item.items]
 
-                value = getattr(item, "value {}".format(index), None)
-                if value:
-                    return True
-
-            if type(item) == SubMenuItem:
-                for sub_item in item.items:
-                    if sub_item.name == item_name and sub_item.enable:
-                        if not index:
-                            return True
-
-                        value = getattr(sub_item, "value {}".format(index), None)
-                        if value:
-                            return True
-
+        for item in items_to_check + sub_items_to_check:
+            if Tracker._check_item(item, item_name, index):
+                return True
         return False
 
     def do(self, action):

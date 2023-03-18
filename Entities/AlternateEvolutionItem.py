@@ -7,6 +7,7 @@ class AlternateEvolutionItem(EvolutionItem):
     def __init__(self, id, name, image, position, enable, opacity_disable, hint, next_items, label, label_center,
                  alternative_label=None, global_label=None):
         self.global_label = global_label
+        self.value = None
         EvolutionItem.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                                opacity_disable=opacity_disable, hint=hint, next_items=next_items, label=label,
                                label_center=label_center, alternative_label=alternative_label)
@@ -45,3 +46,4 @@ class AlternateEvolutionItem(EvolutionItem):
                                                image_surface=self.image,
                                                text_position="label",
                                                offset=10)
+        self.value = self.next_item_index + 1
