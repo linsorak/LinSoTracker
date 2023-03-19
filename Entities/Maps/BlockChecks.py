@@ -30,7 +30,7 @@ class BlockChecks(SimpleCheck):
 
         for check in self.list_checks:
             if not check.hide:
-                # check.update()
+                check.update()
                 # self.checked &= check.checked
                 # self.all_logic &= check.state == ConditionsType.LOGIC
                 # self.logic_cpt += check.state == ConditionsType.LOGIC
