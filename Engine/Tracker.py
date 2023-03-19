@@ -436,9 +436,12 @@ class Tracker:
                     _item = create_base_item(item, item_class, check_image=check_image)
 
                 elif item["Kind"] == "LabelItem":
+                    offset = 0
+                    if "OffsetLabel" in item:
+                        offset = item["OffsetLabel"]
                     _item = create_base_item(item, item_class,
                                              label_list=item["LabelList"],
-                                             label_offset=item.get("OffsetLabel"))
+                                             label_offset=offset)
 
                 elif item["Kind"] == "CountItem":
                     _item = create_base_item(item, item_class,
@@ -686,13 +689,14 @@ class Tracker:
 
         item_lookup = {(item.base_name, item.id): item for item in self.items}
 
+        print(len(datas))
         if "items" in datas[1]:
             for data in datas[1]["items"]:
                 item = item_lookup.get((data["name"], data["id"]))
                 if item:
                     item.set_data(data)
 
-        if "maps" in datas[2]:
+        if len(datas) > 2 and "maps" in datas[2]:
             maps = datas[2].get("maps")
             if maps:
                 for map_data in self.maps_list:
@@ -700,21 +704,19 @@ class Tracker:
                     map_data.load_data(next((m for m in maps if m["name"] == map_name), None))
                     map_data.update()
 
-        if "rules" in datas[3]:
-            rules = datas[3].get("rules")
-            if rules:
-                for rule_data in rules:
-                    rule = next((r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]),
-                                None)
-                    if rule:
-                        rule.set_data(rule_data)
-                        rule.update()
+            if len(datas) > 3 and "rules" in datas[3]:
+                rules = datas[3].get("rules")
+                if rules:
+                    for rule_data in rules:
+                        rule = next((r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]),
+                                    None)
+                        if rule:
+                            rule.set_data(rule_data)
+                            rule.update()
 
-        # print(datas)
-
-        if self.current_map:
-            self.update()
-            self.update_cpt()
+            if self.current_map:
+                self.update()
+                self.update_cpt()
 
     def change_zoom(self, value):
         datas = self.save_data()
