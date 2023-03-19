@@ -32,6 +32,7 @@ from Entities.Maps.BlockChecks import BlockChecks
 
 class Tracker:
     def __init__(self, template_name, main_menu):
+        self.initialized = False
         self.rules_options_show = None
         self.list_items_sheets = None
         self.position_draw_label_checks_cpt = None
@@ -689,7 +690,6 @@ class Tracker:
 
         item_lookup = {(item.base_name, item.id): item for item in self.items}
 
-        print(len(datas))
         if "items" in datas[1]:
             for data in datas[1]["items"]:
                 item = item_lookup.get((data["name"], data["id"]))

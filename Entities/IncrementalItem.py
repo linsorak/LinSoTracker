@@ -33,7 +33,7 @@ class IncrementalItem(Item):
             if self.increments_position >= 0:
                 self.increments_position = self.increments_position - 1
 
-                if self.increments_position - 1 == self.start_increment_index:
+                if self.increments_position == self.start_increment_index - 1:
                     self.increments_position = -1
                     self.enable = False
             else:

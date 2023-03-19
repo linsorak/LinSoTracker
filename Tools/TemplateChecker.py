@@ -13,6 +13,8 @@ class TemplateChecker:
         self.__validation()
 
     def is_valid(self):
+        if self.errors:
+            print(self.errors)
         return not bool(self.errors)
 
     def __validation(self):

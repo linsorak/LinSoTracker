@@ -30,10 +30,18 @@ class BlockChecks(SimpleCheck):
 
         for check in self.list_checks:
             if not check.hide:
-                check.update()
-                self.checked &= check.checked
-                self.all_logic &= check.state == ConditionsType.LOGIC
-                self.logic_cpt += check.state == ConditionsType.LOGIC
+                # check.update()
+                # self.checked &= check.checked
+                # self.all_logic &= check.state == ConditionsType.LOGIC
+                # self.logic_cpt += check.state == ConditionsType.LOGIC
+                # print(check)
+                if not check.checked:
+                    self.checked = False
+
+                if check.state == ConditionsType.LOGIC:
+                    self.logic_cpt += 1
+                else:
+                    self.all_logic = False
 
         font = self.map.tracker.core_service.get_font("mapFont")
         map_font_path = os.path.join(self.map.tracker.core_service.get_tracker_temp_path(), font["Name"])
