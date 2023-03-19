@@ -107,6 +107,7 @@ class Menu:
             if data and data[0]["template_name"] == self.tracker.template_name:
                 self.tracker.load_data(data)
                 self.tracker.update_cpt()
+                self.menu.disable()
             else:
                 messagebox.showerror('Error', 'This save is for the template {}'.format(data[0]["template_name"]))
         except:

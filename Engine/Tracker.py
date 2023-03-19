@@ -648,10 +648,9 @@ class Tracker:
             self.position_check_hint = (x, y)
 
     def save_data(self):
-        datas = []
-        datas.append({
+        datas = [{
             "template_name": self.template_name
-        })
+        }]
 
         datas_items = []
         for item in self.items:
@@ -693,14 +692,15 @@ class Tracker:
                 if item:
                     item.set_data(data)
 
-        maps = datas[2].get("maps")
-        if maps:
-            for map_data in self.maps_list:
-                map_name = map_data.get_name()
-                map_data.load_data(next((m for m in maps if m["name"] == map_name), None))
-                map_data.update()
+        if "maps" in datas[2]:
+            maps = datas[2].get("maps")
+            if maps:
+                for map_data in self.maps_list:
+                    map_name = map_data.get_name()
+                    map_data.load_data(next((m for m in maps if m["name"] == map_name), None))
+                    map_data.update()
 
-        if "rules" in datas:
+        if "rules" in datas[3]:
             rules = datas[3].get("rules")
             if rules:
                 for rule_data in rules:
@@ -709,6 +709,8 @@ class Tracker:
                     if rule:
                         rule.set_data(rule_data)
                         rule.update()
+
+        # print(datas)
 
         if self.current_map:
             self.update()
@@ -861,6 +863,8 @@ class Tracker:
                 return test
             except TypeError:
                 return False
+            except RecursionError:
+                raise ValueError(action_do)
             # return eval(action_do)
 
     def rules(self, rule):
