@@ -1,3 +1,5 @@
+import json
+import os
 import webbrowser
 from tkinter import messagebox
 from typing import Tuple, Any
@@ -36,7 +38,9 @@ class Menu:
                                                                ], onchange=self.change_zoom)
 
         self.menu.add.button('Save tracker state', self.save)
+        self.menu.add.button('Save as default', self.save_default)
         self.menu.add.button('Load tracker state', self.load)
+        self.menu.add.button('Load default save', self.load_default)
         self.sound_check = self.menu.add.toggle_switch('Sound effect', False, onchange=self.onchange_sound)
         self.esc_menu_check = self.menu.add.toggle_switch('ESC Label', True, onchange=self.onchange_esc)
         self.show_hint_menu_check = self.menu.add.toggle_switch('Show Hint', True, onchange=self.onchange_show_hint)
@@ -98,6 +102,28 @@ class Menu:
         data = self.tracker.save_data()
         # self.save_file(data)
         self.saveTool.saveFileDialog(data)
+        self.menu.disable()
+
+    def save_default(self):
+        save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")
+        self.core_service.create_directory(save_directory)
+        if os.path.exists(save_directory):
+            save_name = os.path.join(save_directory, self.tracker.template_name + ".trackersave")
+
+            if os.path.exists(save_name):
+                os.remove(save_name)
+
+            data = self.tracker.save_data()
+            json_data_dump = json.dumps(data, indent=4).encode('utf-8')
+            encrypted = self.saveTool.fernet.encrypt(json_data_dump)
+            with open(save_name, 'wb') as f:
+                f.write(encrypted)
+                f.close()
+
+        self.menu.disable()
+
+    def load_default(self):
+        self.tracker.check_is_default_save()
         self.menu.disable()
 
     def load(self):

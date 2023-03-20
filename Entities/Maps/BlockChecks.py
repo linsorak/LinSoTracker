@@ -92,6 +92,15 @@ class BlockChecks(SimpleCheck):
             self.update()
             self.map.update()
 
+    def right_click(self, mouse_position):
+        tracker = None
+        for check in self.list_checks:
+            check.checked = not self.checked
+            tracker = check.tracker
+        self.update()
+        if tracker:
+            tracker.current_map.update()
+
     def get_rect(self):
         return self.pin_rect
 

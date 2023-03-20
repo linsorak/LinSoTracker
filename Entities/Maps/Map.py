@@ -138,6 +138,10 @@ class Map:
                                 self.check_window.open = True
                             break
 
+                        elif button == 3:
+                            check.right_click(mouse_position)
+                            break
+
             elif isinstance(check, SimpleCheck):
                 pos = check.get_position()
                 dim = check.get_rect().size

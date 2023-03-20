@@ -717,6 +717,7 @@ class Tracker:
             if self.current_map:
                 self.update()
                 self.update_cpt()
+                self.current_map.update()
 
     def change_zoom(self, value):
         datas = self.save_data()
