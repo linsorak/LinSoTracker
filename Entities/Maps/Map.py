@@ -147,7 +147,7 @@ class Map:
                 dim = check.get_rect().size
                 if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos,
                                                            element_dimension=dim) and not check.hide:
-                    if button == 1:
+                    if button == 1 or button == 3:
                         check.left_click(mouse_position)
                         self.update()
                         break
