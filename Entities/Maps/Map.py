@@ -1,4 +1,8 @@
+import concurrent.futures
+import itertools
+
 import os
+from multiprocessing import Pool
 
 import pygame
 
@@ -88,10 +92,15 @@ class Map:
             self.check_window.update()
 
         else:
-            for check in self.checks_list:
-                check.update()
+            # pool = Pool(processes=len(self.checks_list))
+            # pool.map(self.update_check, self.checks_list)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                executor.map(self.update_check, self.checks_list)
 
         self.tracker.update_cpt()
+
+    def update_check(self, check):
+        check.update()
 
     def open_window(self):
         self.check_window.open = True
@@ -120,7 +129,7 @@ class Map:
 
     def click_map(self, mouse_position, button):
         if self.check_window.is_open():
-            self.check_window.left_click(mouse_position)
+            self.check_window.left_click(mouse_position, button)
             self.current_block_checks.update()
         else:
             self.current_block_checks = None
@@ -152,29 +161,29 @@ class Map:
                         self.update()
                         break
 
+                    elif button == 2:
+                        check.middle_click(mouse_position)
+                        break
+
         if self.check_window.is_open():
             self.check_window.update()
 
     def get_count_checks(self):
         cpt_logic = 0
         cpt_left = 0
-        for check in self.checks_list:
-            if not check.hide:
-                if isinstance(check, BlockChecks):
-                    for block_check in check.list_checks:
-                        if block_check.state == ConditionsType.LOGIC:
-                            cpt_logic += 1
-                            cpt_left += 1
 
-                        if block_check.state == ConditionsType.NOT_LOGIC:
-                            cpt_left += 1
-                else:
+        for check in self.checks_list:
+            if not check.hide and not check.checked:
+                if not isinstance(check, BlockChecks):
+                    cpt_left += 1
                     if check.state == ConditionsType.LOGIC:
                         cpt_logic += 1
-                        cpt_left += 1
-
-                    if check.state == ConditionsType.NOT_LOGIC:
-                        cpt_left += 1
+                else:
+                    for block_check in check.list_checks:
+                        if not block_check.checked:
+                            cpt_left += 1
+                            if block_check.state == ConditionsType.LOGIC:
+                                cpt_logic += 1
 
         return cpt_logic, cpt_left
 

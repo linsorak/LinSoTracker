@@ -1,6 +1,7 @@
 from enum import Enum
 
 import pygame
+from pygame import gfxdraw
 
 
 class ConditionsType(Enum):
@@ -11,6 +12,7 @@ class ConditionsType(Enum):
 
 class SimpleCheck:
     def __init__(self, ident, name, positions, linked_map, conditions, hide=False):
+        self.state = None
         self.id = ident
         self.name = name
         self.positions = positions
@@ -21,6 +23,7 @@ class SimpleCheck:
         self.checked = False
         self.conditions = conditions
         self.hide = hide
+        self.focused = False
         # self.conditions = "have('Giant Bomb Bag') or have('Bomb Bag') or have('Bomb') or have('Water Bomb')"
         if type(self.conditions) == str:
             self.conditions = self.conditions.replace("have(", "self.map.tracker.have(")
@@ -45,6 +48,7 @@ class SimpleCheck:
         if self.checked:
             self.state = ConditionsType.DONE
             self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "Done")
+            self.focused = False
 
         simple_check_datas = self.map.tracker.tracker_json_data[4]["SizeSimpleCheck"]
         x = (index_positions[0] * zoom + self.positions["x"] * zoom) + (simple_check_datas["w"] * zoom) / 2
@@ -61,15 +65,26 @@ class SimpleCheck:
             zoom = self.map.tracker.core_service.zoom
 
             pygame.draw.circle(screen, self.pin_color, pin_center, pin_radius)
-            pygame.draw.circle(screen, pygame.Color("black"), pin_center, pin_radius, int(1 * zoom))
+
+            if self.focused:
+                font = self.map.tracker.core_service.get_font("mapFont")
+                self.draw_circle_with_thickness(screen, self.map.tracker.core_service.get_color_from_font(font, "Focused"), pin_center, pin_radius * (1.2 * zoom), 3)
+
+            pygame.gfxdraw.aacircle(screen, int(pin_center[0]), int(pin_center[1]), int(pin_radius * zoom),
+                                    pygame.Color("black"))
+
+    def draw_circle_with_thickness(self, surface, color, center, radius, thickness):
+        for i in range(thickness):
+            pygame.gfxdraw.aacircle(surface, int(center[0]), int(center[1]), int(radius + i), color)
+        pygame.gfxdraw.aacircle(surface, int(center[0]), int(center[1]), int(radius + thickness), pygame.Color("black"))
 
     def left_click(self, mouse_position):
-        if self.checked:
-            self.checked = False
-        else:
-            self.checked = True
-
+        self.checked = not self.checked
         self.update()
+
+    def middle_click(self, mouse_position):
+        if not self.checked:
+            self.focused = not self.focused
 
     def get_rect(self):
         return self.pin_rect
@@ -82,13 +97,15 @@ class SimpleCheck:
             "id": self.id,
             "name": self.name,
             "checked": self.checked,
-            "hide": self.hide
+            "hide": self.hide,
+            "focused": self.focused
         }
         return data
 
     def set_data(self, datas):
-        self.checked = datas["checked"]
-        self.hide = datas["hide"]
+        self.checked = datas.get("checked", False)
+        self.hide = datas.get("hide", False)
+        self.focused = datas.get("focused", False)
         self.update()
 
     def all_check_hidden(self):

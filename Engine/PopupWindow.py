@@ -186,7 +186,7 @@ class PopupWindow:
     def set_box_rect(self, box_rect):
         self.box_rect = box_rect
 
-    def left_click(self, mouse_position):
+    def left_click(self, mouse_position, button=None):
         click_found = False
         try:
             get_check = self.list_items.get_checks()
@@ -197,9 +197,20 @@ class PopupWindow:
             if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
                                                        element_positons=check.get_position_draw(),
                                                        element_dimension=check.get_dimensions()) and check.show:
-                click_found = True
-                check.left_click()
-                self.update()
+
+                if button:
+                    if button == 1:
+                        click_found = True
+                        check.left_click()
+                        self.update()
+                    elif button == 2:
+                        click_found = True
+                        check.middle_click()
+                        self.update()
+                else:
+                    click_found = True
+                    check.left_click()
+                    self.update()
             # self.right_arrow_click()
 
         x_left, y_left, x_right, y_right = self.get_arrows_positions()

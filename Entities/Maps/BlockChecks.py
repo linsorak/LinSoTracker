@@ -15,6 +15,7 @@ class BlockChecks(SimpleCheck):
         self.show_checks = False
         self.all_logic = False
         self.logic_cpt = 0
+        self.focused = False
 
     def add_check(self, check):
         self.list_checks.append(check)
@@ -27,16 +28,17 @@ class BlockChecks(SimpleCheck):
         self.logic_cpt = 0
         self.all_logic = True
         self.checked = True
+        self.focused = False
 
         for check in self.list_checks:
-            if not check.hide:
+            if not check.hide and not check.checked:
                 check.update()
-                # self.checked &= check.checked
-                # self.all_logic &= check.state == ConditionsType.LOGIC
-                # self.logic_cpt += check.state == ConditionsType.LOGIC
-                # print(check)
+
                 if not check.checked:
                     self.checked = False
+
+                if not self.focused:
+                    self.focused = check.focused
 
                 if check.state == ConditionsType.LOGIC:
                     self.logic_cpt += 1
@@ -58,9 +60,10 @@ class BlockChecks(SimpleCheck):
             groups_datas["h"] * zoom
         )
 
-        self.pin_color = self.map.tracker.core_service.get_color_from_font(
-            font, "Done" if self.checked else ("Logic" if self.all_logic else "NotLogic")
-        )
+        color = "Done" if self.checked else (
+            "Logic" if self.all_logic else ("HaveLogic" if self.logic_cpt > 0 else "NotLogic"))
+
+        self.pin_color = self.map.tracker.core_service.get_color_from_font(font, color)
 
         temp_surface = pygame.Surface((0, 0), pygame.SRCALPHA, 32).convert_alpha()
 
@@ -81,7 +84,9 @@ class BlockChecks(SimpleCheck):
 
     def draw(self, screen):
         if not self.all_check_hidden():
-            self.draw_rect(screen, self.pin_color, (0, 0, 0), self.pin_rect, 2 * self.map.tracker.core_service.zoom)
+            font = self.map.tracker.core_service.get_font("mapFont")
+            border_color = self.map.tracker.core_service.get_color_from_font(font, "Focused") if self.focused else (0, 0, 0)
+            self.draw_rect(screen, self.pin_color, border_color, self.pin_rect, 2 * self.map.tracker.core_service.zoom)
             if self.logic_cpt > 0:
                 screen.blit(self.surface_logic_indicator, self.position_logic_indicator)
 
@@ -96,6 +101,7 @@ class BlockChecks(SimpleCheck):
         tracker = None
         for check in self.list_checks:
             check.checked = not self.checked
+            check.update()
             tracker = check.tracker
         self.update()
         if tracker:

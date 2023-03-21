@@ -492,8 +492,8 @@ class Tracker:
                         self.sound_cancel.play()
 
     def items_click(self, item_list, mouse_position, button):
-        if self.current_map:
-            self.current_map.get_count_checks()
+        # if self.current_map:
+        #     self.current_map.get_count_checks()
         for item in item_list:
             if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
                                                element_dimension=(item.get_rect().w, item.get_rect().h)):
@@ -585,17 +585,18 @@ class Tracker:
 
         if self.current_map and self.current_map.checks_list and not submenu_found:
             found = False
-            for check in self.current_map.checks_list:
-                if self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                   element_positons=check.get_position(),
-                                                   element_dimension=(
-                                                           check.get_rect().w,
-                                                           check.get_rect().h)) and not check.hide and not check.all_check_hidden():
-                    self.mouse_check_found = check
-                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-                    self.update_hint(self.mouse_check_found, "mapFontCheckHint", True)
-                    found = True
-                    break
+            self.mouse_check_found = next((check for check in self.current_map.checks_list
+                                           if not check.hide and not check.all_check_hidden() and
+                                           self.core_service.is_on_element(mouse_positions=mouse_position,
+                                                                           element_positons=check.get_position(),
+                                                                           element_dimension=(
+                                                                           check.get_rect().w, check.get_rect().h))),
+                                          None)
+
+            if self.mouse_check_found:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                self.update_hint(self.mouse_check_found, "mapFontCheckHint", True)
+                found = True
 
             if not found:
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
@@ -768,8 +769,8 @@ class Tracker:
             screen.blit(self.surface_label_checks_cpt, self.position_draw_label_checks_cpt)
 
             if self.maps_list_window.is_open() or self.rules_options_list_window.is_open():
-                infoObject = pygame.display.Info()
-                s = pygame.Surface((infoObject.current_w, infoObject.current_h), pygame.SRCALPHA)
+                info_object = pygame.display.Info()
+                s = pygame.Surface((info_object.current_w, info_object.current_h), pygame.SRCALPHA)
                 s.fill((0, 0, 0, 209))
                 screen.blit(s, (0, 0))
 

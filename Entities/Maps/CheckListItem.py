@@ -27,6 +27,7 @@ class CheckListItem(Sprite):
         self.color = None
         self.show = False
         self.hide = hide
+        self.focused = False
 
         if type(self.conditions) == str:
             self.conditions = self.conditions.replace("have(", "self.tracker.have(")
@@ -50,6 +51,11 @@ class CheckListItem(Sprite):
         if self.checked:
             self.state = ConditionsType.DONE
             self.color = self.tracker.core_service.get_color_from_font(font, "Done")
+            self.focused = False
+
+        outline_color = (0, 0, 0)
+        if self.focused:
+            outline_color = self.tracker.core_service.get_color_from_font(font, "Focused")
 
         temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
         temp_surface = temp_surface.convert_alpha()
@@ -60,14 +66,15 @@ class CheckListItem(Sprite):
             font_size=font["Size"] * self.tracker.core_service.zoom,
             surface=temp_surface,
             position=(self.position["x"], self.position["y"]),
-            outline=1 * self.tracker.core_service.zoom)
+            outline=1 * self.tracker.core_service.zoom,
+            color_outline=outline_color)
 
     def left_click(self):
-        if self.checked:
-            self.checked = False
-        else:
-            self.checked = True
-        self.tracker.current_map.update()
+        self.checked = not self.checked
+        self.update()
+
+    def middle_click(self):
+        self.focused = not self.focused
         self.update()
 
     def get_surface_label(self):
@@ -84,7 +91,7 @@ class CheckListItem(Sprite):
         return self.position_draw
 
     def get_dimensions(self):
-        return (self.surface.get_rect().w, self.surface.get_rect().h)
+        return self.surface.get_rect().w, self.surface.get_rect().h
 
     def draw(self, screen):
         # screen.blit(self.surface_shadow, (self.position_draw[0] + 1, self.position_draw[1] + 1))
@@ -99,11 +106,13 @@ class CheckListItem(Sprite):
             "id": self.id,
             "name": self.name,
             "checked": self.checked,
-            "hide": self.hide
+            "hide": self.hide,
+            "focused": self.focused
         }
         return data
 
     def set_data(self, datas):
-        self.checked = datas["checked"]
-        self.hide = datas["hide"]
+        self.checked = datas.get("checked", False)
+        self.hide = datas.get("hide", False)
+        self.focused = datas.get("focused", False)
         self.update()
