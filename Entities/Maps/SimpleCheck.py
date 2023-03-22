@@ -57,21 +57,23 @@ class SimpleCheck:
 
     def draw(self, screen):
         if not self.hide:
+            zoom = self.map.tracker.core_service.zoom
             pin_center = (
-                self.pin_rect.x + (self.pin_rect.w // 2),
-                self.pin_rect.y + (self.pin_rect.h // 2)
+                (self.pin_rect.x + (self.pin_rect.w // 2) * zoom),
+                (self.pin_rect.y + (self.pin_rect.h // 2) * zoom)
             )
             pin_radius = self.pin_rect.w // 2
-            zoom = self.map.tracker.core_service.zoom
-
-            pygame.draw.circle(screen, self.pin_color, pin_center, pin_radius)
 
             if self.focused:
                 font = self.map.tracker.core_service.get_font("mapFont")
-                self.draw_circle_with_thickness(screen, self.map.tracker.core_service.get_color_from_font(font, "Focused"), pin_center, pin_radius * (1.2 * zoom), 3)
+                pygame.gfxdraw.filled_circle(screen, int(pin_center[0]), int(pin_center[1]), int((pin_radius + 3) * zoom),
+                                             self.map.tracker.core_service.get_color_from_font(font, "Focused"))
+                pygame.gfxdraw.aacircle(screen, int(pin_center[0]), int(pin_center[1]), int((pin_radius + 3) * zoom),
+                                        pygame.Color("black"))
 
+            pygame.gfxdraw.filled_circle(screen, int(pin_center[0]), int(pin_center[1]), int(pin_radius * zoom), self.pin_color)
             pygame.gfxdraw.aacircle(screen, int(pin_center[0]), int(pin_center[1]), int(pin_radius * zoom),
-                                    pygame.Color("black"))
+                                         pygame.Color("black"))
 
     def draw_circle_with_thickness(self, surface, color, center, radius, thickness):
         for i in range(thickness):

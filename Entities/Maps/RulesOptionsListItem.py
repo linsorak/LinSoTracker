@@ -79,7 +79,7 @@ class RulesOptionsListItem(CheckListItem):
                 matching_rule = next(matching_rules, None)
                 if matching_rule:
                     matching_rule.checked = not rule_active
-                    matching_rule.update()
+                    matching_rule.do_actions()
 
     def left_click(self):
         super().left_click()
