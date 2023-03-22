@@ -9,11 +9,13 @@ from Entities.Maps.SimpleCheck import SimpleCheck
 
 
 class RulesOptionsListItem(CheckListItem):
-    def __init__(self, ident, name, position, tracker, checked, hide_checks, actions):
+    def __init__(self, ident, name, position, tracker, checked, hide_checks, actions, active_on_start=False, can_be_clickable=True):
         super().__init__(ident, name, position, None, tracker)
         self.checked = checked
         self.hide_checks = hide_checks
         self.actions = actions
+        self.active_on_start = active_on_start
+        self.can_be_clickable = can_be_clickable
         self.update()
         self.set_hidden_checks()
 
@@ -67,21 +69,25 @@ class RulesOptionsListItem(CheckListItem):
                                             break
 
     def do_actions(self):
-        if self.actions and not self.checked:
+        if self.actions:
             for action_dict in self.actions:
-                if "SetRule" not in action_dict:
-                    continue
-                rule_action = action_dict["SetRule"]
-                rule_name = rule_action["RuleName"]
-                rule_active = rule_action["Active"]
-                matching_rules = filter(lambda rule_item: rule_item.name == rule_name,
-                                        self.tracker.rules_options_items_list)
-                matching_rule = next(matching_rules, None)
-                if matching_rule:
-                    matching_rule.checked = not rule_active
-                    matching_rule.do_actions()
+                if "SetRule" in action_dict:
+                    rule_action = action_dict["SetRule"]
+                    rule_name = rule_action["RuleName"]
 
-    def left_click(self):
-        super().left_click()
-        self.set_hidden_checks()
-        self.do_actions()
+                    rule_active = rule_action.get("Active", False) if not self.checked else False
+
+                    matching_rules = filter(lambda rule_item: rule_item.name == rule_name,
+                                            self.tracker.rules_options_items_list)
+                    matching_rule = next(matching_rules, None)
+                    if matching_rule:
+                        matching_rule.checked = not rule_active
+                        matching_rule.update()
+                        matching_rule.do_actions()
+                        matching_rule.set_hidden_checks()
+
+    def left_click(self, force_click=False):
+        if self.can_be_clickable or force_click:
+            super().left_click()
+            self.set_hidden_checks()
+            self.do_actions()

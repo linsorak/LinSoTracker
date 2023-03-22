@@ -209,11 +209,18 @@ class Tracker:
                                                      position=positions,
                                                      checked=True,
                                                      hide_checks=hide_checks,
-                                                     actions=actions)
+                                                     actions=actions,
+                                                     active_on_start=rules[i].get("Active", False),
+                                                     can_be_clickable=rules[i].get("CanBeClickable", True))
 
                     self.rules_options_items_list.append(temp_rule)
 
             self.change_map(self.map_name_items_list[0])
+
+        rules_to_click = [rule for rule in self.rules_options_items_list if rule.active_on_start]
+        for rule in rules_to_click:
+            rule.left_click(force_click=True)
+
         self.update()
 
     def update_popup(self, popup, popup_datas, title, title_font, background_image, items_list):
