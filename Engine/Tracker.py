@@ -95,6 +95,8 @@ class Tracker:
         pygame.mixer.Sound.set_volume(self.sound_select, 0.3)
         pygame.mixer.Sound.set_volume(self.sound_cancel, 0.3)
         self.check_is_default_save()
+        self.current_map.can_be_updated = True
+        self.current_map.update()
 
     def check_is_default_save(self):
         save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")

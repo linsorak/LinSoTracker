@@ -1,9 +1,5 @@
 import concurrent.futures
-import itertools
-
 import os
-from multiprocessing import Pool
-
 import pygame
 
 from Engine.PopupWindow import PopupWindow
@@ -16,6 +12,7 @@ import threading
 
 class Map:
     def __init__(self, map_datas, index_positions, tracker, active=False):
+        self.can_be_updated = False
         self.map_background = None
         self.map_image_filename = None
         self.map_datas = map_datas
@@ -54,9 +51,11 @@ class Map:
                 self.checks_list.append(simple_check)
 
     def update(self):
-        update_map = threading.Thread(target=self.update_thread)
-        update_map.start()
-        update_map.join()
+        if self.can_be_updated:
+            print("MAP UPDATE")
+            update_map = threading.Thread(target=self.update_thread)
+            update_map.start()
+            update_map.join()
 
     def update_thread(self):
         self.map_background = self.tracker.bank.addZoomImage(
