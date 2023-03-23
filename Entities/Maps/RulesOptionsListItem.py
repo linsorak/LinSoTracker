@@ -93,6 +93,7 @@ class RulesOptionsListItem(CheckListItem):
 
                     if item:
                         if not self.checked:
+                            item.reset()
                             for i in range(rule_action.get("Counter", 0)):
                                 if action_name == "SetLeftClick":
                                     item.left_click()

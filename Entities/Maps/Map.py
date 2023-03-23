@@ -52,7 +52,6 @@ class Map:
 
     def update(self):
         if self.can_be_updated:
-            print("MAP UPDATE")
             update_map = threading.Thread(target=self.update_thread)
             update_map.start()
             update_map.join()
@@ -177,13 +176,14 @@ class Map:
 
         for check in self.checks_list:
             if not check.hide and not check.checked:
-                if not isinstance(check, BlockChecks):
+                if isinstance(check, SimpleCheck):
                     cpt_left += 1
                     if check.state == ConditionsType.LOGIC:
                         cpt_logic += 1
-                else:
+
+                if isinstance(check, BlockChecks):
                     for block_check in check.list_checks:
-                        if not block_check.checked:
+                        if not block_check.hide and not block_check.checked:
                             cpt_left += 1
                             if block_check.state == ConditionsType.LOGIC:
                                 cpt_logic += 1
