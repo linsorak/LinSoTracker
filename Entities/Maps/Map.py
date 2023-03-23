@@ -147,6 +147,10 @@ class Map:
                                 self.check_window.open = True
                             break
 
+                        elif button == 2:
+                            check.wheel_click(mouse_position)
+                            break
+
                         elif button == 3:
                             check.right_click(mouse_position)
                             break
@@ -162,7 +166,7 @@ class Map:
                         break
 
                     elif button == 2:
-                        check.middle_click(mouse_position)
+                        check.wheel_click(mouse_position)
                         break
 
         if self.check_window.is_open():

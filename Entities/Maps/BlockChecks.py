@@ -107,6 +107,16 @@ class BlockChecks(SimpleCheck):
         if tracker:
             tracker.current_map.update()
 
+    def wheel_click(self, mouse_position):
+        tracker = None
+        for check in self.list_checks:
+            check.focused = not check.focused
+            check.update()
+            tracker = check.tracker
+        self.update()
+        if tracker:
+            tracker.current_map.update()
+
     def get_rect(self):
         return self.pin_rect
 

@@ -73,7 +73,7 @@ class CheckListItem(Sprite):
         self.checked = not self.checked
         self.update()
 
-    def middle_click(self):
+    def wheel_click(self):
         self.focused = not self.focused
         self.update()
 

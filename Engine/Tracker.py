@@ -1,5 +1,8 @@
 import gc
 import json
+import multiprocessing
+import multiprocessing as mp
+from functools import partial
 import os
 from tkinter import messagebox
 from zipfile import ZipFile
@@ -838,6 +841,16 @@ class Tracker:
         del self.items
         gc.collect()
 
+    def find_item(self, item_name, is_base_name=False):
+        items_to_check = [item for item in self.items if type(item) != SubMenuItem]
+        sub_items_to_check = [sub_item for item in self.items if type(item) == SubMenuItem for sub_item in item.items]
+
+        for item in items_to_check + sub_items_to_check:
+            name = item.base_name if is_base_name else item.name
+            if name == item_name:
+                return item
+        return None
+
     @staticmethod
     def _item_has_index(item, index):
         if index is None:
@@ -850,13 +863,19 @@ class Tracker:
     def _check_item(item, item_name, index):
         return item.name == item_name and item.enable and Tracker._item_has_index(item, index)
 
-    def have(self, item_name, index=None):
-        items_to_check = [item for item in self.items if type(item) != SubMenuItem]
-        sub_items_to_check = [sub_item for item in self.items if type(item) == SubMenuItem for sub_item in item.items]
+    # def have(self, item_name, index=None):
+    #     items_to_check = [item for item in self.items if type(item) != SubMenuItem]
+    #     sub_items_to_check = [sub_item for item in self.items if type(item) == SubMenuItem for sub_item in item.items]
+    #
+    #     for item in items_to_check + sub_items_to_check:
+    #         if Tracker._check_item(item, item_name, index):
+    #             return True
+    #     return False
 
-        for item in items_to_check + sub_items_to_check:
-            if Tracker._check_item(item, item_name, index):
-                return True
+    def have(self, item_name, index=None):
+        item = self.find_item(item_name)
+        if item and Tracker._check_item(item, item_name, index):
+            return True
         return False
 
     def do(self, action):

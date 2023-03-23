@@ -26,6 +26,7 @@ class Item(pygame.sprite.Sprite):
         self.image = self.colored_image
         self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width,
                                 self.image.get_rect().height)
+        self.base_save = self.get_data()
         self.update()
 
     def get_position(self):
@@ -94,51 +95,60 @@ class Item(pygame.sprite.Sprite):
 
     def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position,
                          o_width=2, offset=0):
-        if text is None:
-            temp_surface = pygame.Surface([image_surface.get_rect().w, image_surface.get_rect().h], pygame.SRCALPHA, 32)
+        if text is not None:
+            color = (font["Colors"][color_category]["r"], font["Colors"][color_category]["g"],
+                     font["Colors"][color_category]["b"])
+            tsurf, tpos = self.generate_text(text=text, font_name=font_path,
+                                             font_size=font["Size"] * self.core_service.zoom,
+                                             color=color,
+                                             o_width=o_width)
+            x = 0
+            y = base_image.get_rect().h - tsurf.get_rect().h / 1.5
+            w = image_surface.get_rect().w
+            h = image_surface.get_rect().h + tsurf.get_rect().h / 1.5
+            pos_x = 0
+            pos_y = 0
+
+            if text_position == "center":
+                x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
+            elif text_position == "right":
+                x = (image_surface.get_rect().w - tsurf.get_rect().w)
+                y = base_image.get_rect().h - tsurf.get_rect().h + (tsurf.get_rect().h / 4)
+                w = w + tsurf.get_rect().w / 1.5
+            elif text_position == "count_item":
+                w = base_image.get_rect().w * 2
+                x = base_image.get_rect().w + (base_image.get_rect().w / 2 - tsurf.get_rect().w / 2)
+                y = base_image.get_rect().h / 2 - tsurf.get_rect().h / 2
+            elif text_position == "hint":
+                if self.left_hint:
+                    x = 0
+                else:
+                    x = base_image.get_rect().w - tsurf.get_rect().w
+                y = 0
+                h = image_surface.get_rect().h
+
+            elif text_position == "label":
+                x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
+                y = (image_surface.get_rect().h - (tsurf.get_rect().h / 5)) - (offset * self.core_service.zoom)
+                h = image_surface.get_rect().h + tsurf.get_rect().h
+                if tsurf.get_rect().w > image_surface.get_rect().w:
+                    pos_x = image_surface.get_rect().w - tsurf.get_rect().w
+                    w = tsurf.get_rect().w - pos_x
+                    x = x - pos_x
+
+            temp_surface = pygame.Surface(([w, h]), pygame.SRCALPHA, 32)
+            temp_surface = temp_surface.convert_alpha()
+            temp_surface.blit(image_surface, (pos_x * -1, pos_y))
+            temp_surface.blit(tsurf, (x, y))
+            self.rect = pygame.Rect(self.position[0] + pos_x, self.position[1], self.image.get_rect().width,
+                                    self.image.get_rect().height)
+        else:
+            temp_surface = pygame.Surface(
+                [image_surface.get_rect().w, image_surface.get_rect().h],
+                pygame.SRCALPHA, 32)
             temp_surface = temp_surface.convert_alpha()
             temp_surface.blit(image_surface, (0, 0))
-            return temp_surface
 
-        color = (font["Colors"][color_category]["r"], font["Colors"][color_category]["g"],
-                 font["Colors"][color_category]["b"])
-        tsurf, tpos = self.generate_text(text=text, font_name=font_path,
-                                         font_size=font["Size"] * self.core_service.zoom,
-                                         color=color,
-                                         o_width=o_width)
-
-        x, y, w, h = 0, base_image.get_rect().h - tsurf.get_rect().h / 1.5, image_surface.get_rect().w, \
-                     image_surface.get_rect().h + tsurf.get_rect().h / 1.5
-        pos_x, pos_y = 0, 0
-
-        if text_position == "center":
-            x = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2)
-        elif text_position == "right":
-            x, y, w = (
-                                  image_surface.get_rect().w - tsurf.get_rect().w), base_image.get_rect().h - tsurf.get_rect().h + (
-                                  tsurf.get_rect().h / 4), image_surface.get_rect().w + tsurf.get_rect().w / 1.5
-        elif text_position == "count_item":
-            w, x, y = base_image.get_rect().w * 2, base_image.get_rect().w + (
-                        base_image.get_rect().w / 2 - tsurf.get_rect().w / 2), base_image.get_rect().h / 2 - tsurf.get_rect().h / 2
-        elif text_position == "hint":
-            if self.left_hint:
-                x = 0
-            else:
-                x = base_image.get_rect().w - tsurf.get_rect().w
-            h = image_surface.get_rect().h
-        elif text_position == "label":
-            x, y, h = (image_surface.get_rect().w / 2) - (tsurf.get_rect().w / 2), (
-                        image_surface.get_rect().h - (tsurf.get_rect().h / 5)) - (
-                                  offset * self.core_service.zoom), image_surface.get_rect().h + tsurf.get_rect().h
-            if tsurf.get_rect().w > image_surface.get_rect().w:
-                pos_x, w, x = image_surface.get_rect().w - tsurf.get_rect().w, tsurf.get_rect().w - pos_x, x - pos_x
-
-        temp_surface = pygame.Surface(([w, h]), pygame.SRCALPHA, 32)
-        temp_surface = temp_surface.convert_alpha()
-        temp_surface.blit(image_surface, (pos_x * -1, pos_y))
-        temp_surface.blit(tsurf, (x, y))
-        self.rect = pygame.Rect(self.position[0] + pos_x, self.position[1], self.image.get_rect().width,
-                                self.image.get_rect().height)
         return temp_surface
 
     def get_data(self):
@@ -154,3 +164,5 @@ class Item(pygame.sprite.Sprite):
         self.enable = datas["enable"]
         self.hint_show = datas["hint_show"]
         self.update()
+    def reset(self):
+        self.set_data(self.base_save)

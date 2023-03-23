@@ -12,6 +12,7 @@ class CountItem(Item):
         self.value_increase = value_increase
         self.max_value = max_value
         self.min_value = min_value
+        self.base_value = value_start
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                       opacity_disable=opacity_disable,
                       hint=hint)

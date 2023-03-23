@@ -205,7 +205,7 @@ class PopupWindow:
                         self.update()
                     elif button == 2:
                         click_found = True
-                        check.middle_click()
+                        check.wheel_click()
                         self.update()
                 else:
                     click_found = True

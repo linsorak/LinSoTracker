@@ -84,7 +84,7 @@ class SimpleCheck:
         self.checked = not self.checked
         self.update()
 
-    def middle_click(self, mouse_position):
+    def wheel_click(self, mouse_position):
         if not self.checked:
             self.focused = not self.focused
 
