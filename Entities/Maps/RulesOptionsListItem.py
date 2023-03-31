@@ -9,7 +9,8 @@ from Entities.Maps.SimpleCheck import SimpleCheck
 
 
 class RulesOptionsListItem(CheckListItem):
-    def __init__(self, ident, name, position, tracker, checked, hide_checks, actions, active_on_start=False, can_be_clickable=True):
+    def __init__(self, ident, name, position, tracker, checked, hide_checks, actions, active_on_start=False,
+                 can_be_clickable=True):
         super().__init__(ident, name, position, None, tracker)
         self.checked = checked
         self.hide_checks = hide_checks
@@ -45,27 +46,32 @@ class RulesOptionsListItem(CheckListItem):
         return not self.checked
 
     def set_hidden_checks(self):
+        cpt = 0
         if self.hide_checks:
             for hidden_check in self.hide_checks:
                 for map in self.tracker.maps_list:
                     for check in map.checks_list:
                         if type(check) == SimpleCheck and hidden_check["Kind"] == "SimpleCheck":
                             for hidden_check_name in hidden_check["Checks"]:
-                                if hidden_check_name == check.name:
+                                if hidden_check_name.lower() == check.name.lower():
                                     if self.checked:
                                         check.hide = True
                                     else:
                                         check.hide = False
+                                        # cpt += 1
+                                        # print(f"{cpt} - SIMPLE - {check.name} - hide = {check.hide}")
                                     break
                         elif type(check) == BlockChecks and hidden_check["Kind"] == "Block":
-                            if hidden_check["Name"] == check.name:
+                            if hidden_check["Name"].lower() == check.name.lower():
                                 for check_item in check.list_checks:
                                     for block_hidden_check in hidden_check["Checks"]:
-                                        if check_item.name == block_hidden_check:
+                                        if check_item.name.lower() == block_hidden_check.lower():
                                             if self.checked:
                                                 check_item.hide = True
                                             else:
                                                 check_item.hide = False
+                                                # cpt += 1
+                                                # print(f"{cpt} - BLOCK - {check_item.name} - hide = {check_item.hide}")
                                             break
 
     def do_actions(self):

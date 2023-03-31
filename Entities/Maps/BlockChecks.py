@@ -31,9 +31,8 @@ class BlockChecks(SimpleCheck):
         self.focused = False
 
         for check in self.list_checks:
+            check.update()
             if not check.hide and not check.checked:
-                check.update()
-
                 if not check.checked:
                     self.checked = False
 
@@ -92,9 +91,9 @@ class BlockChecks(SimpleCheck):
 
     def left_click(self, mouse_position):
         if not self.map.current_block_checks:
-            self.map.current_block_checks = self
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
             self.update()
+            self.map.current_block_checks = self
             self.map.update()
 
     def right_click(self, mouse_position):

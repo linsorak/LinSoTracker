@@ -4,11 +4,12 @@ from Entities.Item import Item
 
 
 class AlternateCountItem(Item):
-    def __init__(self, id, name, position, image, opacity_disable, hint, max_value, max_value_alternate, enable=True):
+    def __init__(self, id, name, position, image, opacity_disable, hint, max_value, max_value_alternate, enable=True, custom_font=None):
         self.max_value = max_value
         self.max_value_alternate = max_value_alternate
         self.used_max_value = self.max_value
         self.value = 0
+        self.custom_font = custom_font
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                       opacity_disable=opacity_disable,
                       hint=hint)
@@ -16,8 +17,11 @@ class AlternateCountItem(Item):
 
     def update(self):
         Item.update(self)
-
         font = self.core_service.get_font("incrementalItemFont")
+
+        if self.custom_font:
+            font = self.core_service.get_custom_font(self.custom_font)
+
         font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
         position = "right"
 

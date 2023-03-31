@@ -8,6 +8,8 @@ from Engine import MainMenu
 
 class PopupWindow:
     def __init__(self, tracker, index_positions):
+        self.surface_label = None
+        self.position_draw = None
         self.title_label_position_y = None
         self.surface_pages_information = None
         self.position_pages_information = None
@@ -104,7 +106,7 @@ class PopupWindow:
             index_end = len(get_check)
 
         for check in get_check:
-            #check.update()
+            check.update()
             check.show = False
 
         for i in range(index_start, index_end):
@@ -164,11 +166,11 @@ class PopupWindow:
         # pygame.draw.rect(screen, (255, 255, 255), self.box_rect)
         try:
             for check in self.list_items.get_checks():
-                if check.show:
+                if check.show and not check.hide:
                     check.draw(screen)
         except AttributeError:
             for check in self.list_items:
-                if check.show:
+                if check.show and not check.hide:
                     check.draw(screen)
 
         x_left, y_left, x_right, y_right = self.get_arrows_positions()

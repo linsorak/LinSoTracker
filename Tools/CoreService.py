@@ -3,8 +3,10 @@ import json
 import os
 import platform
 import shutil
+import subprocess
 import sys
 import tempfile
+import time
 import urllib
 import webbrowser
 from contextlib import contextmanager
@@ -34,9 +36,9 @@ class CoreService(metaclass=Singleton):
         self.new_version = None
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
-        self.dev_version = True
+        self.dev_version = False
         self.app_name = "LinSoTracker"
-        self.version = "2.1-ALPHA-04"
+        self.version = "2.1-BETA"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -135,29 +137,40 @@ class CoreService(metaclass=Singleton):
             data_json = json.loads(response.read())
 
             if "lastest_version" in data_json:
-                if self.get_version() != data_json["lastest_version"]:
+                if self.get_version() != data_json["lastest_version"] and self.detect_os() == "win":
                     self.new_version = data_json["lastest_version"]
 
-                if ("block_old_beta" and "block_only_windows" in data_json) and self.dev_version == False:
-                    if not data_json["block_old_beta"]:
-                        if (self.get_version() != data_json["lastest_version"]) and data_json[
-                            "block_only_windows"] and self.detect_os() == "win" and ("url_base" in data_json):
-                            MsgBox = messagebox.askquestion('New version detected',
-                                                            'Do you want to download the new version ?',
-                                                            icon='question')
-                            if MsgBox == 'yes':
-                                # webbrowser.open(data_json['url_base'].format(self.detect_os(), data_json['lastest_version']))
-                                checker = "d2ViYnJvd3Nlci5vcGVuKGRhdGFfanNvblsndXJsX2Jhc2UnXS5mb3JtYXQoc2VsZi5kZXRlY3Rfb3MoKSwgZGF0YV9qc29uWydsYXN0ZXN0X3ZlcnNpb24nXSkp"
-                                exec(base64.b64decode(checker))
+                    args_current_version = f'--current_version="{self.version}"'
+                    args_url_json = f'--url_json="{url}"'
+                    args_destination_path = f'--destination_path="{self.app_path}"'
+                    args_file_to_execute = f'--file_to_execute="{self.app_name}.exe"'
+                    arguments = [args_current_version,
+                                 args_url_json,
+                                 args_destination_path,
+                                 args_file_to_execute]
 
-                            sys.exit()
+                    path_to_exe = os.path.join(self.app_path, "updater.exe")
+
+                    if self.detect_os() == "win":
+                        subprocess.Popen("start /B " + path_to_exe + " " + " ".join(arguments), shell=True)
                     else:
-                        messagebox.showwarning("BETA IS OVER", "Download the new version on www.linsotracker.com")
-                        sys.exit()
+                        subprocess.Popen(["nohup", path_to_exe] + arguments + ["&"])
+
+                    time.sleep(1)
+                    os._exit(0)
+
+                    # arguments = f"{args_current_version} {args_url_json} {args_destination_path} {args_file_to_execute}"
+                    # process = subprocess.Popen([os.path.join(self.app_path, "updater.exe")] + arguments)
+                    # time.sleep(1)
+                    # os._exit(0)
+
+                    # arguments = [os.path.join(self.app_path, "updater.exe"), args_current_version, args_url_json, args_destination_path, args_file_to_execute]
+                    # print(arguments)
+                    # subprocess.run(arguments)
+                    # os._exit(0)
 
             if "official_template" in data_json:
                 self.official_template = data_json["official_template"]
-
 
         except URLError:
             pass
@@ -191,6 +204,9 @@ class CoreService(metaclass=Singleton):
 
     def get_font(self, session):
         return self.json_data[2]["Fonts"][session]
+
+    def get_custom_font(self, session):
+        return self.json_data[2]["Fonts"]["customFonts"][session]
 
     def get_version(self):
         return self.version

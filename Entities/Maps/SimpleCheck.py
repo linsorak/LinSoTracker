@@ -57,7 +57,12 @@ class SimpleCheck:
 
     def draw(self, screen):
         if not self.hide:
-            zoom = self.map.tracker.core_service.zoom
+            # zoom = self.map.tracker.core_service.zoom
+            zoom = 1.0
+
+            if self.map.tracker.core_service.zoom < 1.0:
+                zoom = 1.5
+
             pin_center = (
                 (self.pin_rect.x + (self.pin_rect.w // 2) * zoom),
                 (self.pin_rect.y + (self.pin_rect.h // 2) * zoom)

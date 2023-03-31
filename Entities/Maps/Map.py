@@ -52,50 +52,51 @@ class Map:
 
     def update(self):
         if self.can_be_updated:
-            update_map = threading.Thread(target=self.update_thread)
-            update_map.start()
-            update_map.join()
+            self.map_background = self.tracker.bank.addZoomImage(
+                os.path.join(self.tracker.resources_path, self.map_image_filename))
 
-    def update_thread(self):
-        self.map_background = self.tracker.bank.addZoomImage(
-            os.path.join(self.tracker.resources_path, self.map_image_filename))
+            self.checks_list_background = self.tracker.bank.addZoomImage(
+                os.path.join(self.tracker.resources_path, self.checks_list_background_filename))
 
-        self.checks_list_background = self.tracker.bank.addZoomImage(
-            os.path.join(self.tracker.resources_path, self.checks_list_background_filename))
+            if self.current_block_checks:
+                box_rect = self.map_datas[0]["Datas"]["DrawBoxRect"]
+                box_checks = pygame.Rect(
+                    (box_rect["x"] * self.tracker.core_service.zoom) + self.checks_list_background.get_rect().x + (
+                            self.index_positions[0] * self.tracker.core_service.zoom),
+                    (box_rect["y"] * self.tracker.core_service.zoom) + self.checks_list_background.get_rect().y + (
+                            self.index_positions[1] * self.tracker.core_service.zoom),
+                    box_rect["w"] * self.tracker.core_service.zoom,
+                    box_rect["h"] * self.tracker.core_service.zoom)
 
-        if self.current_block_checks:
-            box_rect = self.map_datas[0]["Datas"]["DrawBoxRect"]
-            box_checks = pygame.Rect(
-                (box_rect["x"] * self.tracker.core_service.zoom) + self.checks_list_background.get_rect().x + (
-                        self.index_positions[0] * self.tracker.core_service.zoom),
-                (box_rect["y"] * self.tracker.core_service.zoom) + self.checks_list_background.get_rect().y + (
-                        self.index_positions[1] * self.tracker.core_service.zoom),
-                box_rect["w"] * self.tracker.core_service.zoom,
-                box_rect["h"] * self.tracker.core_service.zoom)
+                self.check_window.set_background_image_path(self.checks_list_background_filename)
+                self.check_window.set_arrow_left_image_path(self.map_datas[0]["Datas"]["LeftArrow"]["Image"])
+                self.check_window.set_arrow_right_image_path(self.map_datas[0]["Datas"]["RightArrow"]["Image"])
+                self.check_window.set_title(self.current_block_checks.name)
+                self.check_window.set_title_font(self.tracker.core_service.get_font("mapFontTitle"))
+                self.check_window.set_title_label_position_y(self.map_datas[0]["Datas"]["LabelY"])
 
-            self.check_window.set_background_image_path(self.checks_list_background_filename)
-            self.check_window.set_arrow_left_image_path(self.map_datas[0]["Datas"]["LeftArrow"]["Image"])
-            self.check_window.set_arrow_right_image_path(self.map_datas[0]["Datas"]["RightArrow"]["Image"])
-            self.check_window.set_title(self.current_block_checks.name)
-            self.check_window.set_title_font(self.tracker.core_service.get_font("mapFontTitle"))
-            self.check_window.set_title_label_position_y(self.map_datas[0]["Datas"]["LabelY"])
-            self.check_window.set_list_items(self.current_block_checks)
-            self.check_window.set_box_rect(box_checks)
-            left_arrow = (self.map_datas[0]["Datas"]["LeftArrow"]["Positions"]["x"],
-                          self.map_datas[0]["Datas"]["LeftArrow"]["Positions"]["y"])
-            right_arrow = (self.map_datas[0]["Datas"]["RightArrow"]["Positions"]["x"],
-                           self.map_datas[0]["Datas"]["RightArrow"]["Positions"]["y"])
+                # test_list = []
+                #
+                # for check in self.current_block_checks:
+                #     if not check.hide:
+                #         test_list.append(check)
+                #
+                # self.check_window.set_list_items(test_list)
+                self.check_window.set_list_items(self.current_block_checks)
+                self.check_window.set_box_rect(box_checks)
+                left_arrow = (self.map_datas[0]["Datas"]["LeftArrow"]["Positions"]["x"],
+                              self.map_datas[0]["Datas"]["LeftArrow"]["Positions"]["y"])
+                right_arrow = (self.map_datas[0]["Datas"]["RightArrow"]["Positions"]["x"],
+                               self.map_datas[0]["Datas"]["RightArrow"]["Positions"]["y"])
+                self.check_window.set_arrows_positions(left_arrow, right_arrow)
+                self.check_window.update()
+            else:
+                # pool = Pool(processes=len(self.checks_list))
+                # pool.map(self.update_check, self.checks_list)
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    executor.map(self.update_check, self.checks_list)
 
-            self.check_window.set_arrows_positions(left_arrow, right_arrow)
-            self.check_window.update()
-
-        else:
-            # pool = Pool(processes=len(self.checks_list))
-            # pool.map(self.update_check, self.checks_list)
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                executor.map(self.update_check, self.checks_list)
-
-        self.tracker.update_cpt()
+            self.tracker.update_cpt()
 
     def update_check(self, check):
         check.update()
@@ -142,6 +143,7 @@ class Map:
                         if button == 1:
                             check.left_click(mouse_position)
                             if not self.check_window.is_open():
+                                self.check_window.update()
                                 self.check_window.open = True
                             break
 
@@ -176,17 +178,20 @@ class Map:
 
         for check in self.checks_list:
             if not check.hide and not check.checked:
-                if isinstance(check, SimpleCheck):
-                    cpt_left += 1
-                    if check.state == ConditionsType.LOGIC:
-                        cpt_logic += 1
 
                 if isinstance(check, BlockChecks):
-                    for block_check in check.list_checks:
-                        if not block_check.hide and not block_check.checked:
+                    for check_in_block in check.list_checks:
+                        if not check_in_block.hide and not check_in_block.checked:
                             cpt_left += 1
-                            if block_check.state == ConditionsType.LOGIC:
+
+                            if check_in_block.state == ConditionsType.LOGIC:
                                 cpt_logic += 1
+
+                elif isinstance(check, SimpleCheck):
+                    cpt_left += 1
+
+                    if check.state == ConditionsType.LOGIC:
+                        cpt_logic += 1
 
         return cpt_logic, cpt_left
 

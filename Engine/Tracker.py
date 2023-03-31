@@ -80,7 +80,6 @@ class Tracker:
         self.bank = Bank()
         self.extract_data()
         self.init_tracker()
-        self.core_service.load_default_configuration()
         self.core_service.set_json_data(self.tracker_json_data)
         self.core_service.set_tracker_temp_path(self.resources_path)
         self.core_service.set_current_tracker_name(self.template_name)
@@ -95,8 +94,8 @@ class Tracker:
         pygame.mixer.Sound.set_volume(self.sound_select, 0.3)
         pygame.mixer.Sound.set_volume(self.sound_cancel, 0.3)
         self.check_is_default_save()
-        self.current_map.can_be_updated = True
-        self.current_map.update()
+        self.core_service.load_default_configuration()
+
 
     def check_is_default_save(self):
         save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")
@@ -218,6 +217,12 @@ class Tracker:
                                                      active_on_start=rules[i].get("Active", False),
                                                      can_be_clickable=rules[i].get("CanBeClickable", True))
 
+                    if temp_rule.hide_checks and temp_rule.name == "PoeSanity":
+                        cpt = 0
+                        for rule in temp_rule.hide_checks:
+                            for check in rule["Checks"]:
+                                cpt += 1
+
                     self.rules_options_items_list.append(temp_rule)
 
             self.change_map(self.map_name_items_list[0])
@@ -251,10 +256,12 @@ class Tracker:
                        popup_datas["RightArrow"]["Positions"]["y"])
 
         popup.set_arrows_positions(left_arrow, right_arrow)
-        popup.update()
 
         for item in items_list:
             item.update()
+
+
+        popup.update()
 
     def update(self):
         if self.current_map:
@@ -351,6 +358,7 @@ class Tracker:
 
     def change_map(self, map_list_item):
         self.current_map = self.maps_list[map_list_item.id]
+        self.current_map.can_be_updated = True
         self.current_map.active = True
         self.current_map.update()
         self.update()
@@ -431,7 +439,8 @@ class Tracker:
                 if item["Kind"] == "AlternateCountItem":
                     _item = create_base_item(item, item_class,
                                              max_value=item["maxValue"],
-                                             max_value_alternate=item["maxValueAlternate"])
+                                             max_value_alternate=item["maxValueAlternate"],
+                                             custom_font=item.get("customFont", None))
 
                 elif item["Kind"] == "GoModeItem":
                     background_glow = self.bank.addZoomImage(os.path.join(self.resources_path, item["BackgroundGlow"]))
@@ -544,8 +553,6 @@ class Tracker:
 
                 if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open() and not self.current_map.check_window.is_open():
                     self.items_click(self.items, mouse_position, button)
-                    # self.current_map.update()
-                    # print('bump')
 
                 if self.maps_list_window.is_open():
                     self.maps_list_window.left_click(mouse_position)

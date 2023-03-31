@@ -183,7 +183,7 @@ class TemplateChecker:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def __check_alternate_count_item(self, section, index):
-        if len(section.keys()) == 10:
+        if len(section.keys()) >= 10:
             self.__check_element_is_in_section_and_valid("maxValue", section, "Item ID = {}".format(index), int)
             self.__check_element_is_in_section_and_valid("maxValueAlternate", section, "Item ID = {}".format(index),
                                                          int)
