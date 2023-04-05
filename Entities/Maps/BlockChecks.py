@@ -7,8 +7,8 @@ from Entities.Maps.SimpleCheck import SimpleCheck, ConditionsType
 
 
 class BlockChecks(SimpleCheck):
-    def __init__(self, ident, name, positions, linked_map):
-        SimpleCheck.__init__(self, ident, name, positions, linked_map, True)
+    def __init__(self, ident, name, positions, linked_map, zone=None):
+        SimpleCheck.__init__(self, ident, name, positions, linked_map, True, hide=False, zone=zone)
         self.position_logic_indicator = None
         self.surface_logic_indicator = None
         self.list_checks = []
@@ -92,6 +92,9 @@ class BlockChecks(SimpleCheck):
     def left_click(self, mouse_position):
         if not self.map.current_block_checks:
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+            self.map.tracker.mouse_check_found = False
+            self.map.tracker.position_check_zone_hint = None
+            self.map.tracker.surface_check_zone_hint = None
             self.update()
             self.map.current_block_checks = self
             self.map.update()

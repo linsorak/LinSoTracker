@@ -36,7 +36,7 @@ class Map:
     def processing_checks(self):
         for check in self.map_datas[0]["ChecksList"]:
             if check["Kind"] == "Block":
-                block = BlockChecks(check["Id"], check["Name"], check["Positions"], self)
+                block = BlockChecks(check["Id"], check["Name"], check["Positions"], self, zone=check.get("Zone", None))
 
                 for check_item in check["Checks"]:
                     temp_check = CheckListItem(check_item["Id"], check_item["Name"], check["Positions"],
@@ -47,7 +47,7 @@ class Map:
 
             if check["Kind"] == "SimpleCheck":
                 simple_check = SimpleCheck(check["Id"], check["Name"],
-                                           check["Positions"], self, check["Conditions"])
+                                           check["Positions"], self, check["Conditions"], zone=check.get("Zone", None))
                 self.checks_list.append(simple_check)
 
     def update(self):
@@ -59,7 +59,7 @@ class Map:
                 os.path.join(self.tracker.resources_path, self.checks_list_background_filename))
 
             if self.current_block_checks:
-                box_rect = self.map_datas[0]["Datas"]["DrawBoxRect"]
+                box_rect = self.map_datas[0]["Datas"]["DrawBoxRect"] if not self.current_block_checks.zone else self.map_datas[0]["Datas"]["DrawBoxRectSubTitle"]
                 box_checks = pygame.Rect(
                     (box_rect["x"] * self.tracker.core_service.zoom) + self.checks_list_background.get_rect().x + (
                             self.index_positions[0] * self.tracker.core_service.zoom),
@@ -72,7 +72,9 @@ class Map:
                 self.check_window.set_arrow_left_image_path(self.map_datas[0]["Datas"]["LeftArrow"]["Image"])
                 self.check_window.set_arrow_right_image_path(self.map_datas[0]["Datas"]["RightArrow"]["Image"])
                 self.check_window.set_title(self.current_block_checks.name)
+                self.check_window.set_subtitle(self.current_block_checks.zone)
                 self.check_window.set_title_font(self.tracker.core_service.get_font("mapFontTitle"))
+                self.check_window.set_subtitle_font(self.tracker.core_service.get_font("mapFontSubTitle"))
                 self.check_window.set_title_label_position_y(self.map_datas[0]["Datas"]["LabelY"])
 
                 # test_list = []

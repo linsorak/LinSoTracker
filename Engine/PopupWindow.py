@@ -8,6 +8,10 @@ from Engine import MainMenu
 
 class PopupWindow:
     def __init__(self, tracker, index_positions):
+        self.position_subtitle = None
+        self.surface_subtitle = None
+        self.subtitle_font = None
+        self.subtitle = None
         self.surface_label = None
         self.position_draw = None
         self.title_label_position_y = None
@@ -53,6 +57,12 @@ class PopupWindow:
     def set_title_font(self, title_font):
         self.title_font = title_font
 
+    def set_subtitle(self, subtitle):
+        self.subtitle = subtitle
+
+    def set_subtitle_font(self, subtitle_font):
+        self.subtitle_font = subtitle_font
+
     def set_title_label_position_y(self, title_label_position_y):
         self.title_label_position_y = title_label_position_y
 
@@ -87,6 +97,27 @@ class PopupWindow:
         base_x = base_x + (self.background_image.get_rect().w / 2)
         base_x = base_x - (self.surface_label.get_rect().w / 2)
         self.position_draw = (base_x / self.tracker.core_service.zoom, self.position_draw[1])
+
+        if self.subtitle:
+            font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), self.subtitle_font["Name"])
+            self.surface_subtitle, self.position_subtitle = MainMenu.MainMenu.draw_text(
+                text=f'- {self.subtitle} -',
+                font_name=font_path,
+                color=color,
+                font_size=self.subtitle_font["Size"] * self.tracker.core_service.zoom,
+                surface=temp_surface,
+                position=(0, self.title_label_position_y),
+                outline=2 * self.tracker.core_service.zoom)
+
+            base_x = self.index_positions[0] * self.tracker.core_service.zoom
+            base_x = base_x + (self.background_image.get_rect().w / 2)
+            base_x = base_x - (self.surface_subtitle.get_rect().w / 2)
+            base_y = self.position_subtitle[1] + (self.surface_label.get_rect().h / self.tracker.core_service.zoom)
+            # self.position_subtitle = (base_x / self.tracker.core_service.zoom, self.position_subtitle[1] - (self.surface_subtitle.get_rect().h / 3))
+            self.position_subtitle = (base_x / self.tracker.core_service.zoom,
+                                      base_y - (self.surface_subtitle.get_rect().h / 4))
+        else:
+            self.surface_subtitle, self.position_subtitle = (None, None)
 
         try:
             new_list = [check for check in self.list_items.get_checks() if not check.hide]
@@ -162,6 +193,10 @@ class PopupWindow:
 
         screen.blit(self.surface_label, (self.position_draw[0] * self.tracker.core_service.zoom,
                                          self.position_draw[1] * self.tracker.core_service.zoom))
+
+        if self.surface_subtitle:
+            screen.blit(self.surface_subtitle, (self.position_subtitle[0] * self.tracker.core_service.zoom,
+                                                self.position_subtitle[1] * self.tracker.core_service.zoom))
 
         # pygame.draw.rect(screen, (255, 255, 255), self.box_rect)
         try:

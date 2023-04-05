@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 import sys
@@ -36,9 +37,8 @@ class CoreService(metaclass=Singleton):
         self.new_version = None
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
-        self.dev_version = False
         self.app_name = "LinSoTracker"
-        self.version = "2.1-BETA"
+        self.version = "2.1.0.3-BETA"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -61,6 +61,10 @@ class CoreService(metaclass=Singleton):
             self.temp_path = tmpdirname
 
         self.create_directory(path=self.temp_path_fixe)
+
+        self.dev_version = os.path.isfile(os.path.join(self.app_path, '.dev'))
+
+        # if not self.dev_version:
         self.read_checker()
         self.load_default_configuration()
 
@@ -137,7 +141,7 @@ class CoreService(metaclass=Singleton):
             data_json = json.loads(response.read())
 
             if "lastest_version" in data_json:
-                if self.get_version() != data_json["lastest_version"] and self.detect_os() == "win":
+                if self.get_version() != data_json["lastest_version"] and self.detect_os() == "win" and not self.dev_version:
                     self.new_version = data_json["lastest_version"]
 
                     args_current_version = f'--current_version="{self.version}"'
@@ -152,22 +156,13 @@ class CoreService(metaclass=Singleton):
                     path_to_exe = os.path.join(self.app_path, "updater.exe")
 
                     if self.detect_os() == "win":
-                        subprocess.Popen("start /B " + path_to_exe + " " + " ".join(arguments), shell=True)
+                        cmd = f'start /B "" "{path_to_exe}" {" ".join(arguments)}'
+                        subprocess.Popen(cmd, shell=True)
                     else:
                         subprocess.Popen(["nohup", path_to_exe] + arguments + ["&"])
 
                     time.sleep(1)
                     os._exit(0)
-
-                    # arguments = f"{args_current_version} {args_url_json} {args_destination_path} {args_file_to_execute}"
-                    # process = subprocess.Popen([os.path.join(self.app_path, "updater.exe")] + arguments)
-                    # time.sleep(1)
-                    # os._exit(0)
-
-                    # arguments = [os.path.join(self.app_path, "updater.exe"), args_current_version, args_url_json, args_destination_path, args_file_to_execute]
-                    # print(arguments)
-                    # subprocess.run(arguments)
-                    # os._exit(0)
 
             if "official_template" in data_json:
                 self.official_template = data_json["official_template"]

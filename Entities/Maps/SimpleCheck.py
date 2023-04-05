@@ -11,7 +11,7 @@ class ConditionsType(Enum):
 
 
 class SimpleCheck:
-    def __init__(self, ident, name, positions, linked_map, conditions, hide=False):
+    def __init__(self, ident, name, positions, linked_map, conditions, hide=False, zone=None):
         self.state = None
         self.id = ident
         self.name = name
@@ -24,6 +24,13 @@ class SimpleCheck:
         self.conditions = conditions
         self.hide = hide
         self.focused = False
+        self.zone = zone
+        self.zoom = self.map.tracker.core_service.zoom
+        # self.zoom = 1.0
+        #
+        # if self.map.tracker.core_service.zoom < 1.0:
+        #     self.zoom = 0.9
+
         # self.conditions = "have('Giant Bomb Bag') or have('Bomb Bag') or have('Bomb') or have('Water Bomb')"
         if type(self.conditions) == str:
             self.conditions = self.conditions.replace("have(", "self.map.tracker.have(")
@@ -34,7 +41,6 @@ class SimpleCheck:
     def update(self):
         font = self.map.tracker.core_service.get_font("mapFont")
         core_service = self.map.tracker.core_service
-        zoom = core_service.zoom
         index_positions = self.map.index_positions
         simple_check_datas = self.map.tracker.tracker_json_data[4]["SizeSimpleCheck"]
 
@@ -51,9 +57,9 @@ class SimpleCheck:
             self.focused = False
 
         simple_check_datas = self.map.tracker.tracker_json_data[4]["SizeSimpleCheck"]
-        x = (index_positions[0] * zoom + self.positions["x"] * zoom) + (simple_check_datas["w"] * zoom) / 2
-        y = (index_positions[1] * zoom + self.positions["y"] * zoom) + (simple_check_datas["h"] * zoom) / 2
-        self.pin_rect = pygame.Rect(x, y, (simple_check_datas["w"] * 2) * zoom, (simple_check_datas["h"] * 2) * zoom)
+        x = (index_positions[0] * core_service.zoom + self.positions["x"] * core_service.zoom) + (simple_check_datas["w"] * self.zoom) / 2
+        y = (index_positions[1] * core_service.zoom + self.positions["y"] * core_service.zoom) + (simple_check_datas["h"] * self.zoom) / 2
+        self.pin_rect = pygame.Rect(x, y, (simple_check_datas["w"] * 2) * self.zoom, (simple_check_datas["h"] * 2) * self.zoom)
 
     def draw(self, screen):
         if not self.hide:
@@ -61,12 +67,13 @@ class SimpleCheck:
             zoom = 1.0
 
             if self.map.tracker.core_service.zoom < 1.0:
-                zoom = 1.5
+                zoom = 1.0
 
             pin_center = (
                 (self.pin_rect.x + (self.pin_rect.w // 2) * zoom),
                 (self.pin_rect.y + (self.pin_rect.h // 2) * zoom)
             )
+
             pin_radius = self.pin_rect.w // 2
 
             if self.focused:
