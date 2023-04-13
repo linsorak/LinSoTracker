@@ -1,5 +1,10 @@
 import concurrent.futures
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+import numpy as np
+
 import pygame
 
 from Engine.PopupWindow import PopupWindow
@@ -135,41 +140,43 @@ class Map:
         else:
             self.current_block_checks = None
 
-        for check in self.checks_list:
-            if isinstance(check, BlockChecks):
-                if not self.current_block_checks:
-                    pos = check.get_position()
-                    dim = check.get_rect().size
-                    if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos,
-                                                               element_dimension=dim) and not check.all_check_hidden():
-                        if button == 1:
-                            check.left_click(mouse_position)
-                            if not self.check_window.is_open():
-                                self.check_window.update()
-                                self.check_window.open = True
-                            break
+        block_checks_list = [check for check in self.checks_list if isinstance(check, BlockChecks)]
+        simple_checks_list = [check for check in self.checks_list if isinstance(check, SimpleCheck)]
 
-                        elif button == 2:
-                            check.wheel_click(mouse_position)
-                            break
-
-                        elif button == 3:
-                            check.right_click(mouse_position)
-                            break
-
-            elif isinstance(check, SimpleCheck):
+        if not self.current_block_checks:
+            for check in block_checks_list:
                 pos = check.get_position()
                 dim = check.get_rect().size
                 if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos,
-                                                           element_dimension=dim) and not check.hide:
-                    if button == 1 or button == 3:
+                                                           element_dimension=dim) and not check.all_check_hidden():
+                    if button == 1:
                         check.left_click(mouse_position)
-                        self.update()
-                        break
+                        if not self.check_window.is_open():
+                            self.check_window.update()
+                            self.check_window.open = True
+                        return
 
                     elif button == 2:
                         check.wheel_click(mouse_position)
-                        break
+                        return
+
+                    elif button == 3:
+                        check.right_click(mouse_position)
+                        return
+
+        for check in simple_checks_list:
+            pos = check.get_position()
+            dim = check.get_rect().size
+            if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos,
+                                                       element_dimension=dim) and not check.hide:
+                if button == 1 or button == 3:
+                    check.left_click(mouse_position)
+                    self.update()
+                    return
+
+                elif button == 2:
+                    check.wheel_click(mouse_position)
+                    return
 
         if self.check_window.is_open():
             self.check_window.update()

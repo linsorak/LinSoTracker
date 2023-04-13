@@ -18,8 +18,9 @@ class Menu:
         self.core_service = CoreService()
         self.saveTool = SaveLoadTool()
         font = pygame.font.Font(self.core_service.get_menu_font(), 20)
-        theme = Theme(background_color=(0, 0, 0, 50),  # transparent background
+        theme = Theme(background_color=(20, 20, 20, 50),  # transparent background
                       title_font=font,#pygame_menu.font.FONT_NEVIS,
+                      title_font_color=(255, 255, 255),
                       title_background_color=(4, 47, 126),
                       title_bar_style=pygame_menu.widgets.MENUBAR_STYLE_UNDERLINE,
                       title_font_size=25,

@@ -98,7 +98,6 @@ class Tracker:
         self.check_is_default_save()
         self.core_service.load_default_configuration()
 
-
     def check_is_default_save(self):
         save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")
         if os.path.exists(save_directory):
@@ -261,7 +260,6 @@ class Tracker:
 
         for item in items_list:
             item.update()
-
 
         popup.update()
 
@@ -515,8 +513,6 @@ class Tracker:
                         self.sound_cancel.play()
 
     def items_click(self, item_list, mouse_position, button):
-        # if self.current_map:
-        #     self.current_map.get_count_checks()
         for item in item_list:
             if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
                                                element_dimension=(item.get_rect().w, item.get_rect().h)):
@@ -612,14 +608,18 @@ class Tracker:
                                            if not check.hide and not check.all_check_hidden() and
                                            self.core_service.is_on_element(mouse_positions=mouse_position,
                                                                            element_positons=check.get_position(),
-                                                                           element_dimension=(check.get_rect().w, check.get_rect().h))), None)
+                                                                           element_dimension=(
+                                                                           check.get_rect().w, check.get_rect().h))),
+                                          None)
 
             if self.mouse_check_found:
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-                self.surface_check_hint, self.position_check_hint = self.update_hint(self.mouse_check_found, "mapFontCheckHint", True)
+                self.surface_check_hint, self.position_check_hint = self.update_hint(self.mouse_check_found,
+                                                                                     "mapFontCheckHint", True)
 
                 if self.mouse_check_found.zone:
-                    self.surface_check_zone_hint, self.position_check_zone_hint = self.update_hint(self.mouse_check_found, "mapFontCheckZoneHint", True, zone=True)
+                    self.surface_check_zone_hint, self.position_check_zone_hint = self.update_hint(
+                        self.mouse_check_found, "mapFontCheckZoneHint", True, zone=True)
                 else:
                     self.surface_check_zone_hint, self.position_check_zone_hint = (None, None)
 
@@ -639,7 +639,8 @@ class Tracker:
                                                        element_positons=item.get_position(),
                                                        element_dimension=(item.get_rect().w, item.get_rect().h)):
                         self.current_item_on_mouse = item
-                        self.surface_check_hint, self.position_check_hint = self.update_hint(self.current_item_on_mouse,"labelItemFont", False)
+                        self.surface_check_hint, self.position_check_hint = self.update_hint(self.current_item_on_mouse,
+                                                                                             "labelItemFont", False)
                         found = True
             else:
                 for submenu in self.submenus:
@@ -650,7 +651,8 @@ class Tracker:
                                                                element_dimension=(
                                                                        item.get_rect().w, item.get_rect().h)):
                                 self.current_item_on_mouse = item
-                                self.surface_check_hint, self.position_check_hint = self.update_hint(self.current_item_on_mouse, "labelItemFont", False)
+                                self.surface_check_hint, self.position_check_hint = self.update_hint(
+                                    self.current_item_on_mouse, "labelItemFont", False)
                                 found = True
 
             if not found:
@@ -740,8 +742,9 @@ class Tracker:
                 rules = datas[3].get("rules")
                 if rules:
                     for rule_data in rules:
-                        rule = next((r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]),
-                                    None)
+                        rule = next(
+                            (r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]),
+                            None)
                         if rule:
                             rule.set_data(rule_data)
                             rule.update()
@@ -771,6 +774,11 @@ class Tracker:
 
         if self.current_map:
             self.current_map.update()
+
+    def reset_hint(self):
+        self.mouse_check_found = False
+        self.position_check_zone_hint = None
+        self.surface_check_zone_hint = None
 
     def draw(self, screen):
         screen.blit(self.background_image, (0, 0))
@@ -820,15 +828,19 @@ class Tracker:
                                         self.surface_check_hint.get_rect().h)
 
                 if self.surface_check_zone_hint and self.position_check_hint:
-                    temp_rect = pygame.Rect(temp_rect.x if self.position_check_hint[0] < self.position_check_zone_hint[0] else self.position_check_zone_hint[0],
-                                            temp_rect.y - self.surface_check_zone_hint.get_rect().h,
-                                            temp_rect.width if self.surface_check_hint.get_rect().w > self.surface_check_zone_hint.get_rect().w else self.surface_check_zone_hint.get_rect().w,
-                                            temp_rect.height + self.surface_check_zone_hint.get_rect().h)
+                    temp_rect = pygame.Rect(
+                        temp_rect.x if self.position_check_hint[0] < self.position_check_zone_hint[0] else
+                        self.position_check_zone_hint[0],
+                        temp_rect.y - self.surface_check_zone_hint.get_rect().h,
+                        temp_rect.width if self.surface_check_hint.get_rect().w > self.surface_check_zone_hint.get_rect().w else self.surface_check_zone_hint.get_rect().w,
+                        temp_rect.height + self.surface_check_zone_hint.get_rect().h)
 
                 pygame.draw.rect(screen, (0, 0, 0), temp_rect)
                 if self.surface_check_zone_hint and self.position_check_zone_hint:
-                    screen.blit(self.surface_check_zone_hint, (self.position_check_zone_hint[0], self.position_check_zone_hint[1]))
-                    screen.blit(self.surface_check_hint, (self.position_check_hint[0], self.position_check_hint[1] - self.surface_check_zone_hint.get_rect().h))
+                    screen.blit(self.surface_check_zone_hint,
+                                (self.position_check_zone_hint[0], self.position_check_zone_hint[1]))
+                    screen.blit(self.surface_check_hint, (self.position_check_hint[0], self.position_check_hint[
+                        1] - self.surface_check_zone_hint.get_rect().h))
                 else:
                     screen.blit(self.surface_check_hint, self.position_check_hint)
 
@@ -853,8 +865,6 @@ class Tracker:
 
             pygame.draw.rect(screen, (0, 0, 0), temp_rect)
             screen.blit(self.surface_check_hint, self.position_check_hint)
-
-
 
     def keyup(self, button, screen):
         if button == pygame.K_ESCAPE:
@@ -940,12 +950,30 @@ class Tracker:
         else:
             return False
 
+    # def have_check(self, check_name, block_name=None):
+    #     for map in self.maps_list:
+    #         for check in map.checks_list:
+    #             if isinstance(check, BlockChecks):
+    #                 if block_name is not None and check.name == block_name:
+    #                     sub_check = [sub for sub in check.list_checks if sub.name == check_name][0]
+    #                     return sub_check.checked
+    #             elif isinstance(check, SimpleCheck) and check.name == check_name:
+    #                 return check.checked
+
+    def check_sub_check(self, check, check_name):
+        sub_check = [sub for sub in check.list_checks if sub.name == check_name]
+        if sub_check:
+            return sub_check[0].checked
+
     def have_check(self, check_name, block_name=None):
-        for map in self.maps_list:
-            for check in map.checks_list:
-                if isinstance(check, BlockChecks):
-                    if block_name is not None and check.name == block_name:
-                        sub_check = [sub for sub in check.list_checks if sub.name == check_name][0]
-                        return sub_check.checked
-                elif isinstance(check, SimpleCheck) and check.name == check_name:
-                    return check.checked
+        with multiprocessing.Pool() as pool:
+            results = pool.starmap_async(self.check_sub_check,
+                                         [(check, check_name) for map in self.maps_list for check in map.checks_list if
+                                          (isinstance(check,
+                                                      BlockChecks) and block_name is not None and check.name == block_name) or (
+                                                  isinstance(check,
+                                                             SimpleCheck) and check.name == check_name)]).get()
+
+        for result in results:
+            if result is not None:
+                return result

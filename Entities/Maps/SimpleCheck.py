@@ -94,6 +94,7 @@ class SimpleCheck:
 
     def left_click(self, mouse_position):
         self.checked = not self.checked
+        self.map.tracker.reset_hint()
         self.update()
 
     def wheel_click(self, mouse_position):
