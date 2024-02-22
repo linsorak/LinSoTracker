@@ -168,8 +168,10 @@ class Map:
             pos = check.get_position()
             dim = check.get_rect().size
             if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos,
-                                                       element_dimension=dim) and not check.hide:
+                                                       element_dimension=dim) and not check.hide and not self.check_window.is_open():
+
                 if button == 1 or button == 3:
+                    print(check.name)
                     check.left_click(mouse_position)
                     self.update()
                     return

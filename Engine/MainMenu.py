@@ -66,6 +66,7 @@ class MainMenu:
         self.init_menu()
         self.set_check()
         self.process_templates_list()
+        self.download_missing_officials_templates()
         self.loaded_tracker = None
         self.btn_paypal = None
         self.btn_discord = None
@@ -186,7 +187,7 @@ class MainMenu:
                         icon_x, icon_y = content_x + 10, content_y + 5
                         current_template = self.template_list[index_templates]
                         outdated, valid = "outdated" in current_template and current_template["outdated"], \
-                                          current_template["valid"]
+                            current_template["valid"]
 
                         if valid:
                             if outdated:
@@ -382,6 +383,21 @@ class MainMenu:
                 position=(x_comments, y_comments),
                 outline=1.5)
 
+    def download_missing_officials_templates(self):
+        for template in self.official_template:
+            template_path = os.path.join(self.template_directory, f"{template.get('template_name')}.template")
+            if not os.path.exists(template_path):
+                MsgBox = messagebox.askquestion('New template detected',
+                                                f'A new template is available [{template.get("name")}], would you '
+                                                f'like to download it ?',
+                                                icon='question')
+                if MsgBox == 'yes':
+                    url = f"http://linsotracker.com/tracker/templates/{template['template_name']}-{template['lastest_version']}.template"
+                    self.core_service.download_and_replace(url, self.template_directory,
+                                                           f"{template['template_name']}.template")
+                    self.set_check()
+                    self.process_templates_list()
+
     def process_templates_list(self):
         temp_list = []
         self.template_list = []
@@ -432,7 +448,8 @@ class MainMenu:
             outline_temp = 2
 
         tsurf, tpos = ptext.draw(str(text), position, fontname=font_name, antialias=True,
-                                 owidth=outline_temp, ocolor=color_outline, color=color, fontsize=font_size, surf=surface)
+                                 owidth=outline_temp, ocolor=color_outline, color=color, fontsize=font_size,
+                                 surf=surface)
         ptext.MEMORY_REDUCTION_FACTOR = 0
         ptext.AUTO_CLEAN = True
         return tsurf, tpos
