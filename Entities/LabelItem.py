@@ -34,6 +34,18 @@ class LabelItem(Item):
 
         self.update()
 
+    def wheel_up(self):
+        self.right_click()
+
+    def wheel_down(self):
+        if self.label_count > 0:
+            self.label_count -= 1
+        else:
+            self.label_count = len(self.label_list) - 1
+
+        self.update()
+
+
     def get_data(self):
         data = Item.get_data(self)
         data["label_count"] = self.label_count

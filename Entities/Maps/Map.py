@@ -171,7 +171,6 @@ class Map:
                                                        element_dimension=dim) and not check.hide and not self.check_window.is_open():
 
                 if button == 1 or button == 3:
-                    print(check.name)
                     check.left_click(mouse_position)
                     self.update()
                     return

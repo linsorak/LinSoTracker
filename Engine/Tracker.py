@@ -363,7 +363,7 @@ class Tracker:
         self.current_map.update()
         self.update()
 
-    def init_item(self, item, item_list, items_sheet_image):
+    def init_item(self, item, item_list):
         _item = None
         item_image = None
         items_sheet_dict = {sheet["Name"]: sheet for sheet in self.list_items_sheets}
@@ -494,12 +494,61 @@ class Tracker:
                 else:
                     _item = create_base_item(item, item_class)
 
+            if item.get("HintItems", False):
+                _item.hint_items_data = item.get("HintItems")
+
+            if item.get("ActiveItems", False):
+                _item.active_items_data = item.get("ActiveItems")
+
+            if item.get("InactiveItems", False):
+                _item.inactive_items_data = item.get("InactiveItems")
+
             if _item:
                 item_list.add(_item)
 
     def init_items(self):
         for item in self.tracker_json_data[3]["Items"]:
-            self.init_item(item, self.items, self.items_sheet_data)
+            self.init_item(item, self.items)
+
+        for item in self.items:
+            self.add_sub_special_item(item, "hint_items_data", "hint_items")
+            self.add_sub_special_item(item, "active_items_data", "active_items")
+            self.add_sub_special_item(item, "inactive_items_data", "inactive_items", visibility=item.show_item)
+
+    def add_sub_special_item(self, item, data_items_name, items_list_name, visibility=False):
+        item_data = getattr(item, data_items_name)
+        if item_data:
+            items_list = pygame.sprite.Group()
+            for sub_item in item_data:
+                self.init_item(sub_item, items_list)
+                setattr(item, items_list_name, items_list)
+
+                for sub_special_item in items_list:
+                    sub_special_item.show_item = visibility
+                    self.items.add(sub_special_item)
+                    self.add_sub_special_item(sub_special_item, "hint_items_data", "hint_items")
+                    self.add_sub_special_item(sub_special_item, "active_items_data", "active_items")
+                    self.add_sub_special_item(sub_special_item, "inactive_items_data", "inactive_items", visibility)
+                    # if sub_special_item.get("HintItems"):
+                    #     self.add_sub_special_item(sub_special_item, "hint_items_data", "hint_items")
+                    # if sub_special_item.get("ActiveItems"):
+                    #     self.add_sub_special_item(sub_special_item, "active_items_data", "active_items")
+                    # if sub_special_item.get("InactiveItems"):
+                    #     self.add_sub_special_item(sub_special_item, "inactive_items_data", "inactive_items")
+
+
+                    # self.add_sub_special_item(sub_special_item, data_items_name, items_list_name)
+
+    def add_active_item(self, item):
+        if item.hint_items_data:
+            item.hint_items = pygame.sprite.Group()
+            for sub_item in item.hint_items_data:
+                self.init_item(sub_item, item.hint_items)
+
+                for sub_hint_item in item.hint_items:
+                    sub_hint_item.show_item = False
+                    self.items.add(sub_hint_item)
+                    self.add_sub_hint_item(sub_hint_item)
 
     def items_left_click(self, item_list, mouse_position):
         for item in item_list:
@@ -522,6 +571,10 @@ class Tracker:
                     item.wheel_click()
                 if button == 3:
                     item.right_click()
+                if button == 4:
+                    item.wheel_up()
+                if button == 5:
+                    item.wheel_down()
 
                 self.current_item_on_mouse = None
 
@@ -609,7 +662,8 @@ class Tracker:
                                            self.core_service.is_on_element(mouse_positions=mouse_position,
                                                                            element_positons=check.get_position(),
                                                                            element_dimension=(
-                                                                           check.get_rect().w, check.get_rect().h))),
+                                                                               check.get_rect().w,
+                                                                               check.get_rect().h))),
                                           None)
 
             if self.mouse_check_found:
@@ -857,7 +911,7 @@ class Tracker:
         for submenu in self.submenus:
             submenu.draw_submenu(screen)
 
-        if self.current_item_on_mouse and self.core_service.show_hint_on_item:
+        if self.current_item_on_mouse and self.core_service.show_hint_on_item and self.current_item_on_mouse.show_item:
             temp_rect = pygame.Rect(self.position_check_hint[0],
                                     self.position_check_hint[1],
                                     self.surface_check_hint.get_rect().w,
@@ -928,7 +982,6 @@ class Tracker:
             if type(actions_list[action]) == str:
                 action_do = actions_list[action].replace("have(", "self.have(").replace("do(", "self.do(").replace(
                     "rules(", "self.rules(")
-                # print(action_do)
             else:
                 action_do = action
 

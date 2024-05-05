@@ -7,9 +7,10 @@ from Tools.CoreService import CoreService
 
 
 class Item(pygame.sprite.Sprite):
-    def __init__(self, id, name, position, image, opacity_disable, hint, enable=True):
+    def __init__(self, id, name, position, image, opacity_disable, hint, enable=True, show_item=True):
         pygame.sprite.Sprite.__init__(self)
         self.id = id
+        self.show_item = show_item
         self.hint = hint
         self.hint_show = False
         self.name = name
@@ -22,6 +23,15 @@ class Item(pygame.sprite.Sprite):
         self.grey_image = image.convert_alpha()
         self.core_service.convert_to_gs(self.grey_image)
         self.left_hint = False
+
+        self.hint_items_data = None
+        self.hint_items = None
+
+        self.active_items_data = None
+        self.active_items = None
+
+        self.inactive_items_data = None
+        self.inactive_items = None
 
         self.image = self.colored_image
         self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width,
@@ -39,13 +49,21 @@ class Item(pygame.sprite.Sprite):
         return self.core_service.set_image_transparent(image=image, opacity_disable=self.opacity_disable)
 
     def update(self):
-        if not self.enable:
-            self.image = self.alpha_image(self.grey_image)
-        else:
-            self.image = self.colored_image
+        if self.show_item:
+            if not self.enable:
+                self.image = self.alpha_image(self.grey_image)
+                self.set_child_visibilty("active_items", False)
+                self.set_child_visibilty("inactive_items", True)
+            else:
+                self.image = self.colored_image
+                self.set_child_visibilty("active_items", True)
+                self.set_child_visibilty("inactive_items", False)
 
-        if self.hint_show:
-            self.image = self.update_hint(self.image)
+            if self.hint_show:
+                self.image = self.update_hint(self.image)
+        else:
+            self.image = pygame.Surface((0, 0))
+            self.set_child_visibilty("inactive_items", False)
 
     def update_hint(self, image):
         # self.update()
@@ -62,15 +80,12 @@ class Item(pygame.sprite.Sprite):
         return image
 
     def left_click(self):
-        if self.enable:
-            self.enable = False
-        else:
-            self.enable = True
+        self.enable = not self.enable
         self.update()
 
     def right_click(self):
         self.left_click()
-        self.update()
+        # self.update()
 
     def wheel_click(self):
         if self.hint is not None:
@@ -79,7 +94,39 @@ class Item(pygame.sprite.Sprite):
             else:
                 self.hint_show = True
 
+            if self.hint_items:
+                for sub_item in self.hint_items:
+                    if sub_item.show_item:
+                        self.close_all_childs_hint_items()
+                    else:
+                        sub_item.show_item = True
+                        sub_item.update()
+
             self.update()
+
+    def close_all_childs_hint_items(self):
+        for sub_item in self.hint_items:
+            sub_item.hint_show = False
+            sub_item.show_item = False
+            sub_item.update()
+            if sub_item.hint_items:
+                sub_item.close_all_childs_hint_items()
+
+    def set_child_visibilty(self, child_list_name, visible):
+        child_lst = getattr(self, child_list_name)
+        if child_lst:
+            for child in child_lst:
+                child.show_item = visible
+                child.update()
+                sub_child_lst = getattr(child, child_list_name)
+                if sub_child_lst and not visible:
+                    child.set_child_visibilty(child_list_name, visible)
+
+    def wheel_up(self):
+        pass
+
+    def wheel_down(self):
+        pass
 
     def generate_text(self, text, font_name, color, font_size, o_width=2):
         temp_surface = pygame.Surface((400, 400)).convert_alpha()
@@ -156,13 +203,16 @@ class Item(pygame.sprite.Sprite):
             "id": self.id,
             "name": self.base_name,
             "enable": self.enable,
-            "hint_show": self.hint_show
+            "hint_show": self.hint_show,
+            "show_item": self.show_item
         }
         return data
 
     def set_data(self, datas):
         self.enable = datas["enable"]
         self.hint_show = datas["hint_show"]
+        self.show_item = datas["show_item"]
         self.update()
+
     def reset(self):
         self.set_data(self.base_save)
