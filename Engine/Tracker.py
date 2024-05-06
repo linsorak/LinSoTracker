@@ -2,6 +2,7 @@ import gc
 import json
 import multiprocessing
 import multiprocessing as mp
+import time
 from functools import partial
 import os
 from tkinter import messagebox
@@ -17,6 +18,7 @@ from Entities.AlternateCountItem import AlternateCountItem
 from Entities.AlternateEvolutionItem import AlternateEvolutionItem
 from Entities.CheckItem import CheckItem
 from Entities.CountItem import CountItem
+from Entities.DraggableEvolutionItem import DraggableEvolutionItem
 from Entities.EditableBox import EditableBox
 from Entities.EvolutionItem import EvolutionItem
 from Entities.GoModeItem import GoModeItem
@@ -100,6 +102,9 @@ class Tracker:
         pygame.mixer.Sound.set_volume(self.sound_cancel, 0.3)
         self.check_is_default_save()
         self.core_service.load_default_configuration()
+        self.is_moving = None
+        self.end_delay = None
+        self.selected_items_list = None
 
     def check_is_default_save(self):
         save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")
@@ -448,6 +453,7 @@ class Tracker:
                 "IncrementalItem": IncrementalItem,
                 "SubMenuItem": SubMenuItem,
                 "EditableBox": EditableBox,
+                "DraggableEvolutionItem": DraggableEvolutionItem,
                 "Item": Item
             }
 
@@ -501,6 +507,9 @@ class Tracker:
                                              value_start=item["valueStart"])
 
                 elif item["Kind"] == "EvolutionItem":
+                    _item = create_evo_item(item, item_class)
+
+                elif item["Kind"] == "DraggableEvolutionItem":
                     _item = create_evo_item(item, item_class)
 
                 elif item["Kind"] == "AlternateEvolutionItem":
@@ -583,7 +592,8 @@ class Tracker:
     def items_click(self, item_list, mouse_position, button):
         for item in item_list:
             if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
-                                               element_dimension=(item.get_rect().w, item.get_rect().h)):
+                                               element_dimension=(
+                                               item.get_rect().w, item.get_rect().h)) and self.is_moving is None:
                 if button == 1:
                     item.left_click()
                 if button == 2:
@@ -608,7 +618,39 @@ class Tracker:
                 return True
         return False
 
+    def items_mouse_down(self, mouse_position, button, item_list):
+        for item in item_list:
+            if item.check_click(mouse_position) and not item.is_dragging and item.can_drag:
+                item.is_dragging = True
+                self.is_moving = item
+                self.selected_items_list = item_list
+                item.start_drag_time = pygame.time.get_ticks()
+
+    def click_down(self, mouse_position, button):
+        can_click = True
+
+        for submenu in self.submenus:
+            if submenu.show:
+                can_click = False
+                break
+
+        if can_click:
+            self.items_mouse_down(mouse_position, button, self.items)
+
     def click(self, mouse_position, button):
+        if self.is_moving:
+
+            for item in self.selected_items_list:
+                if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
+                    item.set_new_current_image(self.is_moving.get_colored_image(), self.is_moving.name)
+                    break
+
+            self.is_moving.is_dragging = False
+            self.is_moving.reset_position()
+            self.is_moving = None
+
+            return
+
         can_click = True
 
         for submenu in self.submenus:
@@ -953,15 +995,26 @@ class Tracker:
                 self.menu.active(screen)
 
     def events(self, events, time_delta):
-        # print(events)
         self.menu.events(events)
         self.manager.process_events(events)
+        current_time = pygame.time.get_ticks()
 
         boxes = [item for item in self.items if isinstance(item, EditableBox)]
 
         for box in boxes:
             # box.update_box(time_delta)
             box.handle_event(events)
+
+        if self.is_moving:
+            self.is_moving.update()
+        # if events.type == pygame.MOUSEBUTTONDOWN and events.button == 1:
+        # for item in self.items:
+        #     if item.rect.collidepoint(events.pos):
+        #         item.is_dragging = True
+        #         item.update()
+        #
+        #     elif events.type == pygame.MOUSEBUTTONUP and events.button == 1:
+        #         item.is_dragging = False
 
     def back_main_menu(self):
         self.main_menu.reset_tracker()

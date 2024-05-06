@@ -454,6 +454,11 @@ class MainMenu:
         ptext.AUTO_CLEAN = True
         return tsurf, tpos
 
+    def click_down(self, mouse_position, button):
+        if self.loaded_tracker:
+            self.loaded_tracker.click_down(mouse_position, button)
+
+
     def click(self, mouse_position, button):
         if not self.loaded_tracker:
             if button == 1:
@@ -491,7 +496,6 @@ class MainMenu:
                                                                 icon='question')
                                 if MsgBox == 'yes':
                                     url = f"http://linsotracker.com/tracker/templates/{self.template_list[self.selected_menu_index]['filename']}-{self.template_list[self.selected_menu_index]['official']}.template"
-                                    # print(self.template_directory)
                                     self.core_service.download_and_replace(url, self.template_directory,
                                                                            self.template_list[self.selected_menu_index][
                                                                                'filename'] + ".template")

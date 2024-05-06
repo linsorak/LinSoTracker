@@ -28,6 +28,11 @@ def main():
     loop = True
     mouse_position = None
 
+    CLICK_THRESHOLD = 100
+    is_mouse_down = False
+    start_time = 0
+    button_event = None
+
     try:
         while loop:
             background_color = core_service.get_background_color()
@@ -45,10 +50,27 @@ def main():
                     main_menu.mouse_move(mouse_position)
 
                 if event.type == pygame.MOUSEBUTTONUP:
+                    button_event = event.button
+                    is_mouse_down = False
                     main_menu.click(mouse_position, event.button)
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    button_event = event.button
+                    is_mouse_down = True
+                    start_time = pygame.time.get_ticks()
+                    # main_menu.click_down(mouse_position, event.button)
 
                 if event.type == pygame.KEYUP:
                     main_menu.keyup(event.key, screen)
+
+            if is_mouse_down:
+                current_time = pygame.time.get_ticks()
+                click_duration = current_time - start_time
+
+                if click_duration >= CLICK_THRESHOLD:
+                    main_menu.click_down(mouse_position, button_event)
+                    is_mouse_down = False
+                    start_time = 0
 
             # core_service.clock.tick(core_service.fps_max)
             main_menu.draw(screen, time_delta)

@@ -18,6 +18,7 @@ class Item(pygame.sprite.Sprite):
         self.opacity_disable = opacity_disable
         self.enable = enable
         self.position = position
+        self.base_position = position
         self.core_service = CoreService()
         self.colored_image = image.convert_alpha()
         self.grey_image = image.convert_alpha()
@@ -36,7 +37,14 @@ class Item(pygame.sprite.Sprite):
         self.image = self.colored_image
         self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width,
                                 self.image.get_rect().height)
+        self.base_rect = self.rect
         self.base_save = self.get_data()
+
+        self.can_drag = True
+        self.is_dragging = False
+        self.start_drag_time = 0
+        self.drag_delay = 250
+
         self.update()
 
     def get_position(self):
@@ -61,6 +69,13 @@ class Item(pygame.sprite.Sprite):
 
             if self.hint_show:
                 self.image = self.update_hint(self.image)
+
+            current_time = pygame.time.get_ticks()
+            if self.is_dragging and (current_time - self.start_drag_time >= self.drag_delay):
+                self.rect.center = pygame.mouse.get_pos()
+                # self.rect.x = pygame.mouse.get_pos()[0]
+                # self.rect.y = pygame.mouse.get_pos()[1]
+
         else:
             self.image = pygame.Surface((0, 0))
             self.set_child_visibilty("inactive_items", False)
@@ -216,3 +231,13 @@ class Item(pygame.sprite.Sprite):
 
     def reset(self):
         self.set_data(self.base_save)
+
+    def check_click(self, pos):
+        return self.base_rect.collidepoint(pos)
+
+    def reset_position(self):
+        self.rect.x = self.base_position[0]
+        self.rect.y = self.base_position[1]
+
+    def get_colored_image(self):
+        return self.colored_image

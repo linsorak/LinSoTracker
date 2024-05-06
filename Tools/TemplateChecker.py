@@ -277,6 +277,8 @@ class TemplateChecker:
                     self.__check_incremental_item(item, i)
                 elif item["Kind"] == "EvolutionItem":
                     self.__check_evolution_item(item, i)
+                elif item["Kind"] == "DraggableEvolutionItem":
+                    self.__check_evolution_item(item, i)
                 elif item["Kind"] == "CountItem":
                     self.__check_count_item(item, i)
                 elif item["Kind"] == "AlternateCountItem":
@@ -297,10 +299,6 @@ class TemplateChecker:
                     pass
                 else:
                     self.errors.append("Kind of Item '{} | ID = {} doesn't exist'".format(item["Kind"], i))
-            # else:
-            #
-            #     print(len(item.keys()))
-            #     self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(i)))
 
             else:
                 self.errors.append(self.ERROR_MISSING_SECTION_IN.format("Kind", "Items"))

@@ -40,7 +40,6 @@ class RulesOptionsListItem(CheckListItem):
             surface=temp_surface,
             position=(self.position["x"], self.position["y"]),
             outline=1 * self.tracker.core_service.zoom)
-        # print(f"Rules : {self.name} - {self.checked}")
 
     def is_active(self):
         return not self.checked
@@ -58,8 +57,6 @@ class RulesOptionsListItem(CheckListItem):
                                         check.hide = True
                                     else:
                                         check.hide = False
-                                        # cpt += 1
-                                        # print(f"{cpt} - SIMPLE - {check.name} - hide = {check.hide}")
                                     break
                         elif type(check) == BlockChecks and hidden_check["Kind"] == "Block":
                             if hidden_check["Name"].lower() == check.name.lower():
@@ -71,7 +68,6 @@ class RulesOptionsListItem(CheckListItem):
                                             else:
                                                 check_item.hide = False
                                                 # cpt += 1
-                                                # print(f"{cpt} - BLOCK - {check_item.name} - hide = {check_item.hide}")
                                             break
 
     def do_actions(self):
