@@ -22,7 +22,6 @@ def main():
     pygame.mixer.init()
     screen = pygame.display.set_mode(dimension)
     pygame.display.set_caption(core_service.get_window_title())
-    clock = pygame.time.Clock()
     main_menu.initialization()
     pygame.display.set_icon(main_menu.get_icon())
     core_service.setgamewindowcenter(x=dimension[0], y=dimension[1])
@@ -34,7 +33,9 @@ def main():
             background_color = core_service.get_background_color()
             screen.fill(background_color)
             events = pygame.event.get()
+            time_delta = core_service.clock.tick(core_service.fps_max) / 1000.0
             for event in events:
+                main_menu.events(event, time_delta)
                 if event.type == pygame.QUIT:
                     loop = False
                     break
@@ -49,9 +50,8 @@ def main():
                 if event.type == pygame.KEYUP:
                     main_menu.keyup(event.key, screen)
 
-            clock.tick(30)
-            main_menu.draw(screen)
-            main_menu.events(events)
+            # core_service.clock.tick(core_service.fps_max)
+            main_menu.draw(screen, time_delta)
             pygame.display.update()
 
             if not loop:

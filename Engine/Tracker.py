@@ -8,6 +8,7 @@ from tkinter import messagebox
 from zipfile import ZipFile
 
 import pygame
+import pygame_gui
 
 from Engine import MainMenu
 from Engine.Menu import Menu
@@ -16,6 +17,7 @@ from Entities.AlternateCountItem import AlternateCountItem
 from Entities.AlternateEvolutionItem import AlternateEvolutionItem
 from Entities.CheckItem import CheckItem
 from Entities.CountItem import CountItem
+from Entities.EditableBox import EditableBox
 from Entities.EvolutionItem import EvolutionItem
 from Entities.GoModeItem import GoModeItem
 from Entities.IncrementalItem import IncrementalItem
@@ -81,6 +83,7 @@ class Tracker:
         self.menu = []
         self.bank = Bank()
         self.extract_data()
+        self.manager = pygame_gui.UIManager((pygame.display.get_surface().get_size()))
         self.init_tracker()
         self.core_service.set_json_data(self.tracker_json_data)
         self.core_service.set_tracker_temp_path(self.resources_path)
@@ -366,17 +369,31 @@ class Tracker:
     def init_item(self, item, item_list):
         _item = None
         item_image = None
-        items_sheet_dict = {sheet["Name"]: sheet for sheet in self.list_items_sheets}
-        item_sheet_name = item["SheetInformation"]["SpriteSheet"]
-        if item_sheet_name in items_sheet_dict:
-            item_sheet = items_sheet_dict[item_sheet_name]
-            item_image = self.core_service.zoom_image(item_sheet["ImageSheet"].getImageWithRowAndColumn(
-                row=item["SheetInformation"]["row"],
-                column=item["SheetInformation"]["column"]))
+        items_sheet_dict = None
+        item_sheet_name = None
+
+        bypass = item["Kind"] == "EditableBox"
+        if not bypass:
+            items_sheet_dict = {sheet["Name"]: sheet for sheet in self.list_items_sheets}
+            item_sheet_name = item["SheetInformation"]["SpriteSheet"]
+
+        if bypass or item_sheet_name in items_sheet_dict:
+
+            item_sheet = None
+            item_image = None
+            if not bypass:
+                item_sheet = items_sheet_dict[item_sheet_name]
+                item_image = self.core_service.zoom_image(item_sheet["ImageSheet"].getImageWithRowAndColumn(
+                    row=item["SheetInformation"]["row"],
+                    column=item["SheetInformation"]["column"]))
 
             def get_position(item):
                 return (item["Positions"]["x"] * self.core_service.zoom,
                         item["Positions"]["y"] * self.core_service.zoom)
+
+            def get_size(item):
+                return (item["Sizes"]["w"] * self.core_service.zoom,
+                        item["Sizes"]["h"] * self.core_service.zoom)
 
             def create_base_item(item, item_class, **additional_args):
                 return item_class(name=item["Name"],
@@ -430,13 +447,24 @@ class Tracker:
                 "AlternateEvolutionItem": AlternateEvolutionItem,
                 "IncrementalItem": IncrementalItem,
                 "SubMenuItem": SubMenuItem,
+                "EditableBox": EditableBox,
                 "Item": Item
             }
 
             if item["Kind"] in item_classes:
                 item_class = item_classes[item["Kind"]]
 
-                if item["Kind"] == "AlternateCountItem":
+                if item["Kind"] == "EditableBox":
+                    _item = EditableBox(
+                        id=item["Id"],
+                        name=item["Name"],
+                        position=get_position(item),
+                        size=get_size(item),
+                        manager=self.manager,
+                        lines=item["Lines"],
+                        placeholder_text=item["PlaceHolder"])
+
+                elif item["Kind"] == "AlternateCountItem":
                     _item = create_base_item(item, item_class,
                                              max_value=item["maxValue"],
                                              max_value_alternate=item["maxValueAlternate"],
@@ -529,15 +557,6 @@ class Tracker:
                     self.add_sub_special_item(sub_special_item, "hint_items_data", "hint_items")
                     self.add_sub_special_item(sub_special_item, "active_items_data", "active_items")
                     self.add_sub_special_item(sub_special_item, "inactive_items_data", "inactive_items", visibility)
-                    # if sub_special_item.get("HintItems"):
-                    #     self.add_sub_special_item(sub_special_item, "hint_items_data", "hint_items")
-                    # if sub_special_item.get("ActiveItems"):
-                    #     self.add_sub_special_item(sub_special_item, "active_items_data", "active_items")
-                    # if sub_special_item.get("InactiveItems"):
-                    #     self.add_sub_special_item(sub_special_item, "inactive_items_data", "inactive_items")
-
-
-                    # self.add_sub_special_item(sub_special_item, data_items_name, items_list_name)
 
     def add_active_item(self, item):
         if item.hint_items_data:
@@ -834,7 +853,7 @@ class Tracker:
         self.position_check_zone_hint = None
         self.surface_check_zone_hint = None
 
-    def draw(self, screen):
+    def draw(self, screen, time_delta):
         screen.blit(self.background_image, (0, 0))
 
         if self.menu.get_menu().is_enabled():
@@ -920,14 +939,29 @@ class Tracker:
             pygame.draw.rect(screen, (0, 0, 0), temp_rect)
             screen.blit(self.surface_check_hint, self.position_check_hint)
 
+        self.manager.update(time_delta)
+        self.manager.draw_ui(screen)
+
+        boxes = [item for item in self.items if isinstance(item, EditableBox)]
+
+        for box in boxes:
+            box.update_box(time_delta)
+
     def keyup(self, button, screen):
         if button == pygame.K_ESCAPE:
-            self.rules("eee")
             if not self.menu.get_menu().is_enabled():
                 self.menu.active(screen)
 
-    def events(self, events):
+    def events(self, events, time_delta):
+        # print(events)
         self.menu.events(events)
+        self.manager.process_events(events)
+
+        boxes = [item for item in self.items if isinstance(item, EditableBox)]
+
+        for box in boxes:
+            # box.update_box(time_delta)
+            box.handle_event(events)
 
     def back_main_menu(self):
         self.main_menu.reset_tracker()

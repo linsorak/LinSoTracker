@@ -156,7 +156,7 @@ class MainMenu:
     def get_icon(self):
         return self.icon
 
-    def draw(self, screen):
+    def draw(self, screen, time_delta):
         if not self.loaded_tracker:
             screen.blit(self.background_image, (0, 0))
             l_arrow, r_arrow = self.arrow_left.copy(), self.arrow_right.copy()
@@ -237,7 +237,7 @@ class MainMenu:
             if self.moved_tracker:
                 self.draw_fade_effect(screen, pos_dev_y)
         else:
-            self.loaded_tracker.draw(screen)
+            self.loaded_tracker.draw(screen, time_delta)
 
     def draw_info_text(self, screen):
         surf_title, pos_title = self.draw_text(
@@ -552,6 +552,6 @@ class MainMenu:
         if self.loaded_tracker:
             self.loaded_tracker.keyup(button, screen)
 
-    def events(self, events):
+    def events(self, events, time_delta):
         if self.loaded_tracker:
-            self.loaded_tracker.events(events)
+            self.loaded_tracker.events(events, time_delta)

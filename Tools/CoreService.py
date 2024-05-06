@@ -67,6 +67,8 @@ class CoreService(metaclass=Singleton):
         # if not self.dev_version:
         self.read_checker()
         self.load_default_configuration()
+        self.fps_max = 30
+        self.clock = pygame.time.Clock()
 
     @contextmanager
     def tempdir(self):

@@ -270,32 +270,37 @@ class TemplateChecker:
             item = items[i]
 
             if "Kind" in item.keys():
-                if len(item.keys()) >= 8:
+                # if len(item.keys()) >= 8:
+                if item["Kind"] != "EditableBox":
                     self.__check_item(item, i)
-                    if item["Kind"] == "IncrementalItem":
-                        self.__check_incremental_item(item, i)
-                    elif item["Kind"] == "EvolutionItem":
-                        self.__check_evolution_item(item, i)
-                    elif item["Kind"] == "CountItem":
-                        self.__check_count_item(item, i)
-                    elif item["Kind"] == "AlternateCountItem":
-                        self.__check_alternate_count_item(item, i)
-                    elif item["Kind"] == "LabelItem":
-                        self.__check_label_item(item, i)
-                    elif item["Kind"] == "CheckItem":
-                        self._check_check_item(item, i)
-                    elif item["Kind"] == "GoModeItem":
-                        self.__check_go_mode_item(item, i)
-                    elif item["Kind"] == "Item":
-                        pass
-                    elif item["Kind"] == "SubMenuItem":
-                        pass
-                    elif item["Kind"] == "AlternateEvolutionItem":
-                        pass
-                    else:
-                        self.errors.append("Kind of Item '{} | ID = {} doesn't exist'".format(item["Kind"], i))
+                if item["Kind"] == "IncrementalItem":
+                    self.__check_incremental_item(item, i)
+                elif item["Kind"] == "EvolutionItem":
+                    self.__check_evolution_item(item, i)
+                elif item["Kind"] == "CountItem":
+                    self.__check_count_item(item, i)
+                elif item["Kind"] == "AlternateCountItem":
+                    self.__check_alternate_count_item(item, i)
+                elif item["Kind"] == "LabelItem":
+                    self.__check_label_item(item, i)
+                elif item["Kind"] == "CheckItem":
+                    self._check_check_item(item, i)
+                elif item["Kind"] == "GoModeItem":
+                    self.__check_go_mode_item(item, i)
+                elif item["Kind"] == "Item":
+                    pass
+                elif item["Kind"] == "SubMenuItem":
+                    pass
+                elif item["Kind"] == "AlternateEvolutionItem":
+                    pass
+                elif item["Kind"] == "EditableBox":
+                    pass
                 else:
-                    self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(i)))
+                    self.errors.append("Kind of Item '{} | ID = {} doesn't exist'".format(item["Kind"], i))
+            # else:
+            #
+            #     print(len(item.keys()))
+            #     self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(i)))
 
             else:
                 self.errors.append(self.ERROR_MISSING_SECTION_IN.format("Kind", "Items"))
