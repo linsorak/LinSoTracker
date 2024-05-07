@@ -14,6 +14,7 @@ import pygame_gui
 from Engine import MainMenu
 from Engine.Menu import Menu
 from Engine.PopupWindow import PopupWindow
+from Entities.ImageItem import ImageItem
 from Entities.AlternateCountItem import AlternateCountItem
 from Entities.AlternateEvolutionItem import AlternateEvolutionItem
 from Entities.CheckItem import CheckItem
@@ -454,6 +455,7 @@ class Tracker:
                 "SubMenuItem": SubMenuItem,
                 "EditableBox": EditableBox,
                 "DraggableEvolutionItem": DraggableEvolutionItem,
+                "ImageItem": ImageItem,
                 "Item": Item
             }
 
@@ -506,6 +508,9 @@ class Tracker:
                                              max_value=item["valueMax"],
                                              value_increase=item["valueIncrease"],
                                              value_start=item["valueStart"])
+
+                elif item["Kind"] == "ImageItem":
+                    _item = create_base_item(item, item_class)
 
                 elif item["Kind"] == "EvolutionItem":
                     _item = create_evo_item(item, item_class)
@@ -721,7 +726,7 @@ class Tracker:
         if self.current_map and self.current_map.checks_list and not submenu_found:
             found = False
             self.mouse_check_found = next((check for check in self.current_map.checks_list
-                                           if not check.hide and not check.all_check_hidden() and
+                                           if not check.hide and not check.all_check_hidden() and not isinstance(check, ImageItem) and
                                            self.core_service.is_on_element(mouse_positions=mouse_position,
                                                                            element_positons=check.get_position(),
                                                                            element_dimension=(
@@ -754,7 +759,7 @@ class Tracker:
                 for item in self.items:
                     if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                        element_positons=item.get_position(),
-                                                       element_dimension=(item.get_rect().w, item.get_rect().h)):
+                                                       element_dimension=(item.get_rect().w, item.get_rect().h)) and not isinstance(item, ImageItem):
                         self.current_item_on_mouse = item
                         self.surface_check_hint, self.position_check_hint = self.update_hint(self.current_item_on_mouse,
                                                                                              "labelItemFont", False)
@@ -763,10 +768,11 @@ class Tracker:
                 for submenu in self.submenus:
                     if submenu.show:
                         for item in submenu.items:
-                            if self.core_service.is_on_element(mouse_positions=mouse_position,
+                            if (self.core_service.is_on_element(mouse_positions=mouse_position,
                                                                element_positons=item.get_position(),
                                                                element_dimension=(
-                                                                       item.get_rect().w, item.get_rect().h)):
+                                                                       item.get_rect().w, item.get_rect().h)) and
+                                    not isinstance(item, ImageItem)):
                                 self.current_item_on_mouse = item
                                 self.surface_check_hint, self.position_check_hint = self.update_hint(
                                     self.current_item_on_mouse, "labelItemFont", False)
