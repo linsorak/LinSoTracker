@@ -125,3 +125,9 @@ class EvolutionItem(Item):
             self.name = next_item["Name"]
         else:
             self.name = self.base_name
+
+    def get_colored_image(self):
+        if not self.enable:
+            return self.colored_image
+        else:
+            return self.image

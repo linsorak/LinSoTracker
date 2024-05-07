@@ -67,7 +67,6 @@ class RulesOptionsListItem(CheckListItem):
                                                 check_item.hide = True
                                             else:
                                                 check_item.hide = False
-                                                # cpt += 1
                                             break
 
     def do_actions(self):

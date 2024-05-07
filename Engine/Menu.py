@@ -142,7 +142,10 @@ class Menu:
 
     def events(self, events):
         if self.menu.is_enabled():
-            self.menu.update(events)
+            try:
+                self.menu.update(events)
+            except AssertionError:
+                pass
 
     def back_menu(self):
         self.tracker.change_zoom(value=1)

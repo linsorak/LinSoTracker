@@ -70,11 +70,8 @@ class Item(pygame.sprite.Sprite):
             if self.hint_show:
                 self.image = self.update_hint(self.image)
 
-            current_time = pygame.time.get_ticks()
-            if self.is_dragging and (current_time - self.start_drag_time >= self.drag_delay):
+            if self.is_dragging and self.can_drag:
                 self.rect.center = pygame.mouse.get_pos()
-                # self.rect.x = pygame.mouse.get_pos()[0]
-                # self.rect.y = pygame.mouse.get_pos()[1]
 
         else:
             self.image = pygame.Surface((0, 0))
@@ -158,6 +155,10 @@ class Item(pygame.sprite.Sprite):
     def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position,
                          o_width=2, offset=0):
         if text is not None:
+
+            if self.is_dragging:
+                return base_image
+
             color = (font["Colors"][color_category]["r"], font["Colors"][color_category]["g"],
                      font["Colors"][color_category]["b"])
             tsurf, tpos = self.generate_text(text=text, font_name=font_path,

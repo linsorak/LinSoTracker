@@ -1,20 +1,55 @@
+import json
+import os.path
+
 import pygame
 import pygame_gui
+from pygame_gui.core import ObjectID
 
 from Entities.Item import Item
 
 
 class EditableBox(Item):
-    def __init__(self, id, name, position, size, manager, lines, placeholder_text=None):
+    def __init__(self, id, name, position, size, manager, lines, style, placeholder_text=None):
         empty_image = pygame.Surface((0, 0), pygame.SRCALPHA)
         Item.__init__(self, id=id, name=name, image=empty_image, position=(0, 0), enable=True,
                       opacity_disable=0.3,
                       hint=None)
+        self.manager = manager
+        custom_json = {
+            f"@{name}": {
+                "colours": {
+                    "dark_bg": f"rgb({style['BackgroundColor']['r']}, {style['BackgroundColor']['g']}, {style['BackgroundColor']['b']})",
+                    "normal_text": f"rgb({style['NormalTextColor']['r']}, {style['NormalTextColor']['g']}, {style['NormalTextColor']['b']})",
+                    "selected_bg": f"rgb({style['SelectedBackgroundColor']['r']}, {style['SelectedBackgroundColor']['g']}, {style['SelectedBackgroundColor']['b']})",
+                    "selected_text": f"rgb({style['SelectedTextColor']['r']}, {style['SelectedTextColor']['g']}, {style['SelectedTextColor']['b']})",
+                }
+            },
+            f"@{name}.@selection_list_item": {
+                "colours": {
+                    "dark_bg": f"rgb({style['BackgroundColor']['r']}, {style['BackgroundColor']['g']}, {style['BackgroundColor']['b']})",
+                    "normal_text": f"rgb({style['NormalTextColor']['r']}, {style['NormalTextColor']['g']}, {style['NormalTextColor']['b']})",
+                }
+            },
+            f"@{name}.#item_list_item": {
+                "colours": {
+                    "normal_bg": f"rgb({style['BackgroundColor']['r']}, {style['BackgroundColor']['g']}, {style['BackgroundColor']['b']})",
+                    "hovered_bg":  f"rgb({style['HoveredBackgroundColor']['r']}, {style['HoveredBackgroundColor']['g']}, {style['HoveredBackgroundColor']['b']})",
+                    "hovered_text":  f"rgb({style['HoveredTextColor']['r']}, {style['HoveredTextColor']['g']}, {style['HoveredTextColor']['b']})",
+                }
+            }
+        }
+        filename = os.path.join(self.core_service.get_temp_path(), f"{name}.json")
+        with open(filename, "w") as json_file:
+            json.dump(custom_json, json_file, indent=4)
+
+        manager.get_theme().load_theme(filename)
 
         self.edit_box = pygame_gui.elements.UITextEntryLine(
             relative_rect=pygame.Rect(position, size),
             placeholder_text=placeholder_text,
-            manager=manager
+            manager=manager,
+            object_id=ObjectID(class_id=f'@{name}',
+                               object_id=f'#{name}')
         )
         self.edit_box.set_position(position)
         self.lines = lines
@@ -23,7 +58,10 @@ class EditableBox(Item):
             relative_rect=pygame.Rect((position[0], position[1] + size[1]), (size[0], size[1] * 2.5)),
             item_list=self.lines,
             manager=manager,
-            allow_multi_select=False)
+            allow_multi_select=False,
+            object_id=ObjectID(class_id=f'@{name}',
+                               object_id=f'#{name}_list')
+        )
         self.suggestion_list.hide()
 
     def handle_event(self, event):
@@ -52,7 +90,8 @@ class EditableBox(Item):
                     self.suggestion_list.hide()
 
         elif event.type == pygame.USEREVENT:
-            if event.user_type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION:
+            if event.user_type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION and event.ui_object_id == \
+                    self.suggestion_list.object_ids[0]:
                 selected_suggestion = event.text
                 if selected_suggestion:
                     self.edit_box.set_text(selected_suggestion)

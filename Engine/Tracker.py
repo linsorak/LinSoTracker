@@ -468,6 +468,7 @@ class Tracker:
                         size=get_size(item),
                         manager=self.manager,
                         lines=item["Lines"],
+                        style=item["Style"],
                         placeholder_text=item["PlaceHolder"])
 
                 elif item["Kind"] == "AlternateCountItem":
@@ -647,6 +648,7 @@ class Tracker:
 
             self.is_moving.is_dragging = False
             self.is_moving.reset_position()
+            self.is_moving.update()
             self.is_moving = None
 
             return
@@ -960,6 +962,9 @@ class Tracker:
                     screen.blit(self.surface_check_hint, self.position_check_hint)
 
         else:
+            self.manager.update(time_delta)
+            self.manager.draw_ui(screen)
+
             self.items.draw(screen)
 
             for item in self.items:
@@ -980,9 +985,6 @@ class Tracker:
 
             pygame.draw.rect(screen, (0, 0, 0), temp_rect)
             screen.blit(self.surface_check_hint, self.position_check_hint)
-
-        self.manager.update(time_delta)
-        self.manager.draw_ui(screen)
 
         boxes = [item for item in self.items if isinstance(item, EditableBox)]
 

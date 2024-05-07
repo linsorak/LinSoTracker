@@ -28,15 +28,18 @@ class CountItem(Item):
         else:
             color_category = "Normal"
 
-        self.image = self.get_drawing_text(font=font,
-                                           color_category=color_category,
-                                           text=self.value,
-                                           font_path=font_path,
-                                           base_image=self.image,
-                                           image_surface=self.colored_image,
-                                           text_position="count_item")
-        self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width,
-                                self.colored_image.get_rect().height)
+        if not self.is_dragging:
+            self.image = self.get_drawing_text(font=font,
+                                               color_category=color_category,
+                                               text=self.value,
+                                               font_path=font_path,
+                                               base_image=self.image,
+                                               image_surface=self.colored_image,
+                                               text_position="count_item")
+            self.rect = pygame.Rect(self.position[0], self.position[1], self.image.get_rect().width,
+                                    self.colored_image.get_rect().height)
+        else:
+            self.rect = self.base_rect
 
     def right_click(self):
         if self.value > self.min_value:

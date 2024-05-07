@@ -10,7 +10,7 @@ class GoModeItem(Item):
         self.speed = 2
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                       opacity_disable=opacity_disable, hint=hint)
-
+        self.can_drag = False
     def update(self):
         Item.update(self)
         if self.enable:
