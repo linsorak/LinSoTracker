@@ -3,6 +3,7 @@ import os.path
 
 import pygame
 import pygame_gui
+from pygame import Rect
 from pygame_gui.core import ObjectID
 
 from Entities.Item import Item
@@ -105,3 +106,12 @@ class EditableBox(Item):
 
     def update_box(self, dt):
         self.edit_box.update(dt)
+
+    def check_click(self, mouse_position):
+        if self.suggestion_list.visible:
+            test = Rect(self.edit_box.rect[0], self.edit_box.rect[1], self.suggestion_list.relative_rect[2], self.suggestion_list.relative_rect[3])
+            return test.collidepoint(mouse_position)
+            # return self.suggestion_list.rect.collidepoint(mouse_position)
+        else:
+            return self.edit_box.rect.collidepoint(mouse_position)
+

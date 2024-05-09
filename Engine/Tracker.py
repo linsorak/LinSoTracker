@@ -1,9 +1,6 @@
 import gc
 import json
 import multiprocessing
-import multiprocessing as mp
-import time
-from functools import partial
 import os
 from tkinter import messagebox
 from zipfile import ZipFile
@@ -372,7 +369,7 @@ class Tracker:
         self.current_map.update()
         self.update()
 
-    def init_item(self, item, item_list):
+    def init_item(self, item, item_list, manager):
         _item = None
         item_image = None
         items_sheet_dict = None
@@ -468,7 +465,7 @@ class Tracker:
                         name=item["Name"],
                         position=get_position(item),
                         size=get_size(item),
-                        manager=self.manager,
+                        manager=manager,
                         lines=item["Lines"],
                         style=item["Style"],
                         placeholder_text=item["PlaceHolder"])
@@ -551,7 +548,7 @@ class Tracker:
 
     def init_items(self):
         for item in self.tracker_json_data[3]["Items"]:
-            self.init_item(item, self.items)
+            self.init_item(item, self.items, self.manager)
 
         for item in self.items:
             self.add_sub_special_item(item, "hint_items_data", "hint_items")
@@ -563,7 +560,7 @@ class Tracker:
         if item_data:
             items_list = pygame.sprite.Group()
             for sub_item in item_data:
-                self.init_item(sub_item, items_list)
+                self.init_item(sub_item, items_list, self.manager)
                 setattr(item, items_list_name, items_list)
 
                 for sub_special_item in items_list:
@@ -577,7 +574,7 @@ class Tracker:
         if item.hint_items_data:
             item.hint_items = pygame.sprite.Group()
             for sub_item in item.hint_items_data:
-                self.init_item(sub_item, item.hint_items)
+                self.init_item(sub_item, item.hint_items, self.manager)
 
                 for sub_hint_item in item.hint_items:
                     sub_hint_item.show_item = False
@@ -597,9 +594,10 @@ class Tracker:
 
     def items_click(self, item_list, mouse_position, button):
         for item in item_list:
-            if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
-                                               element_dimension=(
-                                               item.get_rect().w, item.get_rect().h)) and self.is_moving is None:
+            # if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
+            #                                    element_dimension=(
+            #                                    item.get_rect().w, item.get_rect().h)) and self.is_moving is None:
+            if item.check_click(mouse_position) and self.is_moving is None:
                 if button == 1:
                     item.left_click()
                 if button == 2:
@@ -642,20 +640,21 @@ class Tracker:
 
         if can_click:
             self.items_mouse_down(mouse_position, button, self.items)
+        else:
+            for submenu in self.submenus:
+                if submenu.show:
+                    self.items_mouse_down(mouse_position, button, submenu.items)
 
     def click(self, mouse_position, button):
         if self.is_moving:
-
             for item in self.selected_items_list:
                 if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
                     item.set_new_current_image(self.is_moving.get_colored_image(), self.is_moving.name)
                     break
-
             self.is_moving.is_dragging = False
             self.is_moving.reset_position()
             self.is_moving.update()
             self.is_moving = None
-
             return
 
         can_click = True
@@ -726,7 +725,8 @@ class Tracker:
         if self.current_map and self.current_map.checks_list and not submenu_found:
             found = False
             self.mouse_check_found = next((check for check in self.current_map.checks_list
-                                           if not check.hide and not check.all_check_hidden() and not isinstance(check, ImageItem) and
+                                           if not check.hide and not check.all_check_hidden() and not isinstance(check,
+                                                                                                                 ImageItem) and
                                            self.core_service.is_on_element(mouse_positions=mouse_position,
                                                                            element_positons=check.get_position(),
                                                                            element_dimension=(
@@ -759,7 +759,10 @@ class Tracker:
                 for item in self.items:
                     if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                        element_positons=item.get_position(),
-                                                       element_dimension=(item.get_rect().w, item.get_rect().h)) and not isinstance(item, ImageItem):
+                                                       element_dimension=(
+                                                               item.get_rect().w,
+                                                               item.get_rect().h)) and not isinstance(item,
+                                                                                                      ImageItem):
                         self.current_item_on_mouse = item
                         self.surface_check_hint, self.position_check_hint = self.update_hint(self.current_item_on_mouse,
                                                                                              "labelItemFont", False)
@@ -769,9 +772,9 @@ class Tracker:
                     if submenu.show:
                         for item in submenu.items:
                             if (self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                               element_positons=item.get_position(),
-                                                               element_dimension=(
-                                                                       item.get_rect().w, item.get_rect().h)) and
+                                                                element_positons=item.get_position(),
+                                                                element_dimension=(
+                                                                        item.get_rect().w, item.get_rect().h)) and
                                     not isinstance(item, ImageItem)):
                                 self.current_item_on_mouse = item
                                 self.surface_check_hint, self.position_check_hint = self.update_hint(
@@ -968,9 +971,6 @@ class Tracker:
                     screen.blit(self.surface_check_hint, self.position_check_hint)
 
         else:
-            self.manager.update(time_delta)
-            self.manager.draw_ui(screen)
-
             self.items.draw(screen)
 
             for item in self.items:
@@ -978,10 +978,11 @@ class Tracker:
                     item.draw()
                     break
 
-            # self.surface_label_checks_cpt, self.position_draw_label_checks_cpt
+            self.manager.update(time_delta)
+            self.manager.draw_ui(screen)
 
         for submenu in self.submenus:
-            submenu.draw_submenu(screen)
+            submenu.draw_submenu(screen, time_delta)
 
         if self.current_item_on_mouse and self.core_service.show_hint_on_item and self.current_item_on_mouse.show_item:
             temp_rect = pygame.Rect(self.position_check_hint[0],
@@ -1002,19 +1003,25 @@ class Tracker:
             if not self.menu.get_menu().is_enabled():
                 self.menu.active(screen)
 
+    def handle_event_boxes(self, item_list, events):
+        boxes = [item for item in item_list if isinstance(item, EditableBox)]
+
+        for box in boxes:
+            box.handle_event(events)
+
     def events(self, events, time_delta):
         self.menu.events(events)
         self.manager.process_events(events)
         current_time = pygame.time.get_ticks()
-
-        boxes = [item for item in self.items if isinstance(item, EditableBox)]
-
-        for box in boxes:
-            # box.update_box(time_delta)
-            box.handle_event(events)
+        self.handle_event_boxes(self.items, events)
 
         if self.is_moving:
             self.is_moving.update()
+
+        for submenu in self.submenus:
+            if submenu.show:
+                self.handle_event_boxes(submenu.items, events)
+                submenu.manager.process_events(events)
         # if events.type == pygame.MOUSEBUTTONDOWN and events.button == 1:
         # for item in self.items:
         #     if item.rect.collidepoint(events.pos):
@@ -1035,8 +1042,11 @@ class Tracker:
         gc.collect()
 
     def find_item(self, item_name, is_base_name=False):
-        items_to_check = [item for item in self.items if type(item) != SubMenuItem]
-        sub_items_to_check = [sub_item for item in self.items if type(item) == SubMenuItem for sub_item in item.items]
+        # items_to_check = [item for item in self.items if type(item) != SubMenuItem]
+        # sub_items_to_check = [sub_item for item in self.items if type(item) == SubMenuItem for sub_item in item.items]
+
+        items_to_check = [item for item in self.items if not isinstance(item, SubMenuItem)]
+        sub_items_to_check = [sub_item for item in self.items if isinstance(item, SubMenuItem) for sub_item in item.items]
 
         for item in items_to_check + sub_items_to_check:
             name = item.base_name if is_base_name else item.name
@@ -1055,15 +1065,6 @@ class Tracker:
     @staticmethod
     def _check_item(item, item_name, index):
         return item.name == item_name and item.enable and Tracker._item_has_index(item, index)
-
-    # def have(self, item_name, index=None):
-    #     items_to_check = [item for item in self.items if type(item) != SubMenuItem]
-    #     sub_items_to_check = [sub_item for item in self.items if type(item) == SubMenuItem for sub_item in item.items]
-    #
-    #     for item in items_to_check + sub_items_to_check:
-    #         if Tracker._check_item(item, item_name, index):
-    #             return True
-    #     return False
 
     def have(self, item_name, index=None):
         item = self.find_item(item_name)
@@ -1087,7 +1088,6 @@ class Tracker:
                 return False
             except RecursionError:
                 raise ValueError(action_do)
-            # return eval(action_do)
 
     def rules(self, rule):
         if self.rules_options_list_window.list_items:
@@ -1097,16 +1097,6 @@ class Tracker:
             return False
         else:
             return False
-
-    # def have_check(self, check_name, block_name=None):
-    #     for map in self.maps_list:
-    #         for check in map.checks_list:
-    #             if isinstance(check, BlockChecks):
-    #                 if block_name is not None and check.name == block_name:
-    #                     sub_check = [sub for sub in check.list_checks if sub.name == check_name][0]
-    #                     return sub_check.checked
-    #             elif isinstance(check, SimpleCheck) and check.name == check_name:
-    #                 return check.checked
 
     def check_sub_check(self, check, check_name):
         sub_check = [sub for sub in check.list_checks if sub.name == check_name]

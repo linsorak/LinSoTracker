@@ -1,6 +1,7 @@
 import os
 
 import pygame
+import pygame_gui
 
 from Entities.CheckItem import CheckItem
 from Entities.Item import Item
@@ -18,6 +19,7 @@ class SubMenuItem(Item):
         self.show_numbers_checked_items = show_numbers_checked_items
         self.show = False
         self.items = pygame.sprite.Group()
+        self.manager = pygame_gui.UIManager((pygame.display.get_surface().get_size()))
         self.bank = Bank()
         self.tracker = tracker
         self.items_list = items_list
@@ -60,7 +62,7 @@ class SubMenuItem(Item):
     def update_background(self):
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.background_image_name))
 
-    def draw_submenu(self, screen):
+    def draw_submenu(self, screen, time_delta):
         if self.show:
             info_object = pygame.display.Info()
             s = pygame.Surface((info_object.current_w, info_object.current_h), pygame.SRCALPHA)  # per-pixel alpha
@@ -70,9 +72,12 @@ class SubMenuItem(Item):
             screen.blit(self.background_image, (0, 0))
             self.items.draw(screen)
 
+            self.manager.update(time_delta)
+            self.manager.draw_ui(screen)
+
     def init_items(self):
         for item in self.items_list:
-            self.tracker.init_item(item, self.items)
+            self.tracker.init_item(item, self.items, self.manager)
 
     def left_click(self):
         if self.show:
@@ -109,4 +114,5 @@ class SubMenuItem(Item):
                     break
 
         Item.set_data(self, datas)
+
 
