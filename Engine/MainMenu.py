@@ -61,12 +61,13 @@ class MainMenu:
         self.core_service = CoreService()
         self.bank = Bank()
         self.template_directory = os.path.join(self.core_service.get_app_path(), "templates")
+        self.template_dev_directory = os.path.join(self.core_service.get_app_path(), "template_dev")
         self.template_list = []
         self.extract_data()
         self.init_menu()
         self.set_check()
         self.process_templates_list()
-        self.download_missing_officials_templates()
+        #self.download_missing_officials_templates()
         self.loaded_tracker = None
         self.btn_paypal = None
         self.btn_discord = None
@@ -313,10 +314,15 @@ class MainMenu:
         x_title = x_description_menu + 17
         y_title = y_description_menu + 13
 
+        template_title = self.template_list[self.selected_menu_index]["information"]["Informations"]["Name"]
+        template_title_color = self.font_data["color_normal"]
+        if "is_dev" in self.template_list[self.selected_menu_index] and self.template_list[self.selected_menu_index]["is_dev"]:
+            template_title = "DEV TEMPLATE: " + template_title
+            template_title_color = self.font_data["color_error"]
         self.draw_text(
-            text=self.template_list[self.selected_menu_index]["information"]["Informations"]["Name"],
+            text=template_title,
             font_name=self.font_data["path"],
-            color=self.font_data["color_normal"],
+            color=template_title_color,
             font_size=self.font_data["title_size"],
             surface=screen,
             position=(x_title, y_title),
@@ -398,28 +404,53 @@ class MainMenu:
                     self.set_check()
                     self.process_templates_list()
 
+    @staticmethod
+    def process_template(filename, tracker_json, tracker_icon, tracker_illustration):
+        data = json.loads(tracker_json)
+
+        template_checker = TemplateChecker(data)
+
+        template_data = {
+            "filename": filename,
+            "information": data[0],
+            "icon": pygame.image.load(io.BytesIO(tracker_icon)),
+            "illustration": pygame.image.load(io.BytesIO(tracker_illustration)),
+            "valid": template_checker.is_valid()
+        }
+        if "Comments" in data[0]["Informations"]:
+            template_data["Comments"] = data[0]["Informations"]["Comments"]
+        return template_data
+
+    def process_dev_folder(self):
+        filename = "dev_tracker"
+        json_filename = os.path.join(self.template_dev_directory, "tracker.json")
+        if not os.path.isfile(json_filename):
+            return None
+        with open(json_filename, 'r') as file:
+            tracker_json = file.read()
+        icon_filename = os.path.join(self.template_dev_directory, "icon.png")
+        if not os.path.isfile(icon_filename):
+            return None
+        with open(icon_filename, 'rb') as file:
+            tracker_icon = file.read()
+        illustration_filename = os.path.join(self.template_dev_directory, "illustration.png")
+        if not os.path.isfile(illustration_filename):
+            return None
+        with open(illustration_filename, 'rb') as file:
+            tracker_illustration = file.read()
+        return self.process_template(filename, tracker_json, tracker_icon, tracker_illustration)
+
     def process_templates_list(self):
         temp_list = []
         self.template_list = []
         for file in glob.glob("{}{}*.template".format(self.template_directory, os.sep)):
             archive = ZipFile(file, 'r')
+            filename = os.path.basename(file).replace(".template", "")
             tracker_json = archive.read("tracker.json")
             tracker_icon = archive.read("icon.png")
             tracker_illustration = archive.read("illustration.png")
 
-            data = json.loads(tracker_json)
-
-            template_checker = TemplateChecker(data)
-
-            template_data = {
-                "filename": os.path.basename(file).replace(".template", ""),
-                "information": data[0],
-                "icon": pygame.image.load(io.BytesIO(tracker_icon)),
-                "illustration": pygame.image.load(io.BytesIO(tracker_illustration)),
-                "valid": template_checker.is_valid()
-            }
-            if "Comments" in data[0]["Informations"]:
-                template_data["Comments"] = data[0]["Informations"]["Comments"]
+            template_data = self.process_template(filename, tracker_json, tracker_icon, tracker_illustration)
 
             if self.official_template:
                 for off_template in self.official_template:
@@ -437,6 +468,10 @@ class MainMenu:
 
         for none_official in temp_list:
             self.template_list.append(none_official)
+        dev_template = self.process_dev_folder()
+        if dev_template:
+            dev_template["is_dev"] = True
+            self.template_list.append(dev_template)
 
         self.max_pages = int(len(self.template_list) / self.max_icon_per_page) + self.current_page
 
@@ -502,10 +537,10 @@ class MainMenu:
                                     self.set_check()
                                     self.process_templates_list()
                                 else:
-                                    self.set_tracker(menu["template"]["filename"])
+                                    self.set_tracker(menu["template"]["filename"], "is_dev" in menu["template"] and menu["template"]["is_dev"])
 
                             else:
-                                self.set_tracker(menu["template"]["filename"])
+                                self.set_tracker(menu["template"]["filename"], "is_dev" in menu["template"] and menu["template"]["is_dev"])
                         # self.set_tracker(menu["template"]["filename"])
         else:
             self.loaded_tracker.click(mouse_position, button)
@@ -541,8 +576,8 @@ class MainMenu:
         else:
             self.loaded_tracker.mouse_move(mouse_position)
 
-    def set_tracker(self, tracker_name):
-        self.loaded_tracker = Tracker(tracker_name, self)
+    def set_tracker(self, tracker_name, is_dev=False):
+        self.loaded_tracker = Tracker(tracker_name, self, is_dev)
 
     def reset_tracker(self):
         # self.loaded_tracker.delete_data()

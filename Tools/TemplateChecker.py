@@ -291,6 +291,8 @@ class TemplateChecker:
                     self.__check_go_mode_item(item, i)
                 elif item["Kind"] == "Item":
                     pass
+                elif item["Kind"] == "MultipleChoiceItem":
+                    pass
                 elif item["Kind"] == "SubMenuItem":
                     pass
                 elif item["Kind"] == "AlternateEvolutionItem":

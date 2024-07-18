@@ -3,8 +3,6 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-import numpy as np
-
 import pygame
 
 from Engine.PopupWindow import PopupWindow

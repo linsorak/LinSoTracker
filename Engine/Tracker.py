@@ -27,6 +27,7 @@ from Entities.Maps.Map import Map
 from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
 from Entities.Maps.SimpleCheck import SimpleCheck
+from Entities.MultipleChoiceItem import MultipleChoiceItem
 from Entities.SubMenuItem import SubMenuItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
@@ -36,7 +37,7 @@ from Entities.Maps.BlockChecks import BlockChecks
 
 
 class Tracker:
-    def __init__(self, template_name, main_menu):
+    def __init__(self, template_name, main_menu, is_dev=False):
         self.position_check_zone_hint = None
         self.surface_check_zone_hint = None
         self.initialized = False
@@ -82,7 +83,7 @@ class Tracker:
         self.resources_base_path = os.path.join(self.core_service.get_temp_path(), "tracker")
         self.menu = []
         self.bank = Bank()
-        self.extract_data()
+        self.extract_data(is_dev)
         self.manager = pygame_gui.UIManager((pygame.display.get_surface().get_size()))
         self.init_tracker()
         self.core_service.set_json_data(self.tracker_json_data)
@@ -118,7 +119,10 @@ class Tracker:
                     else:
                         messagebox.showerror('Error', 'This save is for the template {}'.format(f[0]["template_name"]))
 
-    def extract_data(self):
+    def extract_data(self, is_dev):
+        if is_dev:
+            self.resources_path =  os.path.join(self.core_service.get_app_path(), "template_dev")
+            return
         filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
         self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
 
@@ -390,9 +394,9 @@ class Tracker:
                     row=item["SheetInformation"]["row"],
                     column=item["SheetInformation"]["column"]))
 
-            def get_position(item):
-                return (item["Positions"]["x"] * self.core_service.zoom,
-                        item["Positions"]["y"] * self.core_service.zoom)
+            def get_position(item, position_key="Positions"):
+                return (item[position_key]["x"] * self.core_service.zoom,
+                        item[position_key]["y"] * self.core_service.zoom)
 
             def get_size(item):
                 return (item["Sizes"]["w"] * self.core_service.zoom,
@@ -449,6 +453,7 @@ class Tracker:
                 "EvolutionItem": EvolutionItem,
                 "AlternateEvolutionItem": AlternateEvolutionItem,
                 "IncrementalItem": IncrementalItem,
+                "MultipleChoiceItem": MultipleChoiceItem,
                 "SubMenuItem": SubMenuItem,
                 "EditableBox": EditableBox,
                 "DraggableEvolutionItem": DraggableEvolutionItem,
@@ -522,6 +527,22 @@ class Tracker:
                     _item = create_base_item(item, item_class,
                                              increments=item["Increment"],
                                              start_increment_index=item.get("StartIncrementIndex"))
+
+                elif item["Kind"] == "MultipleChoiceItem":
+                    addlProps = {}
+                    if "ActiveOnSelection" in item:
+                        addlProps["active_on_selection"] = item["ActiveOnSelection"]
+                    if "BackgroundOffset" in item:
+                        addlProps["background_offset"] = get_position(item, "BackgroundOffset")
+                    if "CloseOnSelection" in item:
+                        addlProps["close_on_selection"] = item["CloseOnSelection"]
+
+                    _item = create_base_item(item, item_class,
+                                             background_image=item["Background"],
+                                             resources_path=self.resources_path,
+                                             tracker=self,
+                                             items_list=item["ItemsList"],
+                                             **addlProps)
 
                 elif item["Kind"] == "SubMenuItem":
                     _item = create_base_item(item, item_class,

@@ -114,5 +114,3 @@ class SubMenuItem(Item):
                     break
 
         Item.set_data(self, datas)
-
-
