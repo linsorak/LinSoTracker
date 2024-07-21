@@ -614,7 +614,8 @@ class Tracker:
                         self.sound_cancel.play()
 
     def items_click(self, item_list, mouse_position, button):
-        for item in item_list:
+        # Reverse the item list order so that the items that seem on top get clicked on
+        for item in reversed(item_list.sprites()):
             # if self.core_service.is_on_element(mouse_positions=mouse_position, element_positons=item.get_position(),
             #                                    element_dimension=(
             #                                    item.get_rect().w, item.get_rect().h)) and self.is_moving is None:

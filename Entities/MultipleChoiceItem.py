@@ -12,6 +12,8 @@ from Tools.Bank import Bank
 # The main item can then be selected normally, or optionally can automatically select to the chosen item.
 # Middle click will undo all selections.
 #
+# Only really works with Items and labels
+#
 # An example of this would be a bottled item in Majora's Mask, where the contents of the bottle
 # could be easily selected and modified, making it less of a hassle to mark, for example, the seahorse.
 #

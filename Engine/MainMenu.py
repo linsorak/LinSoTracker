@@ -67,7 +67,7 @@ class MainMenu:
         self.init_menu()
         self.set_check()
         self.process_templates_list()
-        #self.download_missing_officials_templates()
+        self.download_missing_officials_templates()
         self.loaded_tracker = None
         self.btn_paypal = None
         self.btn_discord = None
@@ -314,15 +314,10 @@ class MainMenu:
         x_title = x_description_menu + 17
         y_title = y_description_menu + 13
 
-        template_title = self.template_list[self.selected_menu_index]["information"]["Informations"]["Name"]
-        template_title_color = self.font_data["color_normal"]
-        if "is_dev" in self.template_list[self.selected_menu_index] and self.template_list[self.selected_menu_index]["is_dev"]:
-            template_title = "DEV TEMPLATE: " + template_title
-            template_title_color = self.font_data["color_error"]
         self.draw_text(
-            text=template_title,
+            text=self.template_list[self.selected_menu_index]["information"]["Informations"]["Name"],
             font_name=self.font_data["path"],
-            color=template_title_color,
+            color=self.font_data["color_normal"],
             font_size=self.font_data["title_size"],
             surface=screen,
             position=(x_title, y_title),
@@ -352,7 +347,18 @@ class MainMenu:
             position=(x_version, y_version),
             outline=1.5)
 
-        if "official" in self.template_list[self.selected_menu_index]:
+        if "is_dev" in self.template_list[self.selected_menu_index] and self.template_list[self.selected_menu_index]["is_dev"]:
+            x_official = x_description_menu + description_menu.get_rect().w - 160
+            y_official = y_description_menu + description_menu.get_rect().h - 35
+            self.draw_text(
+                text="DEV TEMPLATE",
+                font_name=self.font_data["path"],
+                color=self.font_data["color_error"],
+                font_size=self.font_data["size"],
+                surface=screen,
+                position=(x_official, y_official),
+                outline=1.5)
+        elif "official" in self.template_list[self.selected_menu_index]:
             x_official = x_description_menu + description_menu.get_rect().w - 90
             y_official = y_description_menu + description_menu.get_rect().h - 35
             self.draw_text(
@@ -390,6 +396,8 @@ class MainMenu:
                 outline=1.5)
 
     def download_missing_officials_templates(self):
+        if self.core_service.dev_version:
+            return
         for template in self.official_template:
             template_path = os.path.join(self.template_directory, f"{template.get('template_name')}.template")
             if not os.path.exists(template_path):
@@ -457,7 +465,7 @@ class MainMenu:
                     if off_template["template_name"] == template_data["filename"]:
                         template_data["official"] = off_template["lastest_version"]
 
-                        if data[0]["Informations"]["Version"] != template_data["official"]:
+                        if template_data["information"]["Informations"]["Version"] != template_data["official"]:
                             template_data["outdated"] = True
 
                         self.template_list.append(template_data)
@@ -468,6 +476,7 @@ class MainMenu:
 
         for none_official in temp_list:
             self.template_list.append(none_official)
+
         dev_template = self.process_dev_folder()
         if dev_template:
             dev_template["is_dev"] = True
@@ -590,6 +599,8 @@ class MainMenu:
     def keyup(self, button, screen):
         if self.loaded_tracker:
             self.loaded_tracker.keyup(button, screen)
+        elif button == pygame.K_F5:
+            self.process_templates_list()
 
     def events(self, events, time_delta):
         if self.loaded_tracker:

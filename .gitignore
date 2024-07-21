@@ -29,3 +29,5 @@ templates/twilightprincessmapold.template
 dist___
 default_saves
 .dev
+template_dev/*
+!template_dev/README.md
