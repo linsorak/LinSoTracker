@@ -28,6 +28,7 @@ from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
 from Entities.Maps.SimpleCheck import SimpleCheck
 from Entities.MultipleChoiceItem import MultipleChoiceItem
+from Entities.MultipleSelectItem import MultipleSelectItem
 from Entities.SubMenuItem import SubMenuItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
@@ -454,6 +455,7 @@ class Tracker:
                 "AlternateEvolutionItem": AlternateEvolutionItem,
                 "IncrementalItem": IncrementalItem,
                 "MultipleChoiceItem": MultipleChoiceItem,
+                "MultipleSelectItem": MultipleSelectItem,
                 "SubMenuItem": SubMenuItem,
                 "EditableBox": EditableBox,
                 "DraggableEvolutionItem": DraggableEvolutionItem,
@@ -542,6 +544,19 @@ class Tracker:
                                              resources_path=self.resources_path,
                                              tracker=self,
                                              items_list=item["ItemsList"],
+                                             **addlProps)
+
+                elif item["Kind"] == "MultipleSelectItem":
+                    addlProps = {}
+                    if "BackgroundOffset" in item:
+                        addlProps["background_offset"] = get_position(item, "BackgroundOffset")
+
+                    _item = create_base_item(item, item_class,
+                                             background_image=item["Background"],
+                                             resources_path=self.resources_path,
+                                             tracker=self,
+                                             items_list=item["ItemsList"],
+                                             items_sheet_dict=items_sheet_dict,
                                              **addlProps)
 
                 elif item["Kind"] == "SubMenuItem":

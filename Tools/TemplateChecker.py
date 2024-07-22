@@ -293,6 +293,8 @@ class TemplateChecker:
                     pass
                 elif item["Kind"] == "MultipleChoiceItem":
                     pass
+                elif item["Kind"] == "MultipleSelectItem":
+                    pass
                 elif item["Kind"] == "SubMenuItem":
                     pass
                 elif item["Kind"] == "AlternateEvolutionItem":
