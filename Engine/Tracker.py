@@ -84,6 +84,7 @@ class Tracker:
         self.resources_base_path = os.path.join(self.core_service.get_temp_path(), "tracker")
         self.menu = []
         self.bank = Bank()
+        self.is_dev = is_dev
         self.extract_data(is_dev)
         self.manager = pygame_gui.UIManager((pygame.display.get_surface().get_size()))
         self.init_tracker()
@@ -173,7 +174,7 @@ class Tracker:
 
         self.core_service.set_background_color(background_color_r, background_color_g, background_color_b)
 
-        self.menu = Menu((w, h), self)
+        self.menu = Menu((w, h), self, self.is_dev)
         self.menu.set_tracker(self)
         self.esc_menu_image = self.bank.addImage(os.path.join(self.resources_base_path, "menu.png"))
 
@@ -404,6 +405,12 @@ class Tracker:
                         item["Sizes"]["h"] * self.core_service.zoom)
 
             def create_base_item(item, item_class, **additional_args):
+                if "PlaceholderIcon" in item:
+                    placeholder_info = item["PlaceholderIcon"]
+                    item_sheet = items_sheet_dict[placeholder_info["SpriteSheet"]]
+                    additional_args["placeholder_icon"] = self.core_service.zoom_image(item_sheet["ImageSheet"].getImageWithRowAndColumn(
+                        row=placeholder_info["row"],
+                        column=placeholder_info["column"]))
                 return item_class(name=item["Name"],
                                   image=item_image,
                                   position=get_position(item),
@@ -1008,7 +1015,9 @@ class Tracker:
                     screen.blit(self.surface_check_hint, self.position_check_hint)
 
         else:
-            self.items.draw(screen)
+            info_object = pygame.display.Info()
+            s = pygame.Surface((info_object.current_w, info_object.current_h), pygame.SRCALPHA)
+            self.items.draw(s)
 
             for item in self.items:
                 if isinstance(item, GoModeItem) and item.enable:
@@ -1016,7 +1025,15 @@ class Tracker:
                     break
 
             self.manager.update(time_delta)
-            self.manager.draw_ui(screen)
+            self.manager.draw_ui(s)
+            screen.blit(s, (0, 0))
+            if self.is_dev:
+                screenshot = pygame.Surface((info_object.current_w, info_object.current_h), pygame.SRCALPHA)
+                background_color = self.core_service.get_background_color()
+                screenshot.fill(background_color)
+                screenshot.blit(self.background_image, (0, 0))
+                screenshot.blit(s, (0, 0))
+                self.menu.set_screen(screenshot)
 
         for submenu in self.submenus:
             submenu.draw_submenu(screen, time_delta)

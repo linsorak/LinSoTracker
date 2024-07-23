@@ -13,8 +13,9 @@ from Tools.SaveLoadTool import SaveLoadTool
 
 
 class Menu:
-    def __init__(self, dimensions, tracker):
+    def __init__(self, dimensions, tracker, is_dev=False):
         self.tracker = tracker
+        self.screen = None
         self.core_service = CoreService()
         self.saveTool = SaveLoadTool()
         font = pygame.font.Font(self.core_service.get_menu_font(), 20)
@@ -49,6 +50,8 @@ class Menu:
         self.menu.add.button('Discord', self.open_discord)
         self.menu.add.button('Pay me a coffee ? :)', self.open_paypal)
         self.menu.add.button('Official website', self.open_website)
+        if is_dev:
+            self.menu.add.button('Take screenshot', self.take_screenshot)
         self.menu.add.button('Close menu', self.menu.disable)
         self.menu.disable()
 
@@ -152,8 +155,16 @@ class Menu:
         self.tracker.back_main_menu()
         self.menu.disable()
 
+    def take_screenshot(self):
+        filename =  os.path.join(self.core_service.get_app_path(), "template_dev", "screenshot.jpg")
+        pygame.image.save(self.screen, filename)
+        self.menu.disable()
+
     def set_tracker(self, tracker):
         self.tracker = tracker
+
+    def set_screen(self, screen):
+        self.screen = screen
 
     @staticmethod
     def open_discord():

@@ -89,8 +89,7 @@ class MultipleSelectItem(Item):
     def init_items(self):
         for item in self.items_list:
             self.tracker.init_item(item, self.items, self.manager)
-        for i, item in enumerate(self.items):
-            item_data = self.items_list[i]
+        for item_data, item in zip(self.items_list, self.items):
             if "Representation" in item_data:
                 item_sheet = self.items_sheet_dict[item_data["Representation"]["SpriteSheet"]]
                 item.representation = self.core_service.zoom_image(

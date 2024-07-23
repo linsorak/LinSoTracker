@@ -7,7 +7,8 @@ from Tools.CoreService import CoreService
 
 
 class Item(pygame.sprite.Sprite):
-    def __init__(self, id, name, position, image, opacity_disable, hint, enable=True, show_item=True):
+    def __init__(self, id, name, position, image, opacity_disable, hint, enable=True, show_item=True,
+                 placeholder_icon=None):
         pygame.sprite.Sprite.__init__(self)
         self.id = id
         self.show_item = show_item
@@ -21,8 +22,11 @@ class Item(pygame.sprite.Sprite):
         self.base_position = position
         self.core_service = CoreService()
         self.colored_image = image.convert_alpha()
-        self.grey_image = image.convert_alpha()
-        self.core_service.convert_to_gs(self.grey_image)
+        if placeholder_icon:
+            self.grey_image = placeholder_icon.convert_alpha()
+        else:
+            self.grey_image = image.convert_alpha()
+            self.core_service.convert_to_gs(self.grey_image)
         self.left_hint = False
 
         self.hint_items_data = None
