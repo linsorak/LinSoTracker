@@ -405,12 +405,6 @@ class Tracker:
                         item["Sizes"]["h"] * self.core_service.zoom)
 
             def create_base_item(item, item_class, **additional_args):
-                if "PlaceholderIcon" in item:
-                    placeholder_info = item["PlaceholderIcon"]
-                    item_sheet = items_sheet_dict[placeholder_info["SpriteSheet"]]
-                    additional_args["placeholder_icon"] = self.core_service.zoom_image(item_sheet["ImageSheet"].getImageWithRowAndColumn(
-                        row=placeholder_info["row"],
-                        column=placeholder_info["column"]))
                 return item_class(name=item["Name"],
                                   image=item_image,
                                   position=get_position(item),
