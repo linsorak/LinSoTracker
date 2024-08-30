@@ -704,11 +704,15 @@ class Tracker:
 
         if can_click:
             if self.current_map:
-                self.current_map.click(mouse_position, button)
                 # self.current_map.update()
+                item_was_clicked = False
+                if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open():
+                    item_was_clicked = self.items_click(self.items, mouse_position, button)
 
-                if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open() and not self.current_map.check_window.is_open():
-                    self.items_click(self.items, mouse_position, button)
+                if not item_was_clicked:
+                    # We only want to interact with the map if an item wasn't clicked on
+                    # This ensures that we don't close any blocks when interacting with items
+                    self.current_map.click(mouse_position, button)
 
                 if self.maps_list_window.is_open():
                     self.maps_list_window.left_click(mouse_position)
