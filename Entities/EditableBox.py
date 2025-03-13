@@ -16,6 +16,7 @@ class EditableBox(Item):
                       opacity_disable=0.3,
                       hint=None)
         self.manager = manager
+        self.clicked = False
         custom_json = {
             f"@{name}": {
                 "colours": {
@@ -69,7 +70,7 @@ class EditableBox(Item):
         self.edit_box.process_event(event)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.edit_box.rect.collidepoint(event.pos):
+            if self.edit_box.rect.collidepoint(event.pos) and self.clicked:
                 self.edit_box.focus()
                 if len(self.edit_box.get_text()) == 0:
                     self.suggestion_list.show()
@@ -78,8 +79,10 @@ class EditableBox(Item):
                 if not self.suggestion_list.rect.collidepoint(event.pos):
                     self.suggestion_list.hide()
 
+                self.clicked = False
+
         elif event.type == pygame.KEYUP:
-            if self.edit_box.is_focused:
+            if self.edit_box.is_focused and self.clicked:
                 user_input = self.edit_box.get_text().lower()
                 if len(user_input) > 0:
                     matching_suggestions = self.search_items_by_case_insensitive(user_input, self.lines)
@@ -89,14 +92,16 @@ class EditableBox(Item):
                 else:
                     self.suggestion_list.set_item_list(self.lines)
                     self.suggestion_list.hide()
+                    self.clicked = False
 
         elif event.type == pygame.USEREVENT:
             if event.user_type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION and event.ui_object_id == \
-                    self.suggestion_list.object_ids[0]:
+                    self.suggestion_list.object_ids[0] and self.clicked:
                 selected_suggestion = event.text
                 if selected_suggestion:
                     self.edit_box.set_text(selected_suggestion)
                     self.suggestion_list.hide()
+                    self.clicked = False
 
     @staticmethod
     def search_items_by_case_insensitive(text, item_list):
@@ -114,4 +119,7 @@ class EditableBox(Item):
             # return self.suggestion_list.rect.collidepoint(mouse_position)
         else:
             return self.edit_box.rect.collidepoint(mouse_position)
+
+    def left_click(self):
+        self.clicked = True
 

@@ -2,3 +2,5 @@ pygame
 pygame_menu
 cryptography
 pyinstaller
+pygame_gui
+numpy

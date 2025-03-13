@@ -1,6 +1,7 @@
 import glob
 import io
 import json
+import math
 import os
 from tkinter import messagebox
 from zipfile import ZipFile
@@ -383,6 +384,27 @@ class MainMenu:
                 position=(x_comments, y_comments),
                 outline=1.5)
 
+        if "Credits" in self.template_list[self.selected_menu_index]:
+            x_credits = x_creator
+
+            if "Comments" in self.template_list[self.selected_menu_index]:
+                y_credits = y_comments + 22
+            else:
+                y_credits = y_version + 22
+
+            self.draw_text(
+                text="Credits : {}".format(
+                    self.template_list[self.selected_menu_index]["information"]["Informations"]["Credits"]),
+                font_name=self.font_data["path"],
+                color=self.font_data["color_normal"],
+                font_size=self.font_data["description_size"] * 0.85,
+                surface=screen,
+                position=(x_credits, y_credits),
+                outline=1.5)
+
+
+            print(f"Credits {x_credits}, {y_credits}")
+
     def download_missing_officials_templates(self):
         for template in self.official_template:
             template_path = os.path.join(self.template_directory, f"{template.get('template_name')}.template")
@@ -421,6 +443,9 @@ class MainMenu:
             if "Comments" in data[0]["Informations"]:
                 template_data["Comments"] = data[0]["Informations"]["Comments"]
 
+            if "Credits" in data[0]["Informations"]:
+                template_data["Credits"] = data[0]["Informations"]["Credits"]
+
             if self.official_template:
                 for off_template in self.official_template:
                     if off_template["template_name"] == template_data["filename"]:
@@ -438,7 +463,7 @@ class MainMenu:
         for none_official in temp_list:
             self.template_list.append(none_official)
 
-        self.max_pages = int(len(self.template_list) / self.max_icon_per_page) + self.current_page
+        self.max_pages = math.ceil(len(self.template_list) / (self.max_row * self.max_column))
 
     @staticmethod
     def draw_text(text, font_name, color, font_size, surface, position, outline=2, color_outline=(0, 0, 0)):
@@ -457,7 +482,6 @@ class MainMenu:
     def click_down(self, mouse_position, button):
         if self.loaded_tracker:
             self.loaded_tracker.click_down(mouse_position, button)
-
 
     def click(self, mouse_position, button):
         if not self.loaded_tracker:

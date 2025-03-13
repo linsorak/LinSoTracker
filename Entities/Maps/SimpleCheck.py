@@ -26,12 +26,8 @@ class SimpleCheck:
         self.focused = False
         self.zone = zone
         self.zoom = self.map.tracker.core_service.zoom
-        # self.zoom = 1.0
-        #
-        # if self.map.tracker.core_service.zoom < 1.0:
-        #     self.zoom = 0.9
+        self.pin_rect = pygame.Rect(0, 0, 1, 1)
 
-        # self.conditions = "have('Giant Bomb Bag') or have('Bomb Bag') or have('Bomb') or have('Water Bomb')"
         if type(self.conditions) == str:
             self.conditions = self.conditions.replace("have(", "self.map.tracker.have(")
             self.conditions = self.conditions.replace("do(", "self.map.tracker.do(")

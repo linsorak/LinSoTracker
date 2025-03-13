@@ -9,95 +9,80 @@ import pygame
 
 from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
-import ctypes
 
 core_service = CoreService()
 
-
 def main():
     os.environ["SDL_MOUSE_FOCUS_CLICKTHROUGH"] = "1"
-    main_menu = MainMenu()
-    dimension = main_menu.get_dimension()
+    os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
     pygame.init()
     pygame.mixer.init()
+    main_menu = MainMenu()
+    dimension = main_menu.get_dimension()
     screen = pygame.display.set_mode(dimension)
     pygame.display.set_caption(core_service.get_window_title())
     main_menu.initialization()
     pygame.display.set_icon(main_menu.get_icon())
-    core_service.setgamewindowcenter(x=dimension[0], y=dimension[1])
+    core_service.setgamewindowcenter(*dimension)
+    clock = core_service.clock
     loop = True
-    mouse_position = None
-
+    mouse_position = (0, 0)
     CLICK_THRESHOLD = 100
     is_mouse_down = False
     start_time = 0
     button_event = None
 
-    try:
-        while loop:
-            background_color = core_service.get_background_color()
-            screen.fill(background_color)
-            events = pygame.event.get()
-            time_delta = core_service.clock.tick(core_service.fps_max) / 1000.0
-            for event in events:
-                main_menu.events(event, time_delta)
-                if event.type == pygame.QUIT:
-                    loop = False
-                    break
+    while loop:
+        background_color = core_service.get_background_color()
+        screen.fill(background_color)
+        events = pygame.event.get()
+        time_delta = clock.tick(core_service.fps_max) / 1000.0
 
-                if event.type == pygame.MOUSEMOTION:
-                    mouse_position = pygame.mouse.get_pos()
-                    main_menu.mouse_move(mouse_position)
-
-                if event.type == pygame.MOUSEBUTTONUP:
-                    button_event = event.button
-                    is_mouse_down = False
-                    main_menu.click(mouse_position, event.button)
-
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    button_event = event.button
+        for event in events:
+            main_menu.events(event, time_delta)
+            if event.type == pygame.QUIT:
+                loop = False
+                break
+            elif event.type == pygame.MOUSEMOTION:
+                mouse_position = pygame.mouse.get_pos()
+                main_menu.mouse_move(mouse_position)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
                     is_mouse_down = True
                     start_time = pygame.time.get_ticks()
-                    # main_menu.click_down(mouse_position, event.button)
-
-                if event.type == pygame.KEYUP:
-                    main_menu.keyup(event.key, screen)
-
-            if is_mouse_down:
-                current_time = pygame.time.get_ticks()
-                click_duration = current_time - start_time
-
-                if click_duration >= CLICK_THRESHOLD:
-                    main_menu.click_down(mouse_position, button_event)
+                    button_event = event.button
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
                     is_mouse_down = False
-                    start_time = 0
+                    main_menu.click(mouse_position, event.button)
+                else:
+                    main_menu.click(mouse_position, event.button)
+            elif event.type == pygame.KEYUP:
+                main_menu.keyup(event.key, screen)
 
-            # core_service.clock.tick(core_service.fps_max)
-            main_menu.draw(screen, time_delta)
-            pygame.display.update()
+        if is_mouse_down and button_event == 1:
+            current_time = pygame.time.get_ticks()
+            if current_time - start_time >= CLICK_THRESHOLD:
+                main_menu.click_down(mouse_position, button_event)
+                is_mouse_down = False
+                start_time = 0
 
-            if not loop:
-                del main_menu
-                gc.collect()
-                core_service.delete_temp_path()
+        main_menu.draw(screen, time_delta)
+        pygame.display.update()
 
-        pygame.quit()
-    except SystemExit:
-        core_service.delete_temp_path()
-        pygame.quit()
-
+    del main_menu
+    gc.collect()
+    core_service.delete_temp_path()
+    pygame.quit()
 
 if __name__ == '__main__':
     if core_service.detect_os() == "win" and not core_service.dev_version:
-        #     # BASE 64 ENCODE OF : ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0) For hide console
         checker = "Y3R5cGVzLndpbmRsbC51c2VyMzIuU2hvd1dpbmRvdyhjdHlwZXMud2luZGxsLmtlcm5lbDMyLkdldENvbnNvbGVXaW5kb3coKSwgMCk="
         exec(base64.b64decode(checker))
-
     rootdir = tempfile.gettempdir()
     for path in glob.glob(f'{rootdir}/*/'):
         if "LinSoTracker" in path:
             core_service.delete_directory(path)
-
     root = tkinter.Tk()
     root.overrideredirect(1)
     root.withdraw()
