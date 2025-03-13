@@ -32,3 +32,4 @@ default_saves
 LinSoTracker-macOS
 *.zip
 logs
+templates/windwaker.template

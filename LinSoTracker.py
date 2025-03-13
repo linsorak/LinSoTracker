@@ -19,7 +19,7 @@ from Tools.CoreService import CoreService
 def setup_logger():
     log_dir = "logs"
     os.makedirs(log_dir, exist_ok=True)
-    log_file = os.path.join(log_dir, f"app_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log")
+    log_file = os.path.join(log_dir, f"LinSoTracker_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log")
 
     logging.basicConfig(
         level=logging.ERROR,

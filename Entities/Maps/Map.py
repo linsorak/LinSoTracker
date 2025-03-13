@@ -53,7 +53,6 @@ class Map:
     def update(self):
         if not self.can_be_updated:
             return
-
         resources_path = self.tracker.resources_path
         core_service = self.tracker.core_service
         zoom = core_service.zoom
@@ -65,6 +64,7 @@ class Map:
                 os.path.join(resources_path, self.checks_list_background_filename))
             self._last_zoom = zoom
 
+        list(self.executor.map(lambda check: check.update(), self.checks_list))
         if self.current_block_checks:
             box_rect_data = datas["DrawBoxRectSubTitle"] if self.current_block_checks.zone else datas["DrawBoxRect"]
             bg_rect = self.checks_list_background.get_rect()
@@ -89,8 +89,6 @@ class Map:
             right_arrow = (datas["RightArrow"]["Positions"]["x"], datas["RightArrow"]["Positions"]["y"])
             self.check_window.set_arrows_positions(left_arrow, right_arrow)
             self.check_window.update()
-        else:
-            list(self.executor.map(lambda check: check.update(), self.checks_list))
 
         self.tracker.update_cpt()
 
@@ -122,8 +120,6 @@ class Map:
     def click_map(self, mouse_position, button):
         if self.check_window.is_open():
             self.check_window.left_click(mouse_position, button)
-            if self.current_block_checks:
-                self.current_block_checks.update()
         else:
             self.current_block_checks = None
 

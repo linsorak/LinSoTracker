@@ -584,8 +584,8 @@ class Tracker:
             if self.current_map:
                 self.current_map.click(mouse_position, button)
                 if (not self.maps_list_window.is_open() and
-                    not self.rules_options_list_window.is_open() and
-                    not self.current_map.check_window.is_open()):
+                    not self.rules_options_list_window.is_open()) :#and
+                    # not self.current_map.check_window.is_open()):
                     self.items_click(self.items, mouse_position, button)
                 if self.maps_list_window.is_open():
                     self.maps_list_window.left_click(mouse_position)
@@ -900,6 +900,18 @@ class Tracker:
             return True
         return False
 
+    def haveAlternateValue(self, item_name):
+        item = self.find_item(item_name)
+        return item and item.hint_show
+
+    def isChecked(self, item_name):
+        item = self.find_item(item_name)
+        return isinstance(item, CheckItem) and item.check
+
+    def isVisible(self, item_name):
+        item = self.find_item(item_name)
+        return item.show_item
+
     def do(self, action):
         """
         Execute the action if it exists in the JSON configuration.
@@ -912,7 +924,10 @@ class Tracker:
                 code_str = code_str.strip()
                 code_str = code_str.replace("have(", "self.have(") \
                     .replace("do(", "self.do(") \
-                    .replace("rules(", "self.rules(")
+                    .replace("rules(", "self.rules(") \
+                    .replace("haveAlternateValue(", "self.haveAlternateValue(") \
+                    .replace("isChecked(", "self.isChecked(") \
+                    .replace("isVisible(", "self.isVisible(")
             else:
                 code_str = action
             if action not in self._compiled_actions:

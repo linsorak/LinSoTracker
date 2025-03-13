@@ -34,6 +34,10 @@ class CheckListItem(Sprite):
             self.conditions = self.conditions.replace("do(", "self.tracker.do(")
             self.conditions = self.conditions.replace("rules(", "self.tracker.rules(")
             self.conditions = self.conditions.replace("haveCheck(", "self.tracker.have_check(")
+            self.conditions = self.conditions.replace("haveAlternateValue(", "self.tracker.haveAlternateValue(")
+            self.conditions = self.conditions.replace("isChecked(", "self.tracker.isChecked(")
+            self.conditions = self.conditions.replace("isVisible(", "self.tracker.isVisible(")
+
         self.update()
 
     def update(self):

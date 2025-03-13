@@ -271,8 +271,13 @@ class PopupWindow:
             self.tracker.current_map.update()
 
         if not click_found:
-            self.close_window()
-            self.current_check_page = 1
+            if not self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
+                                                       element_positons=(self.tracker.background_image.get_rect().x, self.tracker.background_image.get_rect().y),
+                                                       element_dimension=(
+                                                             self.tracker.background_image.get_rect().w,
+                                                             self.tracker.background_image.get_rect().h)):
+                self.close_window()
+                self.current_check_page = 1
 
     def set_list_items(self, list_items):
         self.list_items = list_items
@@ -337,3 +342,4 @@ class PopupWindow:
     def close_window(self):
         self.open = False
         self.update()
+        self.tracker.update()
