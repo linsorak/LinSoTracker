@@ -6,6 +6,7 @@ import os
 import re
 import operator
 import time
+from multiprocessing.pool import ThreadPool
 from tkinter import messagebox
 from zipfile import ZipFile
 
@@ -91,7 +92,7 @@ class Tracker:
         self._font_cache = {}
         self._compiled_actions = {}
 
-        self._pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+        self._pool = ThreadPool(processes=multiprocessing.cpu_count())
 
         self.extract_data()
         self.init_tracker()
@@ -107,8 +108,6 @@ class Tracker:
         self.menu.set_sound_check(self.core_service.sound_active)
         self.menu.set_esc_check(self.core_service.draw_esc_menu_label)
         self.menu.set_show_hint_check(self.core_service.show_hint_on_item)
-        print(self.resources_base_path)
-        time.sleep(20)
         self.sound_select = pygame.mixer.Sound(os.path.join(self.resources_base_path, "select.wav"))
         self.sound_cancel = pygame.mixer.Sound(os.path.join(self.resources_base_path, "cancel.wav"))
         pygame.mixer.Sound.set_volume(self.sound_select, 0.3)
@@ -156,11 +155,6 @@ class Tracker:
                 except PermissionError:
                     pass
             zip.close()
-
-        print("Fichiers extraits :")
-        for root, dirs, files in os.walk(self.resources_path):
-            for file in files:
-                print(os.path.join(root, file))
 
     def init_tracker(self):
         filename = os.path.join(self.resources_path, "tracker.json")

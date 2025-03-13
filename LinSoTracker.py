@@ -1,6 +1,7 @@
 import base64
 import gc
 import glob
+import multiprocessing
 import os
 import tempfile
 import tkinter
@@ -76,6 +77,8 @@ def main():
     pygame.quit()
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
+    multiprocessing.set_start_method("spawn")
     if core_service.detect_os() == "win" and not core_service.dev_version:
         checker = "Y3R5cGVzLndpbmRsbC51c2VyMzIuU2hvd1dpbmRvdyhjdHlwZXMud2luZGxsLmtlcm5lbDMyLkdldENvbnNvbGVXaW5kb3coKSwgMCk="
         exec(base64.b64decode(checker))

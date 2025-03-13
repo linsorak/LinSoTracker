@@ -91,12 +91,6 @@ class MainMenu:
             with ZipFile(filename, 'r') as zip:
                 zip.extractall(self.resources_path)
 
-        # Affichage des fichiers extraits
-        print("Fichiers extraits :")
-        for root, dirs, files in os.walk(self.resources_path):
-            for file in files:
-                print(os.path.join(root, file))
-
     def init_menu(self):
         filename = os.path.join(self.resources_path, "home.json")
         if os.path.isfile(filename):
