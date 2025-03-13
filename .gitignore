@@ -31,3 +31,4 @@ default_saves
 .dev
 LinSoTracker-macOS
 *.zip
+logs

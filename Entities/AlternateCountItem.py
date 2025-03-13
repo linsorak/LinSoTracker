@@ -75,12 +75,6 @@ class AlternateCountItem(Item):
 
         self.update()
 
-    def wheel_up(self):
-        self.left_click()
-
-    def wheel_down(self):
-        self.right_click()
-
     def get_data(self):
         data = Item.get_data(self)
         data["value"] = self.value

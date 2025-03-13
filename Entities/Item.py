@@ -73,6 +73,7 @@ class Item(pygame.sprite.Sprite):
             if self.is_dragging and self.can_drag:
                 self.rect.center = pygame.mouse.get_pos()
 
+
         else:
             self.image = pygame.Surface((0, 0))
             self.set_child_visibilty("inactive_items", False)
@@ -134,11 +135,14 @@ class Item(pygame.sprite.Sprite):
                 if sub_child_lst and not visible:
                     child.set_child_visibilty(child_list_name, visible)
 
+                if not visible:
+                    child.enable = visible
+
     def wheel_up(self):
-        pass
+        self.left_click()
 
     def wheel_down(self):
-        pass
+        self.right_click()
 
     def generate_text(self, text, font_name, color, font_size, o_width=2):
         temp_surface = pygame.Surface((400, 400)).convert_alpha()

@@ -60,12 +60,6 @@ class IncrementalItem(Item):
                                                image_surface=self.image,
                                                text_position="left")
 
-    def wheel_up(self):
-        self.left_click()
-
-    def wheel_down(self):
-        self.right_click()
-
     def get_data(self):
         data = Item.get_data(self)
         data["increments_position"] = self.increments_position

@@ -36,8 +36,6 @@ class LabelItem(Item):
 
         self.update()
 
-    def wheel_up(self):
-        self.right_click()
 
     def wheel_down(self):
         if self.label_count > 0:
