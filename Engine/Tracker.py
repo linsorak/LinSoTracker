@@ -1,9 +1,11 @@
 import gc
+import inspect
 import json
 import multiprocessing
 import os
 import re
 import operator
+import time
 from tkinter import messagebox
 from zipfile import ZipFile
 
@@ -39,6 +41,7 @@ from Entities.Maps.BlockChecks import BlockChecks
 
 class Tracker:
     def __init__(self, template_name, main_menu):
+        self.loaded = False
         self.position_check_zone_hint = None
         self.surface_check_zone_hint = None
         self.initialized = False
@@ -104,6 +107,8 @@ class Tracker:
         self.menu.set_sound_check(self.core_service.sound_active)
         self.menu.set_esc_check(self.core_service.draw_esc_menu_label)
         self.menu.set_show_hint_check(self.core_service.show_hint_on_item)
+        print(self.resources_base_path)
+        time.sleep(20)
         self.sound_select = pygame.mixer.Sound(os.path.join(self.resources_base_path, "select.wav"))
         self.sound_cancel = pygame.mixer.Sound(os.path.join(self.resources_base_path, "cancel.wav"))
         pygame.mixer.Sound.set_volume(self.sound_select, 0.3)
@@ -114,6 +119,7 @@ class Tracker:
         self.end_delay = None
         self.selected_items_list = None
         self.current_editablebox = None
+        self.loaded = True
 
     def get_font_data(self, font_session):
         if font_session not in self._font_cache:
@@ -138,16 +144,23 @@ class Tracker:
     def extract_data(self):
         filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
         self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
+
         self.core_service.delete_directory(self.resources_path)
         self.core_service.create_directory(self.resources_path)
         if os.path.isfile(filename):
-            with ZipFile(filename) as zip_file:
-                list_files = zip_file.namelist()
-                for file in list_files:
-                    try:
-                        zip_file.extract(file, self.resources_path)
-                    except PermissionError:
-                        pass
+            zip = ZipFile(filename)
+            list_files = zip.namelist()
+            for file in list_files:
+                try:
+                    zip.extract(file, self.resources_path)
+                except PermissionError:
+                    pass
+            zip.close()
+
+        print("Fichiers extraits :")
+        for root, dirs, files in os.walk(self.resources_path):
+            for file in files:
+                print(os.path.join(root, file))
 
     def init_tracker(self):
         filename = os.path.join(self.resources_path, "tracker.json")
@@ -250,6 +263,7 @@ class Tracker:
         popup.update()
 
     def update(self):
+        caller = inspect.stack()[1]
         zoom = self.core_service.zoom
         if self.current_map:
             if "MapsList" in self.tracker_json_data[4]:
@@ -830,11 +844,6 @@ class Tracker:
     def back_main_menu(self):
         self.main_menu.reset_tracker()
 
-    def delete_data(self):
-        for item in self.items:
-            del item
-        del self.items
-        gc.collect()
 
     def find_item(self, item_name, is_base_name=False):
         """

@@ -20,7 +20,6 @@ from Tools.TemplateChecker import TemplateChecker
 
 class MainMenu:
     def __init__(self):
-        # OFFSETS
         self.x_offset = -60
         self.y_offset = 60
         self.space_offset = 10
@@ -87,10 +86,16 @@ class MainMenu:
         filename = os.path.join(self.core_service.get_app_path(), "tracker.data")
         self.resources_path = os.path.join(self.core_service.get_temp_path(), "tracker")
         self.core_service.create_directory(self.resources_path)
+
         if os.path.isfile(filename):
-            zip = ZipFile(filename)
-            zip.extractall(self.resources_path)
-            zip.close()
+            with ZipFile(filename, 'r') as zip:
+                zip.extractall(self.resources_path)
+
+        # Affichage des fichiers extraits
+        print("Fichiers extraits :")
+        for root, dirs, files in os.walk(self.resources_path):
+            for file in files:
+                print(os.path.join(root, file))
 
     def init_menu(self):
         filename = os.path.join(self.resources_path, "home.json")
@@ -402,9 +407,6 @@ class MainMenu:
                 position=(x_credits, y_credits),
                 outline=1.5)
 
-
-            print(f"Credits {x_credits}, {y_credits}")
-
     def download_missing_officials_templates(self):
         for template in self.official_template:
             template_path = os.path.join(self.template_directory, f"{template.get('template_name')}.template")
@@ -569,7 +571,6 @@ class MainMenu:
         self.loaded_tracker = Tracker(tracker_name, self)
 
     def reset_tracker(self):
-        # self.loaded_tracker.delete_data()
         del self.loaded_tracker
         self.loaded_tracker = None
         dimension = self.get_dimension()
