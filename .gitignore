@@ -29,3 +29,5 @@ templates/twilightprincessmapold.template
 dist___
 default_saves
 .dev
+LinSoTracker-macOS
+*.zip

@@ -66,41 +66,47 @@ class EditableBox(Item):
         self.suggestion_list.hide()
 
     def handle_event(self, event):
-        if event.type == pygame.TEXTINPUT:
-            if self.edit_box.is_focused and event.text != self.edit_box.get_text()[-1:]:
-                self.edit_box.process_event(event)
-
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.edit_box.rect.collidepoint(event.pos) and self.clicked:
+            if self.edit_box.rect.collidepoint(event.pos):
                 self.edit_box.focus()
                 if len(self.edit_box.get_text()) == 0:
                     self.suggestion_list.show()
             else:
-                self.edit_box.unfocus()
                 if not self.suggestion_list.rect.collidepoint(event.pos):
                     self.suggestion_list.hide()
-                self.clicked = False
+                self.edit_box.unfocus()
+
+        elif event.type == pygame.KEYDOWN:
+            if self.edit_box.is_focused:
+                if event.key == pygame.K_BACKSPACE:
+                    current_text = self.edit_box.get_text()
+                    self.edit_box.set_text(current_text[:-1])
+                elif event.key == pygame.K_RETURN:
+                    self.suggestion_list.hide()
+                else:
+                    self.edit_box.process_event(event)
 
         elif event.type == pygame.KEYUP:
-            if self.edit_box.is_focused and self.clicked:
+            if self.edit_box.is_focused:
                 user_input = self.edit_box.get_text().lower()
                 if len(user_input) > 0:
                     matching_suggestions = self.search_items_by_case_insensitive(user_input, self.lines)
-                    if len(matching_suggestions) > 0:
+                    if matching_suggestions:
                         self.suggestion_list.set_item_list(matching_suggestions)
                         self.suggestion_list.show()
+                    else:
+                        self.suggestion_list.hide()
                 else:
                     self.suggestion_list.set_item_list(self.lines)
                     self.suggestion_list.hide()
-                    self.clicked = False
 
         elif event.type == pygame.USEREVENT:
-            if event.user_type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION and event.ui_object_id == self.suggestion_list.object_ids[0] and self.clicked:
+            if event.user_type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION and event.ui_object_id == \
+                    self.suggestion_list.object_ids[0]:
                 selected_suggestion = event.text
                 if selected_suggestion:
                     self.edit_box.set_text(selected_suggestion)
                     self.suggestion_list.hide()
-                    self.clicked = False
 
     @staticmethod
     def search_items_by_case_insensitive(text, item_list):

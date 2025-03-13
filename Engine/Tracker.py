@@ -520,7 +520,7 @@ class Tracker:
         for item in item_list:
             if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                element_positons=item.get_position(),
-                                               element_dimension=(item.get_rect().w, item.get_rect().h)):
+                                               element_dimension=(item.get_rect().w, item.get_rect().h)) and item.show_item:
                 item.left_click()
                 if self.core_service.sound_active:
                     if item.enable:
@@ -530,7 +530,7 @@ class Tracker:
 
     def items_click(self, item_list, mouse_position, button):
         for item in item_list:
-            if item.check_click(mouse_position) and self.is_moving is None:
+            if item.check_click(mouse_position) and self.is_moving is None and item.show_item:
                 if button == 1:
                     item.left_click()
                 elif button == 2:
@@ -554,7 +554,7 @@ class Tracker:
 
     def items_mouse_down(self, mouse_position, button, item_list):
         for item in item_list:
-            if item.check_click(mouse_position) and not item.is_dragging and item.can_drag:
+            if item.check_click(mouse_position) and not item.is_dragging and item.can_drag and item.show_item:
                 item.is_dragging = True
                 self.is_moving = item
                 self.selected_items_list = item_list
