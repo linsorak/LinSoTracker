@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import re
 import operator
+import shutil
 import time
 from multiprocessing.pool import ThreadPool
 from tkinter import messagebox
@@ -41,8 +42,9 @@ from Entities.Maps.BlockChecks import BlockChecks
 
 
 class Tracker:
-    def __init__(self, template_name, main_menu):
+    def __init__(self, template_name, main_menu, is_dev_template=False):
         self.loaded = False
+        self.is_dev_template = is_dev_template
         self.position_check_zone_hint = None
         self.surface_check_zone_hint = None
         self.initialized = False
@@ -128,33 +130,43 @@ class Tracker:
         return self._font_cache[font_session]
 
     def check_is_default_save(self):
-        save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")
-        if os.path.exists(save_directory):
-            save_name = os.path.join(save_directory, self.template_name + ".trackersave")
-            save_tool = SaveLoadTool()
-            if os.path.exists(save_name):
-                f = save_tool.loadEcryptedFile(save_name)
-                if f:
-                    if f[0]["template_name"] == self.template_name:
-                        self.load_data(f)
-                    else:
-                        messagebox.showerror('Error', 'This save is for the template {}'.format(f[0]["template_name"]))
+        try:
+            save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")
+            if os.path.exists(save_directory):
+                save_name = os.path.join(save_directory, self.template_name + ".trackersave")
+                save_tool = SaveLoadTool()
+                if os.path.exists(save_name):
+                    f = save_tool.loadEcryptedFile(save_name)
+                    if f:
+                        if f[0]["template_name"] == self.template_name:
+                            self.load_data(f)
+                        else:
+                            messagebox.showerror('Error', 'This save is for the template {}'.format(f[0]["template_name"]))
+        except:
+            messagebox.showerror('Save not compatible', f"This default save isn't compatible with {f[0]['template_name']}'s template version")
+
 
     def extract_data(self):
-        filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
-        self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
+        if self.is_dev_template:
+            template_dir = str(os.path.join(self.core_service.get_app_path(), "devtemplates", self.template_name))
+            destination_dir = str(os.path.join(self.core_service.get_temp_path(), self.template_name))
+            shutil.copytree(template_dir, destination_dir, dirs_exist_ok=True)
+            self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
+        else:
+            filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
+            self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
 
-        self.core_service.delete_directory(self.resources_path)
-        self.core_service.create_directory(self.resources_path)
-        if os.path.isfile(filename):
-            zip = ZipFile(filename)
-            list_files = zip.namelist()
-            for file in list_files:
-                try:
-                    zip.extract(file, self.resources_path)
-                except PermissionError:
-                    pass
-            zip.close()
+            self.core_service.delete_directory(self.resources_path)
+            self.core_service.create_directory(self.resources_path)
+            if os.path.isfile(filename):
+                zip = ZipFile(filename)
+                list_files = zip.namelist()
+                for file in list_files:
+                    try:
+                        zip.extract(file, self.resources_path)
+                    except PermissionError:
+                        pass
+                zip.close()
 
     def init_tracker(self):
         filename = os.path.join(self.resources_path, "tracker.json")

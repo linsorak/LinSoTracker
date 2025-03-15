@@ -121,6 +121,7 @@ class Item(pygame.sprite.Sprite):
         for sub_item in self.hint_items:
             sub_item.hint_show = False
             sub_item.show_item = False
+            sub_item.enable = False
             sub_item.update()
             if sub_item.hint_items:
                 sub_item.close_all_childs_hint_items()

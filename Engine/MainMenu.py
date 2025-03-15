@@ -20,6 +20,10 @@ from Tools.TemplateChecker import TemplateChecker
 
 class MainMenu:
     def __init__(self):
+        self.selected_indev = None
+        self.selected_official = None
+        self.content_indev = None
+        self.icon_indev = None
         self.x_offset = -60
         self.y_offset = 60
         self.space_offset = 10
@@ -61,6 +65,7 @@ class MainMenu:
         self.core_service = CoreService()
         self.bank = Bank()
         self.template_directory = os.path.join(self.core_service.get_app_path(), "templates")
+        self.dev_template_directory = os.path.join(self.core_service.get_app_path(), "devtemplates")
         self.template_list = []
         self.extract_data()
         self.init_menu()
@@ -110,6 +115,8 @@ class MainMenu:
         self.icon_update = self.bank.addImage(os.path.join(self.resources_path, self.icon_update))
         self.icon_official = self.menu_json_data[0]["OfficialIcon"]
         self.icon_official = self.bank.addImage(os.path.join(self.resources_path, self.icon_official))
+        self.icon_indev = self.menu_json_data[0]["InDevIcon"]
+        self.icon_indev = self.bank.addImage(os.path.join(self.resources_path, self.icon_indev))
         self.arrow_left = self.bank.addImage(os.path.join(self.resources_path, "arrow-left.png"))
         self.arrow_right = self.bank.addImage(os.path.join(self.resources_path, "arrow-right.png"))
         self.content = self.menu_json_data[0]["BoxTrackerContentImage"]
@@ -120,10 +127,13 @@ class MainMenu:
         self.content_update = self.bank.addImage(os.path.join(self.resources_path, self.content_update))
         self.content_official = self.menu_json_data[0]["BoxTrackerContentImageOfficial"]
         self.content_official = self.bank.addImage(os.path.join(self.resources_path, self.content_official))
+        self.content_indev = self.menu_json_data[0]["BoxTrackerContentImageInDev"]
+        self.content_indev = self.bank.addImage(os.path.join(self.resources_path, self.content_indev))
         self.selected = self.bank.addImage(os.path.join(self.resources_path, "glow.png"))
         self.selected_error = self.bank.addImage(os.path.join(self.resources_path, "glow-error.png"))
         self.selected_update = self.bank.addImage(os.path.join(self.resources_path, "glow-update.png"))
         self.selected_official = self.bank.addImage(os.path.join(self.resources_path, "glow-official.png"))
+        self.selected_indev = self.bank.addImage(os.path.join(self.resources_path, "glow-indev.png"))
         self.description_menu = self.bank.addImage(
             os.path.join(self.resources_path, self.menu_json_data[0]["DescriptionBox"]))
 
@@ -195,6 +205,8 @@ class MainMenu:
                             else:
                                 if "official" in current_template:
                                     content_image = self.content_official
+                                elif "is_dev_template" in current_template:
+                                    content_image = self.content_indev
                                 else:
                                     content_image = self.content
                         else:
@@ -208,6 +220,9 @@ class MainMenu:
 
                         if "official" in current_template and not outdated:
                             screen.blit(self.icon_official, (content_x, content_y))
+
+                        if "is_dev_template" in current_template and not outdated:
+                            screen.blit(self.icon_indev, (content_x, content_y))
 
                         self.menu_content.append({"positions": (content_x, content_y),
                                                   "dimensions": (content_rect.w, content_rect.h),
@@ -287,6 +302,9 @@ class MainMenu:
             glow = self.selected.copy()
             if "official" in self.template_list[self.selected_menu_index]:
                 glow = self.selected_official.copy()
+
+            if "is_dev_template" in self.template_list[self.selected_menu_index]:
+                glow = self.selected_indev.copy()
         else:
             glow = self.selected_error.copy()
 
@@ -419,12 +437,36 @@ class MainMenu:
 
     def process_templates_list(self):
         temp_list = []
+        official_temp_list = []
+        dev_temp_list = []
         self.template_list = []
-        for file in glob.glob("{}{}*.template".format(self.template_directory, os.sep)):
-            archive = ZipFile(file, 'r')
-            tracker_json = archive.read("tracker.json")
-            tracker_icon = archive.read("icon.png")
-            tracker_illustration = archive.read("illustration.png")
+        templates = glob.glob(f"{self.template_directory}{os.sep}*.template")
+
+        if os.path.exists(self.dev_template_directory):
+            dev_templates = [d for d in glob.glob(f"{self.dev_template_directory}{os.sep}*") if os.path.isdir(d)]
+            templates = dev_templates + templates
+
+        for file in templates:
+            if os.path.isdir(file):
+                tracker_file_path = os.path.join(file, "tracker.json")
+                icon_file_path = os.path.join(file, "icon.png")
+                illustration_file_path = os.path.join(file, "illustration.png")
+                if os.path.exists(tracker_file_path) and os.path.exists(icon_file_path) and os.path.exists(illustration_file_path):
+                    with open(tracker_file_path, "rb") as tracker_file:
+                        tracker_json = tracker_file.read()
+
+                    with open(icon_file_path, "rb") as icon_file:
+                        tracker_icon = icon_file.read()
+
+                    with open(illustration_file_path, "rb") as illustration_file:
+                        tracker_illustration = illustration_file.read()
+                else:
+                    continue
+            else:
+                archive = ZipFile(file, 'r')
+                tracker_json = archive.read("tracker.json")
+                tracker_icon = archive.read("icon.png")
+                tracker_illustration = archive.read("illustration.png")
 
             data = json.loads(tracker_json)
 
@@ -437,6 +479,10 @@ class MainMenu:
                 "illustration": pygame.image.load(io.BytesIO(tracker_illustration)),
                 "valid": template_checker.is_valid()
             }
+
+            if os.path.isdir(file):
+                template_data["is_dev_template"] = True
+
             if "Comments" in data[0]["Informations"]:
                 template_data["Comments"] = data[0]["Informations"]["Comments"]
 
@@ -451,14 +497,24 @@ class MainMenu:
                         if data[0]["Informations"]["Version"] != template_data["official"]:
                             template_data["outdated"] = True
 
-                        self.template_list.append(template_data)
+                        official_temp_list.append(template_data)
                         break
 
-            if not "official" in template_data:
+            if "is_dev_template" in template_data:
+                dev_temp_list.append(template_data)
+
+            if not ("official" in template_data or "is_dev_template" in template_data):
                 temp_list.append(template_data)
+
+        for indev in dev_temp_list:
+            self.template_list.append(indev)
+
+        for official in official_temp_list:
+            self.template_list.append(official)
 
         for none_official in temp_list:
             self.template_list.append(none_official)
+
 
         self.max_pages = math.ceil(len(self.template_list) / (self.max_row * self.max_column))
 
@@ -523,11 +579,10 @@ class MainMenu:
                                     self.set_check()
                                     self.process_templates_list()
                                 else:
-                                    self.set_tracker(menu["template"]["filename"])
+                                    self.set_tracker(menu["template"]["filename"], "is_dev_template" in menu["template"])
 
                             else:
-                                self.set_tracker(menu["template"]["filename"])
-                        # self.set_tracker(menu["template"]["filename"])
+                                self.set_tracker(menu["template"]["filename"], "is_dev_template" in menu["template"])
         else:
             self.loaded_tracker.click(mouse_position, button)
 
@@ -562,8 +617,8 @@ class MainMenu:
         else:
             self.loaded_tracker.mouse_move(mouse_position)
 
-    def set_tracker(self, tracker_name):
-        self.loaded_tracker = Tracker(tracker_name, self)
+    def set_tracker(self, tracker_name, is_dev_template=False):
+        self.loaded_tracker = Tracker(tracker_name, self, is_dev_template)
 
     def reset_tracker(self):
         del self.loaded_tracker
