@@ -126,3 +126,8 @@ class EvolutionItem(Item):
             return self.colored_image
         else:
             return self.image
+
+    def reinitialize(self):
+        self.next_item_index = -1
+        self.name = self.base_name
+        Item.reinitialize(self)

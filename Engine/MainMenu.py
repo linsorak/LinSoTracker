@@ -221,7 +221,7 @@ class MainMenu:
                         if "official" in current_template and not outdated:
                             screen.blit(self.icon_official, (content_x, content_y))
 
-                        if "is_dev_template" in current_template and not outdated:
+                        elif "is_dev_template" in current_template and not outdated:
                             screen.blit(self.icon_indev, (content_x, content_y))
 
                         self.menu_content.append({"positions": (content_x, content_y),
@@ -491,7 +491,7 @@ class MainMenu:
 
             if self.official_template:
                 for off_template in self.official_template:
-                    if off_template["template_name"] == template_data["filename"]:
+                    if off_template["template_name"] == template_data["filename"] and not "is_dev_template" in template_data:
                         template_data["official"] = off_template["lastest_version"]
 
                         if data[0]["Informations"]["Version"] != template_data["official"]:

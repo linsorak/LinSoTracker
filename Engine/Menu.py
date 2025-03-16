@@ -150,6 +150,7 @@ class Menu:
     def back_menu(self):
         self.tracker.change_zoom(value=1)
         self.tracker.back_main_menu()
+        self.tracker.bank.unloadImages()
         self.menu.disable()
 
     def set_tracker(self, tracker):

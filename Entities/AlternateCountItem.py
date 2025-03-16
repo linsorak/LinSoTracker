@@ -85,3 +85,7 @@ class AlternateCountItem(Item):
         self.value = datas["value"]
         self.used_max_value = datas["maxUsedValue"]
         Item.set_data(self, datas)
+
+    def reinitialize(self):
+        self.value = 0
+        Item.reinitialize(self)

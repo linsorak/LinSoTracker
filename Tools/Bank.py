@@ -32,3 +32,6 @@ class Bank(metaclass=Singleton):
             imageTemp = self.core_service.zoom_image(pygame.image.load(path).convert_alpha())
             self.bank[path] = imageTemp
             return imageTemp
+
+    def unloadImages(self):
+        self.bank.clear()

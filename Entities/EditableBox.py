@@ -64,8 +64,13 @@ class EditableBox(Item):
             object_id=ObjectID(class_id=f'@{name}', object_id=f'#{name}_list')
         )
         self.suggestion_list.hide()
+        self.edit_box.cursor_blink_interval = 0
+        self.edit_box._cursor_alpha = 0
 
     def handle_event(self, event):
+        if not self.enable:
+            return
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.edit_box.rect.collidepoint(event.pos):
                 self.edit_box.focus()
@@ -125,3 +130,20 @@ class EditableBox(Item):
 
     def left_click(self):
         self.clicked = True
+
+    def disable_click(self):
+        self.enable = False
+        self.edit_box.disable()
+
+    def enable_click(self):
+        self.enable = True
+        self.edit_box.enable()
+
+    def get_data(self):
+        data = Item.get_data(self)
+        data["text"] = self.edit_box.get_text() if hasattr(self, 'edit_box') else ""
+        return data
+
+    def set_data(self, datas):
+        self.edit_box.set_text(datas["text"])
+        Item.set_data(self, datas)

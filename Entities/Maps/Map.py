@@ -42,12 +42,12 @@ class Map:
                 block = BlockChecks(check["Id"], check["Name"], check["Positions"], self, zone=check.get("Zone"))
                 for check_item in check.get("Checks", []):
                     temp_check = CheckListItem(check_item["Id"], check_item["Name"], check["Positions"],
-                                               check_item["Conditions"], self.tracker)
+                                               check_item["Conditions"], self.tracker, group=check_item.get("Group", None))
                     block.add_check(temp_check)
                 self.checks_list.append(block)
             elif kind == "SimpleCheck":
                 simple_check = SimpleCheck(check["Id"], check["Name"], check["Positions"], self,
-                                           check["Conditions"], zone=check.get("Zone"))
+                                           check["Conditions"], zone=check.get("Zone"), group=check.get("Group", None))
                 self.checks_list.append(simple_check)
 
     def update(self):
@@ -155,13 +155,13 @@ class Map:
         if self.check_window.is_open():
             self.check_window.update()
 
+
     def get_count_checks(self):
         cpt_logic = 0
         cpt_left = 0
 
         for check in self.checks_list:
             if isinstance(check, BlockChecks):
-                # Toujours parcourir les sous-checks, indépendamment de l'état du BlockChecks
                 for sub_check in check.list_checks:
                     if not sub_check.hide and not sub_check.checked:
                         cpt_left += 1
@@ -174,6 +174,23 @@ class Map:
                         cpt_logic += 1
 
         return cpt_logic, cpt_left
+
+    def get_all_group_checks(self, call_check, group_name):
+        group = []
+        def simple_check_process(tmp_check):
+            if not tmp_check.hide and tmp_check.group == group_name:
+                if call_check != tmp_check:
+                    group.append(tmp_check)
+
+        for check in self.checks_list:
+            if isinstance(check, BlockChecks):
+                for sub_check in check.list_checks:
+                    simple_check_process(sub_check)
+            elif isinstance(check, SimpleCheck):
+                simple_check_process(check)
+
+        return group
+
 
     def get_data(self):
         checks_datas = [check.get_data() for check in self.checks_list]
@@ -189,5 +206,3 @@ class Map:
                     check.set_data(data)
                     break
 
-    def shutdown(self):
-        self.executor.shutdown(wait=True)

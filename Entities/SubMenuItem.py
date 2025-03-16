@@ -79,11 +79,17 @@ class SubMenuItem(Item):
         for item in self.items_list:
             self.tracker.init_item(item, self.items, self.manager)
 
+        for item in self.items:
+            self.tracker.add_sub_special_item(item, self.items, "hint_items_data", "hint_items")
+            self.tracker.add_sub_special_item(item, self.items, "active_items_data", "active_items")
+            self.tracker.add_sub_special_item(item, self.items, "inactive_items_data", "inactive_items", visibility=item.show_item)
+
     def left_click(self):
         if self.show:
             self.show = False
         else:
             self.show = True
+            self.tracker.change_state_editable_box(False)
 
     def right_click(self):
         pass
@@ -94,6 +100,9 @@ class SubMenuItem(Item):
     def submenu_click(self, mouse_position, button):
         if self.show:
             self.show = self.tracker.items_click(self.items, mouse_position, button)
+
+            if not self.show:
+                self.tracker.change_state_editable_box(True)
 
     def get_data(self):
         data = Item.get_data(self)

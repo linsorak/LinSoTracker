@@ -33,6 +33,7 @@ from Entities.Maps.Map import Map
 from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
 from Entities.Maps.SimpleCheck import SimpleCheck
+from Entities.OpenLinkItem import OpenLinkItem
 from Entities.SubMenuItem import SubMenuItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
@@ -148,10 +149,10 @@ class Tracker:
 
     def extract_data(self):
         if self.is_dev_template:
-            template_dir = str(os.path.join(self.core_service.get_app_path(), "devtemplates", self.template_name))
-            destination_dir = str(os.path.join(self.core_service.get_temp_path(), self.template_name))
-            shutil.copytree(template_dir, destination_dir, dirs_exist_ok=True)
-            self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
+            template_dir = os.path.join(self.core_service.get_app_path(), "devtemplates", self.template_name)
+            destination_dir = os.path.join(self.core_service.get_temp_path(), self.template_name)
+            CoreService.copytree_skip_locked(template_dir, destination_dir)
+            self.resources_path = destination_dir
         else:
             filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
             self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
@@ -269,7 +270,6 @@ class Tracker:
         popup.update()
 
     def update(self):
-        caller = inspect.stack()[1]
         zoom = self.core_service.zoom
         if self.current_map:
             if "MapsList" in self.tracker_json_data[4]:
@@ -412,6 +412,7 @@ class Tracker:
                     item_args["global_label"] = item.get("GlobalLabel")
                 return create_base_item(item, item_class, **item_args)
             item_classes = {
+                "OpenLinkItem": OpenLinkItem,
                 "AlternateCountItem": AlternateCountItem,
                 "GoModeItem": GoModeItem,
                 "CheckItem": CheckItem,
@@ -469,6 +470,9 @@ class Tracker:
                                              max_value=item["valueMax"],
                                              value_increase=item["valueIncrease"],
                                              value_start=item["valueStart"])
+                elif item["Kind"] == "OpenLinkItem":
+                    _item = create_base_item(item, item_class,
+                                             link=item["Link"])
                 elif item["Kind"] == "ImageItem":
                     _item = create_base_item(item, item_class)
                 elif item["Kind"] in ("EvolutionItem", "DraggableEvolutionItem", "AlternateEvolutionItem"):
@@ -500,11 +504,11 @@ class Tracker:
         for item in self.tracker_json_data[3]["Items"]:
             self.init_item(item, self.items, self.manager)
         for item in self.items:
-            self.add_sub_special_item(item, "hint_items_data", "hint_items")
-            self.add_sub_special_item(item, "active_items_data", "active_items")
-            self.add_sub_special_item(item, "inactive_items_data", "inactive_items", visibility=item.show_item)
+            self.add_sub_special_item(item, self.items, "hint_items_data", "hint_items")
+            self.add_sub_special_item(item, self.items, "active_items_data", "active_items")
+            self.add_sub_special_item(item, self.items, "inactive_items_data", "inactive_items", visibility=item.show_item)
 
-    def add_sub_special_item(self, item, data_items_name, items_list_name, visibility=False):
+    def add_sub_special_item(self, item, item_list, data_items_name, items_list_name, visibility=False):
         item_data = getattr(item, data_items_name)
         if item_data:
             items_list = pygame.sprite.Group()
@@ -513,10 +517,10 @@ class Tracker:
                 setattr(item, items_list_name, items_list)
                 for sub_special_item in items_list:
                     sub_special_item.show_item = visibility
-                    self.items.add(sub_special_item)
-                    self.add_sub_special_item(sub_special_item, "hint_items_data", "hint_items")
-                    self.add_sub_special_item(sub_special_item, "active_items_data", "active_items")
-                    self.add_sub_special_item(sub_special_item, "inactive_items_data", "inactive_items", visibility)
+                    item_list.add(sub_special_item)
+                    self.add_sub_special_item(sub_special_item, item_list, "hint_items_data", "hint_items")
+                    self.add_sub_special_item(sub_special_item, item_list, "active_items_data", "active_items")
+                    self.add_sub_special_item(sub_special_item, item_list,  "inactive_items_data", "inactive_items", visibility)
 
     def add_active_item(self, item):
         if item.hint_items_data:
@@ -699,6 +703,15 @@ class Tracker:
             y = item.get_position()[1] - surf.get_rect().h if top else item.get_position()[1] + item.get_rect().h - surf.get_rect().h
             return surf, (x, y)
 
+    def change_state_editable_box(self, state):
+        for item in self.items:
+            if isinstance(item, EditableBox):
+                if state:
+                    item.enable_click()
+                else:
+                    item.disable_click()
+
+
     def save_data(self):
         datas = [{"template_name": self.template_name}]
         datas_items = [item.get_data() for item in self.items]
@@ -845,7 +858,10 @@ class Tracker:
         for submenu in self.submenus:
             if submenu.show:
                 self.handle_event_boxes(submenu.items, events)
-                submenu.manager.process_events(events)
+                try:
+                    submenu.manager.process_events(events)
+                except IndexError:
+                    pass
 
     def back_main_menu(self):
         self.main_menu.reset_tracker()
@@ -869,44 +885,19 @@ class Tracker:
         return None
 
     @staticmethod
-    def _item_has_index(item, condition):
-        """
-        Check if the item's 'value' attribute satisfies the condition.
-        The condition must be in the form ">= 10", "< 5", etc.
-        """
-        if condition is None:
+    def _item_has_index(item, index):
+        if index is None:
             return True
-        try:
-            value = getattr(item, 'value', None)
-            m = Tracker.CONDITION_REGEX.match(condition)
-            if m:
-                op_str = m.group(1)
-                threshold = float(m.group(2))
-                ops = {
-                    '>': operator.gt,
-                    '<': operator.lt,
-                    '>=': operator.ge,
-                    '<=': operator.le,
-                    '==': operator.eq,
-                    '!=': operator.ne
-                }
-                return ops[op_str](value, threshold)
-            else:
-                return False
-        except Exception:
-            return False
+
+        new_index = "item.value {}".format(index)
+        return eval(new_index)
 
     @staticmethod
-    def _check_item(item, item_name, condition):
-        """
-        Verify that the item has the correct name, is enabled, and satisfies the index condition.
-        """
-        return item.name == item_name and item.enable and Tracker._item_has_index(item, condition)
+    def _check_item(item, item_name, index):
+        return item.name == item_name and item.enable and Tracker._item_has_index(item, index)
+
 
     def have(self, item_name, condition=None):
-        """
-        Returns True if the item with the name item_name exists and satisfies the condition (if provided).
-        """
         item = self.find_item(item_name)
         if item and Tracker._check_item(item, item_name, condition):
             return True

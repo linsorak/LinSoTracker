@@ -55,4 +55,6 @@ class LabelItem(Item):
         self.label_count = datas["label_count"]
         Item.set_data(self, datas)
 
-
+    def reinitialize(self):
+        self.label_count = 0
+        Item.reinitialize(self)

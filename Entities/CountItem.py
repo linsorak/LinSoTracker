@@ -66,3 +66,7 @@ class CountItem(Item):
     def set_data(self, datas):
         self.value = datas["value"]
         Item.set_data(self, datas)
+
+    def reinitialize(self):
+        self.value = self.base_value
+        Item.reinitialize(self)

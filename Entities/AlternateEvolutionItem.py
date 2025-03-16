@@ -47,3 +47,7 @@ class AlternateEvolutionItem(EvolutionItem):
                                                text_position="label",
                                                offset=10)
         self.value = self.next_item_index + 1
+
+    def reinitialize(self):
+        self.value = None
+        EvolutionItem.reinitialize(self)

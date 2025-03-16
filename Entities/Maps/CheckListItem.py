@@ -8,7 +8,7 @@ from Entities.Maps.SimpleCheck import ConditionsType
 
 
 class CheckListItem(Sprite):
-    def __init__(self, ident, name, position, conditions, tracker, hide=False):
+    def __init__(self, ident, name, position, conditions, tracker, hide=False, group=None):
         Sprite.__init__(self)
         self.y_line_end = None
         self.x_line_end = None
@@ -27,6 +27,7 @@ class CheckListItem(Sprite):
         self.color = None
         self.show = False
         self.hide = hide
+        self.group = group
         self.focused = False
 
         if type(self.conditions) == str:
@@ -75,6 +76,12 @@ class CheckListItem(Sprite):
     def left_click(self):
         self.checked = not self.checked
         self.update()
+
+        if self.group:
+            grouped_checks = self.tracker.current_map.get_all_group_checks(self, self.group)
+            for group_check in grouped_checks:
+                group_check.checked = self.checked
+                group_check.update()
 
     def wheel_click(self):
         self.focused = not self.focused

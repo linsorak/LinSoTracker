@@ -11,7 +11,7 @@ class ConditionsType(Enum):
 
 
 class SimpleCheck:
-    def __init__(self, ident, name, positions, linked_map, conditions, hide=False, zone=None):
+    def __init__(self, ident, name, positions, linked_map, conditions, hide=False, zone=None, group=None):
         self.state = None
         self.id = ident
         self.name = name
@@ -25,6 +25,7 @@ class SimpleCheck:
         self.hide = hide
         self.focused = False
         self.zone = zone
+        self.group = group
         self.zoom = self.map.tracker.core_service.zoom
         self.pin_rect = pygame.Rect(0, 0, 1, 1)
 
@@ -95,6 +96,12 @@ class SimpleCheck:
         self.checked = not self.checked
         self.map.tracker.reset_hint()
         self.update()
+
+        if self.group:
+            grouped_checks = self.map.get_all_group_checks(self, self.group)
+            for group_check in grouped_checks:
+                group_check.checked = self.checked
+                group_check.update()
 
     def wheel_click(self, mouse_position):
         if not self.checked:

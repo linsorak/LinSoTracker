@@ -68,3 +68,7 @@ class IncrementalItem(Item):
     def set_data(self, datas):
         self.increments_position = datas["increments_position"]
         Item.set_data(self, datas)
+
+    def reinitialize(self):
+        self.increments_position = -1
+        Item.reinitialize(self)

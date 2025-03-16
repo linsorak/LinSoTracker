@@ -17,6 +17,7 @@ class Item(pygame.sprite.Sprite):
         self.base_name = self.name
         self.opacity_disable = opacity_disable
         self.enable = enable
+        self.base_enable = enable
         self.position = position
         self.base_position = position
         self.core_service = CoreService()
@@ -119,9 +120,7 @@ class Item(pygame.sprite.Sprite):
 
     def close_all_childs_hint_items(self):
         for sub_item in self.hint_items:
-            sub_item.hint_show = False
-            sub_item.show_item = False
-            sub_item.enable = False
+            sub_item.reinitialize()
             sub_item.update()
             if sub_item.hint_items:
                 sub_item.close_all_childs_hint_items()
@@ -131,13 +130,13 @@ class Item(pygame.sprite.Sprite):
         if child_lst:
             for child in child_lst:
                 child.show_item = visible
+                if not visible:
+                    child.reinitialize()
                 child.update()
                 sub_child_lst = getattr(child, child_list_name)
                 if sub_child_lst and not visible:
                     child.set_child_visibilty(child_list_name, visible)
 
-                if not visible:
-                    child.enable = visible
 
     def wheel_up(self):
         self.left_click()
@@ -247,3 +246,8 @@ class Item(pygame.sprite.Sprite):
 
     def get_colored_image(self):
         return self.colored_image
+
+    def reinitialize(self):
+        self.hint_show = False
+        self.show_item = False
+        self.enable = self.base_enable

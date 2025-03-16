@@ -15,3 +15,10 @@ class DraggableEvolutionItem(EvolutionItem):
         self.image = image
         self.name = name
         # self.update()
+
+    def get_data(self):
+        data = EvolutionItem.get_data(self)
+        return data
+
+    def set_data(self, datas):
+        EvolutionItem.set_data(self, datas)

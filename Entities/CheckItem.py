@@ -37,3 +37,7 @@ class CheckItem(Item):
     def set_data(self, datas):
         self.check = datas["check"]
         Item.set_data(self, datas)
+
+    def reinitialize(self):
+        self.check = False
+        Item.reinitialize(self)

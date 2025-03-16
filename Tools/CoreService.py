@@ -28,7 +28,6 @@ class Singleton(type):
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
-
 class CoreService(metaclass=Singleton):
     def __init__(self):
         self.show_hint_on_item = None
@@ -38,7 +37,7 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.4 BETA-03"
+        self.version = "2.4 BETA-05"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -295,6 +294,21 @@ class CoreService(metaclass=Singleton):
                 mouse_positions[0] <= (element_positons[0] + element_dimension[0]) - deadzone) &
                 (mouse_positions[1] >= element_positons[1] + deadzone) & (
                         mouse_positions[1] <= (element_positons[1] + element_dimension[1]) - deadzone))
+
+    @staticmethod
+    def copytree_skip_locked(src, dst):
+        for root, dirs, files in os.walk(src):
+            rel_path = os.path.relpath(root, src)
+            dest_dir = os.path.join(dst, rel_path)
+            os.makedirs(dest_dir, exist_ok=True)
+
+            for file in files:
+                src_file = os.path.join(root, file)
+                dst_file = os.path.join(dest_dir, file)
+                try:
+                    shutil.copy2(src_file, dst_file)
+                except (PermissionError, OSError) as e:
+                    pass
 
     @staticmethod
     def launch_app(path):
