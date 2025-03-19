@@ -4,12 +4,11 @@ from Entities.Item import Item
 
 
 class CheckItem(Item):
-    def __init__(self, id, name, position, image, opacity_disable, hint, check_image, enable=True):
+    def __init__(self, id, name, position, image, opacity_disable, hint, check_image, enable=True, always_enable=False):
         self.check_image = check_image
         self.check = False
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
-                      opacity_disable=opacity_disable,
-                      hint=hint)
+                      opacity_disable=opacity_disable, hint=hint, always_enable=always_enable)
 
     def right_click(self):
         if self.check:

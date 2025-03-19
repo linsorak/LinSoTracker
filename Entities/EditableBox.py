@@ -10,10 +10,10 @@ from Entities.Item import Item
 
 
 class EditableBox(Item):
-    def __init__(self, id, name, position, size, manager, lines, style, placeholder_text=None):
+    def __init__(self, id, name, position, size, manager, lines, style, placeholder_text=None, always_enable=False):
         empty_image = pygame.Surface((0, 0), pygame.SRCALPHA)
         Item.__init__(self, id=id, name=name, image=empty_image, position=(0, 0), enable=True,
-                      opacity_disable=0.3, hint=None)
+                      opacity_disable=0.3, hint=None, always_enable=always_enable)
         self.manager = manager
         self.clicked = False
 
@@ -64,6 +64,7 @@ class EditableBox(Item):
             object_id=ObjectID(class_id=f'@{name}', object_id=f'#{name}_list')
         )
         self.suggestion_list.hide()
+
         self.edit_box.cursor_blink_interval = 0
         self.edit_box._cursor_alpha = 0
 
@@ -75,39 +76,29 @@ class EditableBox(Item):
             if self.edit_box.rect.collidepoint(event.pos):
                 self.edit_box.focus()
                 if len(self.edit_box.get_text()) == 0:
+                    self.suggestion_list.set_item_list(self.lines)
                     self.suggestion_list.show()
             else:
                 if not self.suggestion_list.rect.collidepoint(event.pos):
                     self.suggestion_list.hide()
                 self.edit_box.unfocus()
 
-        elif event.type == pygame.KEYDOWN:
-            if self.edit_box.is_focused:
-                if event.key == pygame.K_BACKSPACE:
-                    current_text = self.edit_box.get_text()
-                    self.edit_box.set_text(current_text[:-1])
-                elif event.key == pygame.K_RETURN:
-                    self.suggestion_list.hide()
+        # Mise à jour de l'autocomplétion dès que le texte change
+        elif event.type == pygame_gui.UI_TEXT_ENTRY_CHANGED and event.ui_element == self.edit_box:
+            current_text = event.text
+            if current_text:
+                matching_suggestions = self.search_items_by_case_insensitive(current_text, self.lines)
+                if matching_suggestions:
+                    self.suggestion_list.set_item_list(matching_suggestions)
+                    self.suggestion_list.show()
                 else:
-                    self.edit_box.process_event(event)
-
-        elif event.type == pygame.KEYUP:
-            if self.edit_box.is_focused:
-                user_input = self.edit_box.get_text().lower()
-                if len(user_input) > 0:
-                    matching_suggestions = self.search_items_by_case_insensitive(user_input, self.lines)
-                    if matching_suggestions:
-                        self.suggestion_list.set_item_list(matching_suggestions)
-                        self.suggestion_list.show()
-                    else:
-                        self.suggestion_list.hide()
-                else:
-                    self.suggestion_list.set_item_list(self.lines)
                     self.suggestion_list.hide()
+            else:
+                self.suggestion_list.set_item_list(self.lines)
+                self.suggestion_list.hide()
 
         elif event.type == pygame.USEREVENT:
-            if event.user_type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION and event.ui_object_id == \
-                    self.suggestion_list.object_ids[0]:
+            if event.user_type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION and event.ui_element == self.suggestion_list:
                 selected_suggestion = event.text
                 if selected_suggestion:
                     self.edit_box.set_text(selected_suggestion)
@@ -116,14 +107,16 @@ class EditableBox(Item):
     @staticmethod
     def search_items_by_case_insensitive(text, item_list):
         search_lower = text.lower()
-        return [item for item in item_list if search_lower in item.lower()]
+        return [item for item in item_list if item.lower().startswith(search_lower)]
 
     def update_box(self, dt):
         self.edit_box.update(dt)
+        self.suggestion_list.update(dt)
 
     def check_click(self, mouse_position):
         if self.suggestion_list.visible:
-            test = Rect(self.edit_box.rect[0], self.edit_box.rect[1], self.suggestion_list.relative_rect[2], self.suggestion_list.relative_rect[3])
+            test = Rect(self.edit_box.rect[0], self.edit_box.rect[1],
+                        self.suggestion_list.relative_rect[2], self.suggestion_list.relative_rect[3])
             return test.collidepoint(mouse_position)
         else:
             return self.edit_box.rect.collidepoint(mouse_position)

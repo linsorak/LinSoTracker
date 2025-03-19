@@ -5,12 +5,12 @@ from Entities.EvolutionItem import EvolutionItem
 
 class AlternateEvolutionItem(EvolutionItem):
     def __init__(self, id, name, image, position, enable, opacity_disable, hint, next_items, label, label_center,
-                 alternative_label=None, global_label=None):
+                 alternative_label=None, global_label=None, always_enable=False):
         self.global_label = global_label
         self.value = None
         EvolutionItem.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                                opacity_disable=opacity_disable, hint=hint, next_items=next_items, label=label,
-                               label_center=label_center, alternative_label=alternative_label)
+                               label_center=label_center, alternative_label=alternative_label, always_enable=always_enable)
 
     def left_click(self):
         if self.enable:

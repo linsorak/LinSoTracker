@@ -105,6 +105,7 @@ class Tracker:
         self.core_service.set_json_data(self.tracker_json_data)
         self.core_service.set_tracker_temp_path(self.resources_path)
         self.core_service.set_current_tracker_name(self.template_name)
+        self.core_service.set_current_tracker(self)
         self.init_items()
         self.init_maps_datas()
         self.menu.set_zoom_index(self.core_service.zoom_index)
@@ -122,6 +123,7 @@ class Tracker:
         self.selected_items_list = None
         self.current_editablebox = None
         self.loaded = True
+        self.update_draggable_items()
 
     def get_font_data(self, font_session):
         if font_session not in self._font_cache:
@@ -384,6 +386,7 @@ class Tracker:
                                   hint=item["Hint"],
                                   opacity_disable=item["OpacityDisable"],
                                   id=item["Id"],
+                                  always_enable=item.get("AlwaysEnable", False),
                                   **additional_args)
             def create_evo_item(item, item_class):
                 next_items_list = []
@@ -536,8 +539,9 @@ class Tracker:
         for item in item_list:
             if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                element_positons=item.get_position(),
-                                               element_dimension=(item.get_rect().w, item.get_rect().h)) and item.show_item:
+                                               element_dimension=(item.get_rect().w, item.get_rect().h)) and item.show_item and not isinstance(item, ImageItem):
                 item.left_click()
+                print(item)
                 if self.core_service.sound_active:
                     if item.enable:
                         self.sound_select.play()
@@ -546,7 +550,7 @@ class Tracker:
 
     def items_click(self, item_list, mouse_position, button):
         for item in item_list:
-            if item.check_click(mouse_position) and self.is_moving is None and item.show_item:
+            if item.check_click(mouse_position) and self.is_moving is None and item.show_item and not isinstance(item, ImageItem):
                 if button == 1:
                     item.left_click()
                 elif button == 2:
@@ -589,7 +593,9 @@ class Tracker:
         if self.is_moving:
             for item in self.selected_items_list:
                 if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
-                    item.set_new_current_image(self.is_moving.get_colored_image(), self.is_moving.name)
+                    item.set_new_current_image(name=self.is_moving.name,
+                                               base_name=self.is_moving.base_name,
+                                               index=self.is_moving.next_item_index if hasattr(self.is_moving, "next_item_index") else None)
                     break
             self.is_moving.is_dragging = False
             self.is_moving.reset_position()
@@ -689,7 +695,13 @@ class Tracker:
             font_data, font_path = self.get_font_data(font_session)
             color = self.core_service.get_color_from_font(font_data, "Normal")
             temp_surface = pygame.Surface((0, 0), pygame.SRCALPHA, 32).convert_alpha()
-            text = (item.name + " - [" + type(item).__name__ + "]") if (self.core_service.dev_version and not zone) else (f'- {item.zone} -' if zone else item.name)
+            text = (item.name + " - [" + type(item).__name__ + "]") if (
+                        self.core_service.dev_version and not zone) else (f'- {item.zone} -' if zone else item.name)
+            # if hasattr(item, "enable"):
+            #     text += f" - [enable: {item.enable}']" if self.core_service.dev_version != "" else ""
+            # if hasattr(item, "next_item_index"):
+            #     text += f" - [next_item_index: {item.next_item_index}']" if self.core_service.dev_version != "" else ""
+
             surf, pos = MainMenu.MainMenu.draw_text(
                 text=text,
                 font_name=font_path,
@@ -710,6 +722,11 @@ class Tracker:
                     item.enable_click()
                 else:
                     item.disable_click()
+
+    def update_draggable_items(self):
+        for item in self.items:
+            if isinstance(item, DraggableEvolutionItem):
+                item.update()
 
 
     def save_data(self):
@@ -868,10 +885,6 @@ class Tracker:
 
 
     def find_item(self, item_name, is_base_name=False):
-        """
-        Search for an item (or its sub-item) whose name or base_name matches item_name.
-        Iterates directly over items and, if needed, their sub-items.
-        """
         for item in self.items:
             if isinstance(item, SubMenuItem):
                 for sub_item in item.items:

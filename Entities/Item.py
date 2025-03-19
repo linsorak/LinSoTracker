@@ -7,7 +7,7 @@ from Tools.CoreService import CoreService
 
 
 class Item(pygame.sprite.Sprite):
-    def __init__(self, id, name, position, image, opacity_disable, hint, enable=True, show_item=True):
+    def __init__(self, id, name, position, image, opacity_disable, hint, enable=True, show_item=True, always_enable=False):
         pygame.sprite.Sprite.__init__(self)
         self.id = id
         self.show_item = show_item
@@ -16,8 +16,14 @@ class Item(pygame.sprite.Sprite):
         self.name = name
         self.base_name = self.name
         self.opacity_disable = opacity_disable
-        self.enable = enable
-        self.base_enable = enable
+        self.always_enable = always_enable
+        if self.always_enable:
+            self.enable = True
+            self.base_enable = True
+        else:
+            self.enable = enable
+            self.base_enable = enable
+
         self.position = position
         self.base_position = position
         self.core_service = CoreService()
@@ -44,7 +50,7 @@ class Item(pygame.sprite.Sprite):
         self.can_drag = True
         self.is_dragging = False
         self.start_drag_time = 0
-        self.drag_delay = 250
+        self.drag_delay = 150
 
         self.update()
 
@@ -94,7 +100,8 @@ class Item(pygame.sprite.Sprite):
         return image
 
     def left_click(self):
-        self.enable = not self.enable
+        if not self.always_enable:
+            self.enable = not self.enable
         self.update()
 
     def right_click(self):
@@ -229,7 +236,8 @@ class Item(pygame.sprite.Sprite):
         return data
 
     def set_data(self, datas):
-        self.enable = datas["enable"]
+        if not self.always_enable:
+            self.enable = datas["enable"]
         self.hint_show = datas["hint_show"]
         self.show_item = datas["show_item"]
         self.update()

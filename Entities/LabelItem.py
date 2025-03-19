@@ -4,13 +4,12 @@ from Entities.Item import Item
 
 
 class LabelItem(Item):
-    def __init__(self, id, name, position, image, opacity_disable, hint, enable, label_list, label_offset=0):
+    def __init__(self, id, name, position, image, opacity_disable, hint, enable, label_list, label_offset=0, always_enable=False):
         self.label_count = 0
         self.label_list = label_list
         self.label_offset = label_offset
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
-                      opacity_disable=opacity_disable,
-                      hint=hint)
+                      opacity_disable=opacity_disable, hint=hint, always_enable=always_enable)
 
     def update(self):
         Item.update(self)

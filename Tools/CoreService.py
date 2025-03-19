@@ -37,7 +37,7 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.4 BETA-05"
+        self.version = "2.4 BETA-06"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -45,6 +45,7 @@ class CoreService(metaclass=Singleton):
         self.zoom_index = 0
         self.sound_active = False
         self.draw_esc_menu_label = True
+        self.current_tracker = None
         self.current_tracker_name = None
         self.app_path = os.path.abspath(os.path.dirname(__file__)).replace("{}{}".format(os.sep, "Tools"), os.sep)
         self.menu_font = None
@@ -87,6 +88,12 @@ class CoreService(metaclass=Singleton):
 
     def get_current_tracker_name(self):
         return self.current_tracker_name
+
+    def set_current_tracker(self, tracker):
+        self.current_tracker = tracker
+
+    def get_current_tracker(self):
+        return self.current_tracker
 
     def save_configuration(self, session, value):
         user_configuration = os.path.join(self.temp_path_fixe, "user.conf")

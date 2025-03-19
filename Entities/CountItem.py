@@ -7,15 +7,14 @@ from Entities.Item import Item
 
 class CountItem(Item):
     def __init__(self, id, name, position, image, opacity_disable, hint, min_value, max_value, value_increase,
-                 value_start, enable=True):
+                 value_start, enable=True, always_enable=False):
         self.value = value_start
         self.value_increase = value_increase
         self.max_value = max_value
         self.min_value = min_value
         self.base_value = value_start
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
-                      opacity_disable=opacity_disable,
-                      hint=hint)
+                      opacity_disable=opacity_disable, hint=hint, always_enable=always_enable)
 
     def update(self):
         Item.update(self)

@@ -4,12 +4,12 @@ from Entities.Item import Item
 
 
 class GoModeItem(Item):
-    def __init__(self, id, name, image, position, enable, opacity_disable, hint, background_glow):
+    def __init__(self, id, name, image, position, enable, opacity_disable, hint, background_glow, always_enable=False):
         self.background_glow = background_glow
         self.angle = 0
         self.speed = 2
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
-                      opacity_disable=opacity_disable, hint=hint)
+                      opacity_disable=opacity_disable, hint=hint, always_enable=False)
         self.can_drag = False
     def update(self):
         Item.update(self)

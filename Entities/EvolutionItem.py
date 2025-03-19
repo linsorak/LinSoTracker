@@ -5,14 +5,14 @@ from Entities.Item import Item
 
 class EvolutionItem(Item):
     def __init__(self, id, name, image, position, enable, opacity_disable, hint, next_items, label, label_center,
-                 alternative_label=None):
+                 alternative_label=None, always_enable=False):
         self.label_center = label_center
         self.label = label
         self.next_item_index = -1
         self.next_items = next_items
         self.alternative_label = alternative_label
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
-                      opacity_disable=opacity_disable, hint=hint)
+                      opacity_disable=opacity_disable, hint=hint, always_enable=always_enable)
 
     def left_click(self):
         if self.enable:
@@ -22,8 +22,9 @@ class EvolutionItem(Item):
                 self.name = next_item["Name"]
             else:
                 self.next_item_index = -1
-                self.enable = False
-                self.name = self.base_name
+                if not self.always_enable:
+                    self.enable = False
+                    self.name = self.base_name
         else:
             self.enable = True
         self.update()
@@ -40,11 +41,21 @@ class EvolutionItem(Item):
                 next_item = self.next_items[self.next_item_index]
                 self.name = next_item["Name"]
             elif self.next_item_index == 0:
-                self.next_item_index = self.next_item_index - 1
-                self.name = self.base_name
+                if not self.always_enable:
+                    self.next_item_index = self.next_item_index - 1
+                    self.name = self.base_name
+                else:
+                    self.next_item_index = self.next_item_index - 1
+                    next_item = self.next_items[self.next_item_index]
+                    self.name = next_item["Name"]
             else:
-                self.enable = False
-                self.name = self.base_name
+                if not self.always_enable:
+                    self.enable = False
+                    self.name = self.base_name
+                else:
+                    self.next_item_index = len(self.next_items) - 1
+                    next_item = self.next_items[self.next_item_index]
+                    self.name = next_item["Name"]
         self.update()
 
     def update(self):

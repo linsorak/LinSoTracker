@@ -4,7 +4,7 @@ from Entities.Item import Item
 
 
 class AlternateCountItem(Item):
-    def __init__(self, id, name, position, image, opacity_disable, hint, max_value, max_value_alternate, enable=True, custom_font=None):
+    def __init__(self, id, name, position, image, opacity_disable, hint, max_value, max_value_alternate, enable=True, custom_font=None, always_enable=False):
         self.max_value = max_value
         self.max_value_alternate = max_value_alternate
         self.used_max_value = self.max_value
@@ -12,7 +12,7 @@ class AlternateCountItem(Item):
         self.custom_font = custom_font
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                       opacity_disable=opacity_disable,
-                      hint=hint)
+                      hint=hint, always_enable=always_enable)
         self.left_hint = True
 
     def update(self):

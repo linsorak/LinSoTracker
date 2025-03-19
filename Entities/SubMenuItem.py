@@ -10,7 +10,7 @@ from Tools.Bank import Bank
 
 class SubMenuItem(Item):
     def __init__(self, id, name, image, position, enable, opacity_disable, hint, background_image, resources_path,
-                 tracker, items_list, show_numbers_items_active, show_numbers_checked_items):
+                 tracker, items_list, show_numbers_items_active, show_numbers_checked_items, always_enable=False):
         self.background_image_name = background_image
         self.background_image = None
         self.base_image = None
@@ -27,8 +27,7 @@ class SubMenuItem(Item):
         self.init_items()
         self.update_background()
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
-                      opacity_disable=opacity_disable,
-                      hint=hint)
+                      opacity_disable=opacity_disable, hint=hint, always_enable=always_enable)
 
         self.tracker.submenus.add(self)
 
