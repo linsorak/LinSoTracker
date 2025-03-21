@@ -90,14 +90,7 @@ class BlockChecks(SimpleCheck):
                 screen.blit(self.surface_logic_indicator, self.position_logic_indicator)
 
     def left_click(self, mouse_position):
-        if not self.map.current_block_checks:
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-            self.map.tracker.mouse_check_found = False
-            self.map.tracker.position_check_zone_hint = None
-            self.map.tracker.surface_check_zone_hint = None
-            self.update()
-            self.map.current_block_checks = self
-            self.map.update()
+        self.set_current_block()
 
     def right_click(self, mouse_position):
         tracker = None
@@ -118,6 +111,16 @@ class BlockChecks(SimpleCheck):
         self.update()
         if tracker:
             tracker.current_map.update()
+
+    def set_current_block(self):
+        if not self.map.current_block_checks:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+            self.map.tracker.mouse_check_found = None
+            self.map.tracker.position_check_zone_hint = None
+            self.map.tracker.surface_check_zone_hint = None
+            self.update()
+            self.map.current_block_checks = self
+            self.map.update()
 
     def get_rect(self):
         return self.pin_rect

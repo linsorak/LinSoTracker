@@ -1,12 +1,6 @@
-import gc
-import inspect
 import json
 import multiprocessing
 import os
-import re
-import operator
-import shutil
-import time
 from multiprocessing.pool import ThreadPool
 from tkinter import messagebox
 from zipfile import ZipFile
@@ -62,6 +56,8 @@ class Tracker:
         self.rules_options_list_background = None
         self.position_check_hint = None
         self.surface_check_hint = None
+        self.surface_check_attached_item = None
+        self.position_check_attached_item = None
         self.surface_label_map_name = None
         self.position_draw_label_map_name = None
         self.map_name_items_list = None
@@ -144,10 +140,11 @@ class Tracker:
                         if f[0]["template_name"] == self.template_name:
                             self.load_data(f)
                         else:
-                            messagebox.showerror('Error', 'This save is for the template {}'.format(f[0]["template_name"]))
+                            messagebox.showerror('Error',
+                                                 'This save is for the template {}'.format(f[0]["template_name"]))
         except:
-            messagebox.showerror('Save not compatible', f"This default save isn't compatible with {f[0]['template_name']}'s template version")
-
+            messagebox.showerror('Save not compatible',
+                                 f"This default save isn't compatible with {f[0]['template_name']}'s template version")
 
     def extract_data(self):
         if self.is_dev_template:
@@ -156,7 +153,8 @@ class Tracker:
             CoreService.copytree_skip_locked(template_dir, destination_dir)
             self.resources_path = destination_dir
         else:
-            filename = os.path.join(self.core_service.get_app_path(), "templates", "{}.template".format(self.template_name))
+            filename = os.path.join(self.core_service.get_app_path(), "templates",
+                                    "{}.template".format(self.template_name))
             self.resources_path = os.path.join(self.core_service.get_temp_path(), "{}".format(self.template_name))
 
             self.core_service.delete_directory(self.resources_path)
@@ -292,8 +290,10 @@ class Tracker:
                     surface=temp_surface,
                     position=(self.box_label_map_name_rect.x, self.box_label_map_name_rect.y),
                     outline=1 * zoom)
-                x = (self.box_label_map_name_rect.w / 2) - (self.surface_label_map_name.get_rect().w / 2) + self.box_label_map_name_rect.x
-                y = (self.box_label_map_name_rect.h / 2) - (self.surface_label_map_name.get_rect().h / 2) + self.box_label_map_name_rect.y
+                x = (self.box_label_map_name_rect.w / 2) - (
+                            self.surface_label_map_name.get_rect().w / 2) + self.box_label_map_name_rect.x
+                y = (self.box_label_map_name_rect.h / 2) - (
+                            self.surface_label_map_name.get_rect().h / 2) + self.box_label_map_name_rect.y
                 self.position_draw_label_map_name = (x, y)
                 maps_list_box_datas = self.tracker_json_data[4]["MapsList"]["MapsListBox"]
                 self.maps_list_background = self.bank.addZoomImage(
@@ -341,7 +341,8 @@ class Tracker:
                 font_size=font_data["Size"] * self.core_service.zoom,
                 surface=temp_surface,
                 position=(
-                cpt_checks_position["x"] * self.core_service.zoom, cpt_checks_position["y"] * self.core_service.zoom),
+                    cpt_checks_position["x"] * self.core_service.zoom,
+                    cpt_checks_position["y"] * self.core_service.zoom),
                 outline=1 * self.core_service.zoom)
 
     def change_map_by_map_name(self, map_name):
@@ -374,10 +375,14 @@ class Tracker:
                         column=item["SheetInformation"]["column"]
                     )
                 )
+
             def get_position(item):
-                return (item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom)
+                return (
+                item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom)
+
             def get_size(item):
                 return (item["Sizes"]["w"] * self.core_service.zoom, item["Sizes"]["h"] * self.core_service.zoom)
+
             def create_base_item(item, item_class, **additional_args):
                 return item_class(name=item["Name"],
                                   image=item_image,
@@ -388,6 +393,7 @@ class Tracker:
                                   id=item["Id"],
                                   always_enable=item.get("AlwaysEnable", False),
                                   **additional_args)
+
             def create_evo_item(item, item_class):
                 next_items_list = []
                 for next_item in item["NextItems"]:
@@ -414,6 +420,7 @@ class Tracker:
                 if item["Kind"] == "AlternateEvolutionItem":
                     item_args["global_label"] = item.get("GlobalLabel")
                 return create_base_item(item, item_class, **item_args)
+
             item_classes = {
                 "OpenLinkItem": OpenLinkItem,
                 "AlternateCountItem": AlternateCountItem,
@@ -509,7 +516,8 @@ class Tracker:
         for item in self.items:
             self.add_sub_special_item(item, self.items, "hint_items_data", "hint_items")
             self.add_sub_special_item(item, self.items, "active_items_data", "active_items")
-            self.add_sub_special_item(item, self.items, "inactive_items_data", "inactive_items", visibility=item.show_item)
+            self.add_sub_special_item(item, self.items, "inactive_items_data", "inactive_items",
+                                      visibility=item.show_item)
 
     def add_sub_special_item(self, item, item_list, data_items_name, items_list_name, visibility=False):
         item_data = getattr(item, data_items_name)
@@ -523,7 +531,8 @@ class Tracker:
                     item_list.add(sub_special_item)
                     self.add_sub_special_item(sub_special_item, item_list, "hint_items_data", "hint_items")
                     self.add_sub_special_item(sub_special_item, item_list, "active_items_data", "active_items")
-                    self.add_sub_special_item(sub_special_item, item_list,  "inactive_items_data", "inactive_items", visibility)
+                    self.add_sub_special_item(sub_special_item, item_list, "inactive_items_data", "inactive_items",
+                                              visibility)
 
     def add_active_item(self, item):
         if item.hint_items_data:
@@ -539,9 +548,10 @@ class Tracker:
         for item in item_list:
             if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                element_positons=item.get_position(),
-                                               element_dimension=(item.get_rect().w, item.get_rect().h)) and item.show_item and not isinstance(item, ImageItem):
+                                               element_dimension=(item.get_rect().w,
+                                                                  item.get_rect().h)) and item.show_item and not isinstance(
+                item, ImageItem):
                 item.left_click()
-                print(item)
                 if self.core_service.sound_active:
                     if item.enable:
                         self.sound_select.play()
@@ -550,7 +560,8 @@ class Tracker:
 
     def items_click(self, item_list, mouse_position, button):
         for item in item_list:
-            if item.check_click(mouse_position) and self.is_moving is None and item.show_item and not isinstance(item, ImageItem):
+            if item.check_click(mouse_position) and self.is_moving is None and item.show_item and not isinstance(item,
+                                                                                                                 ImageItem):
                 if button == 1:
                     item.left_click()
                 elif button == 2:
@@ -591,117 +602,180 @@ class Tracker:
 
     def click(self, mouse_position, button):
         if self.is_moving:
-            for item in self.selected_items_list:
-                if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
-                    item.set_new_current_image(name=self.is_moving.name,
-                                               base_name=self.is_moving.base_name,
-                                               index=self.is_moving.next_item_index if hasattr(self.is_moving, "next_item_index") else None)
-                    break
-            self.is_moving.is_dragging = False
-            self.is_moving.reset_position()
-            self.is_moving.update()
-            self.is_moving = None
+            self._handle_moving_click(mouse_position)
             return
+
         if not any(submenu.show for submenu in self.submenus):
-            if self.current_map:
-                self.current_map.click(mouse_position, button)
-                if (not self.maps_list_window.is_open() and
-                    not self.rules_options_list_window.is_open()) :#and
-                    # not self.current_map.check_window.is_open()):
-                    self.items_click(self.items, mouse_position, button)
-                if self.maps_list_window.is_open():
-                    self.maps_list_window.left_click(mouse_position)
-                if self.rules_options_list_window.is_open():
-                    self.rules_options_list_window.left_click(mouse_position)
-                if (self.box_label_map_name_rect and
-                    self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                    element_positons=(self.box_label_map_name_rect.x,
-                                                                        self.box_label_map_name_rect.y),
-                                                    element_dimension=(self.box_label_map_name_rect.w,
-                                                                       self.box_label_map_name_rect.h))):
-                    self.maps_list_window.open_window()
-                    self.surface_check_zone_hint, self.position_check_zone_hint = (None, None)
-                    self.mouse_check_found = None
-                if (self.rules_options_button_rect and
-                    self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                    element_positons=(self.rules_options_button_rect.x,
-                                                                        self.rules_options_button_rect.y),
-                                                    element_dimension=(self.rules_options_button_rect.w,
-                                                                       self.rules_options_button_rect.h))):
-                    self.rules_options_list_window.open_window()
-            else:
-                if not self.rules_options_list_window.is_open() or not self.maps_list_window.is_open():
-                    self.items_click(self.items, mouse_position, button)
+            self._handle_regular_click(mouse_position, button)
         else:
-            for submenu in self.submenus:
-                if submenu.show:
-                    submenu.submenu_click(mouse_position, button)
-                    for item in self.items:
-                        if isinstance(item, SubMenuItem):
-                            item.update()
+            self._handle_submenu_click(mouse_position, button)
+
+    def _update_target_image(self, target):
+        next_index = getattr(self.is_moving, "next_item_index", None)
+        target.set_new_current_image(
+            name=self.is_moving.name,
+            base_name=self.is_moving.base_name,
+            index=next_index
+        )
+
+    def _handle_moving_click(self, mouse_position):
+        for item in self.selected_items_list:
+            if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
+                self._update_target_image(item)
+                break
+
+            if self.current_map:
+                for check in (c for c in self.current_map.checks_list if isinstance(c, (SimpleCheck, BlockChecks))):
+                    pos = check.get_position()
+                    dim = check.get_rect().size
+                    if (self.core_service.is_on_element(
+                            mouse_positions=mouse_position,
+                            element_positons=pos,
+                            element_dimension=dim
+                    ) and not check.all_check_hidden()) and not self.current_map.check_window.is_open():
+                        if isinstance(check, BlockChecks):
+                            pass
+                            # print("test")
+                        elif type(check) is SimpleCheck:
+                            self._update_target_image(check)
+                        break
+                else:
+                    continue
+                break
+
+        self.is_moving.is_dragging = False
+        self.is_moving.reset_position()
+        self.is_moving.update()
+        self.is_moving = None
+
+    def _handle_regular_click(self, mouse_position, button):
+        if self.current_map:
+            self.current_map.click(mouse_position, button)
+            if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open():
+                self.items_click(self.items, mouse_position, button)
+            if self.maps_list_window.is_open():
+                self.maps_list_window.left_click(mouse_position)
+            if self.rules_options_list_window.is_open():
+                self.rules_options_list_window.left_click(mouse_position)
+
+            if (self.box_label_map_name_rect and
+                    self.core_service.is_on_element(
+                        mouse_positions=mouse_position,
+                        element_positons=(self.box_label_map_name_rect.x, self.box_label_map_name_rect.y),
+                        element_dimension=(self.box_label_map_name_rect.w, self.box_label_map_name_rect.h)
+                    )):
+                self.maps_list_window.open_window()
+                self.surface_check_zone_hint, self.position_check_zone_hint = (None, None)
+                self.mouse_check_found = None
+
+            if (self.rules_options_button_rect and
+                    self.core_service.is_on_element(
+                        mouse_positions=mouse_position,
+                        element_positons=(self.rules_options_button_rect.x, self.rules_options_button_rect.y),
+                        element_dimension=(self.rules_options_button_rect.w, self.rules_options_button_rect.h)
+                    )):
+                self.rules_options_list_window.open_window()
+        else:
+            if not self.rules_options_list_window.is_open() or not self.maps_list_window.is_open():
+                self.items_click(self.items, mouse_position, button)
+
+    def _handle_submenu_click(self, mouse_position, button):
+        for submenu in self.submenus:
+            if submenu.show:
+                submenu.submenu_click(mouse_position, button)
+                for item in self.items:
+                    if isinstance(item, SubMenuItem):
+                        item.update()
 
     def mouse_move(self, mouse_position):
+        # Détermine si un sous-menu est visible.
         submenu_found = any(submenu.show for submenu in self.submenus)
         if self.current_map and self.current_map.check_window.is_open():
             submenu_found = True
+
+        # Gestion des "checks" de la carte si aucun sous-menu n'est actif.
         if self.current_map and self.current_map.checks_list and not submenu_found:
-            self.mouse_check_found = next(
-                (check for check in self.current_map.checks_list
-                 if not check.hide and not check.all_check_hidden() and not isinstance(check, ImageItem) and
-                 self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                 element_positons=check.get_position(),
-                                                 element_dimension=(check.get_rect().w, check.get_rect().h))),
-                None
-            )
+            self.mouse_check_found = None
+
+            for check in self.current_map.checks_list:
+                if (not check.hide and not check.all_check_hidden() and
+                            not isinstance(check, ImageItem) and
+                            self.core_service.is_on_element(
+                                mouse_positions=mouse_position,
+                                element_positons=check.get_position(),
+                                element_dimension=(check.get_rect().w, check.get_rect().h)
+                            )):
+                    self.mouse_check_found = check
+
             if self.mouse_check_found:
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-                self.surface_check_hint, self.position_check_hint = self.update_hint(self.mouse_check_found, "mapFontCheckHint", True)
+                self.surface_check_hint, self.position_check_hint = self.update_hint(
+                    self.mouse_check_found, "mapFontCheckHint", True
+                )
                 if self.mouse_check_found.zone:
-                    self.surface_check_zone_hint, self.position_check_zone_hint = self.update_hint(self.mouse_check_found, "mapFontCheckZoneHint", True, zone=True)
+                    self.surface_check_zone_hint, self.position_check_zone_hint = self.update_hint(
+                        self.mouse_check_found, "mapFontCheckZoneHint", True, zone=True
+                    )
                 else:
                     self.surface_check_zone_hint, self.position_check_zone_hint = (None, None)
+
+                if self.mouse_check_found.dragged_item_name:
+                    attached_image_data = {
+                        "image": self.mouse_check_found.dragged_icon_item_image,
+                        "name": self.mouse_check_found.dragged_item_name,
+                    }
+                    self.surface_check_attached_item, self.position_check_attached_item = self.update_hint(
+                        self.mouse_check_found, "mapFontCheckZoneHint", True, attached_item=attached_image_data
+                    )
+                else:
+                    self.surface_check_attached_item, self.position_check_attached_item = (None, None)
+
+                if isinstance(self.mouse_check_found, BlockChecks) and self.is_moving:
+                    self.current_map.current_block_checks = None
+                    self.mouse_check_found.left_click(mouse_position)
+                    if not self.current_map.check_window.is_open():
+                        self.current_map.update()
+                        self.current_map.check_window.open_window()
+
             else:
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-                self.mouse_check_found = None
-                self.position_check_zone_hint = None
-                self.surface_check_zone_hint = None
+                self.reset_hint()
+
+
         if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open():
-            found = False
             if not submenu_found:
-                for item in self.items:
-                    if (self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                         element_positons=item.get_position(),
-                                                         element_dimension=(item.get_rect().w, item.get_rect().h))
-                        and not isinstance(item, ImageItem)):
-                        self.current_item_on_mouse = item
-                        self.surface_check_hint, self.position_check_hint = self.update_hint(self.current_item_on_mouse, "labelItemFont", False)
-                        found = True
+                items_to_check = self.items
             else:
-                for submenu in self.submenus:
-                    if submenu.show:
-                        for item in submenu.items:
-                            if (self.core_service.is_on_element(mouse_positions=mouse_position,
-                                                                 element_positons=item.get_position(),
-                                                                 element_dimension=(item.get_rect().w, item.get_rect().h))
-                                and not isinstance(item, ImageItem)):
-                                self.current_item_on_mouse = item
-                                self.surface_check_hint, self.position_check_hint = self.update_hint(self.current_item_on_mouse, "labelItemFont", False)
-                                found = True
-            if not found:
+                items_to_check = [item for submenu in self.submenus if submenu.show for item in submenu.items]
+
+            for item in items_to_check:
+                if self.core_service.is_on_element(
+                        mouse_positions=mouse_position,
+                        element_positons=item.get_position(),
+                        element_dimension=(item.get_rect().w, item.get_rect().h)
+                ) and not isinstance(item, ImageItem):
+                    self.current_item_on_mouse = item
+                    self.surface_check_hint, self.position_check_hint = self.update_hint(item, "labelItemFont", False)
+                    break
+            else:
                 self.current_item_on_mouse = None
 
-    def update_hint(self, item, font_session, top, zone=False):
+    def update_hint(self, item, font_session, top, zone=False, attached_item=None):
         if item:
             font_data, font_path = self.get_font_data(font_session)
             color = self.core_service.get_color_from_font(font_data, "Normal")
             temp_surface = pygame.Surface((0, 0), pygame.SRCALPHA, 32).convert_alpha()
-            text = (item.name + " - [" + type(item).__name__ + "]") if (
-                        self.core_service.dev_version and not zone) else (f'- {item.zone} -' if zone else item.name)
-            # if hasattr(item, "enable"):
-            #     text += f" - [enable: {item.enable}']" if self.core_service.dev_version != "" else ""
-            # if hasattr(item, "next_item_index"):
-            #     text += f" - [next_item_index: {item.next_item_index}']" if self.core_service.dev_version != "" else ""
-
+            attached_img = None
+            if attached_item:
+                text = "Attached Item : "
+                attached_img = attached_item.get("image")
+            elif self.core_service.dev_version and not zone:
+                text = item.name + " - [" + type(item).__name__ + "]"
+            elif zone:
+                text = f'- {item.zone} -'
+            else:
+                text = item.name
+                attached_img = None
             surf, pos = MainMenu.MainMenu.draw_text(
                 text=text,
                 font_name=font_path,
@@ -712,8 +786,21 @@ class Tracker:
                 outline=1 * self.core_service.zoom
             )
             x = item.get_position()[0] - ((surf.get_rect().w / 2) - (item.get_rect().w / 2))
-            y = item.get_position()[1] - surf.get_rect().h if top else item.get_position()[1] + item.get_rect().h - surf.get_rect().h
-            return surf, (x, y)
+            y = item.get_position()[1] - surf.get_rect().h if top else item.get_position()[
+                                                                           1] + item.get_rect().h - surf.get_rect().h
+            if attached_img and isinstance(attached_img, pygame.Surface):
+                vertical_offset = 2 * self.core_service.zoom
+                image_total_height = attached_img.get_height() + vertical_offset
+                final_height = max(surf.get_height(), image_total_height)
+                text_y = (final_height - surf.get_height()) // 2
+                image_y = (final_height - image_total_height) // 2 + vertical_offset
+                final_width = surf.get_width() + attached_img.get_width()
+                final_surface = pygame.Surface((final_width, final_height), pygame.SRCALPHA)
+                final_surface.blit(surf, (0, text_y))
+                final_surface.blit(attached_img, (surf.get_width(), image_y))
+                return final_surface, (x, y)
+            else:
+                return surf, (x, y)
 
     def change_state_editable_box(self, state):
         for item in self.items:
@@ -727,7 +814,6 @@ class Tracker:
         for item in self.items:
             if isinstance(item, DraggableEvolutionItem):
                 item.update()
-
 
     def save_data(self):
         datas = [{"template_name": self.template_name}]
@@ -761,7 +847,8 @@ class Tracker:
                 rules = datas[3].get("rules")
                 if rules:
                     for rule_data in rules:
-                        rule = next((r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]), None)
+                        rule = next(
+                            (r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]), None)
                         if rule:
                             rule.set_data(rule_data)
                             rule.update()
@@ -788,9 +875,11 @@ class Tracker:
             self.current_map.update()
 
     def reset_hint(self):
-        self.mouse_check_found = False
+        self.mouse_check_found = None
         self.position_check_zone_hint = None
         self.surface_check_zone_hint = None
+        self.surface_check_attached_item = None
+        self.position_check_attached_item = None
 
     def draw(self, screen, time_delta):
         screen.blit(self.background_image, (0, 0))
@@ -800,11 +889,16 @@ class Tracker:
             screen.blit(self.esc_menu_image, (2, 2))
         if self.current_map:
             self.current_map.draw_background(screen)
-            self.items.draw(screen)
             for item in self.items:
+                if item != self.is_moving:
+                    screen.blit(item.image, item.rect)
                 if isinstance(item, GoModeItem) and item.enable:
                     item.draw()
-                    break
+            # self.items.draw(screen)
+            # for item in self.items:
+            #     if isinstance(item, GoModeItem) and item.enable:
+            #         item.draw()
+            #         break
             self.current_map.draw(screen)
             if self.surface_label_map_name:
                 screen.blit(self.surface_label_map_name, self.position_draw_label_map_name)
@@ -818,27 +912,49 @@ class Tracker:
                     self.maps_list_window.draw(screen)
                 if self.rules_options_list_window.is_open():
                     self.rules_options_list_window.draw(screen)
-            elif (self.mouse_check_found and not self.current_map.check_window.is_open()) or (self.core_service.show_hint_on_item and self.current_item_on_mouse):
-                temp_rect = pygame.Rect(self.position_check_hint[0],
-                                        self.position_check_hint[1],
-                                        self.surface_check_hint.get_rect().w,
-                                        self.surface_check_hint.get_rect().h)
-                if self.surface_check_zone_hint and self.position_check_hint:
+            elif (self.mouse_check_found and not self.current_map.check_window.is_open()) or (
+                    self.core_service.show_hint_on_item and self.current_item_on_mouse):
+                temp_rect = pygame.Rect(self.position_check_hint[0], self.position_check_hint[1],
+                                        self.surface_check_hint.get_rect().w, self.surface_check_hint.get_rect().h)
+                if self.surface_check_zone_hint and self.position_check_zone_hint:
                     temp_rect = pygame.Rect(
-                        temp_rect.x if self.position_check_hint[0] < self.position_check_zone_hint[0] else self.position_check_zone_hint[0],
-                        temp_rect.y - self.surface_check_zone_hint.get_rect().h,
+                        self.position_check_hint[0] if self.position_check_hint[0] < self.position_check_zone_hint[
+                            0] else self.position_check_zone_hint[0],
+                        self.position_check_hint[1] - self.surface_check_zone_hint.get_rect().h,
                         max(self.surface_check_hint.get_rect().w, self.surface_check_zone_hint.get_rect().w),
-                        temp_rect.height + self.surface_check_zone_hint.get_rect().h)
+                        self.surface_check_hint.get_rect().h + self.surface_check_zone_hint.get_rect().h
+                    )
+                if self.surface_check_attached_item and self.position_check_attached_item:
+                    attached_rect = self.surface_check_attached_item.get_rect()
+                    new_width = max(temp_rect.width, attached_rect.w)
+                    new_height = temp_rect.height + attached_rect.h
+                    temp_rect.width = new_width
+                    temp_rect.height = new_height
                 pygame.draw.rect(screen, (0, 0, 0), temp_rect)
                 if self.surface_check_zone_hint and self.position_check_zone_hint:
-                    screen.blit(self.surface_check_zone_hint, (self.position_check_zone_hint[0], self.position_check_zone_hint[1]))
-                    screen.blit(self.surface_check_hint, (self.position_check_hint[0], self.position_check_hint[1] - self.surface_check_zone_hint.get_rect().h))
+                    screen.blit(self.surface_check_zone_hint,
+                                (self.position_check_zone_hint[0], self.position_check_zone_hint[1]))
+                    screen.blit(self.surface_check_hint,
+                                (self.position_check_hint[0],
+                                 self.position_check_hint[1] - self.surface_check_zone_hint.get_rect().h))
                 else:
                     screen.blit(self.surface_check_hint, self.position_check_hint)
+                if self.surface_check_attached_item and self.position_check_attached_item:
+                    attached_rect = self.surface_check_attached_item.get_rect()
+                    if self.surface_check_zone_hint and self.position_check_zone_hint:
+                        vertical = self.position_check_zone_hint[1] + self.surface_check_zone_hint.get_rect().h
+                    else:
+                        vertical = self.position_check_hint[1] + self.surface_check_hint.get_rect().h
+                    horizontal = temp_rect.x + (temp_rect.width - attached_rect.width) // 2
+                    attached_position = (horizontal, vertical)
+                    screen.blit(self.surface_check_attached_item, attached_position)
+
+            if self.is_moving in self.items:
+                screen.blit(self.is_moving.image, self.is_moving.rect)
         else:
             self.items.draw(screen)
             for item in self.items:
-                if isinstance(item, GoModeItem) and item.enable:
+                if isinstance(item, GoModeItem) and item.enable and self.is_moving != item:
                     item.draw()
                     break
             self.manager.update(time_delta)
@@ -846,15 +962,14 @@ class Tracker:
         for submenu in self.submenus:
             submenu.draw_submenu(screen, time_delta)
         if self.current_item_on_mouse and self.core_service.show_hint_on_item and self.current_item_on_mouse.show_item:
-            temp_rect = pygame.Rect(self.position_check_hint[0],
-                                    self.position_check_hint[1],
-                                    self.surface_check_hint.get_rect().w,
-                                    self.surface_check_hint.get_rect().h)
+            temp_rect = pygame.Rect(self.position_check_hint[0], self.position_check_hint[1],
+                                    self.surface_check_hint.get_rect().w, self.surface_check_hint.get_rect().h)
             pygame.draw.rect(screen, (0, 0, 0), temp_rect)
             screen.blit(self.surface_check_hint, self.position_check_hint)
         boxes = [item for item in self.items if isinstance(item, EditableBox)]
         for box in boxes:
             box.update_box(time_delta)
+
 
     def keyup(self, button, screen):
         if button == pygame.K_ESCAPE:
@@ -883,7 +998,6 @@ class Tracker:
     def back_main_menu(self):
         self.main_menu.reset_tracker()
 
-
     def find_item(self, item_name, is_base_name=False):
         for item in self.items:
             if isinstance(item, SubMenuItem):
@@ -908,7 +1022,6 @@ class Tracker:
     @staticmethod
     def _check_item(item, item_name, index):
         return item.name == item_name and item.enable and Tracker._item_has_index(item, index)
-
 
     def have(self, item_name, condition=None):
         item = self.find_item(item_name)

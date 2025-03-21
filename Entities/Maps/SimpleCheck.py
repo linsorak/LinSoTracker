@@ -28,6 +28,10 @@ class SimpleCheck:
         self.group = group
         self.zoom = self.map.tracker.core_service.zoom
         self.pin_rect = pygame.Rect(0, 0, 1, 1)
+        self.dragged_item_name = None
+        self.dragged_item_basename = None
+        self.dragged_item_index = None
+        self.dragged_icon_item_image = None
 
         if type(self.conditions) == str:
             self.conditions = self.conditions.replace("have(", "self.map.tracker.have(")
@@ -60,6 +64,13 @@ class SimpleCheck:
         x = (index_positions[0] * core_service.zoom + self.positions["x"] * core_service.zoom) + (simple_check_datas["w"] * self.zoom) / 2
         y = (index_positions[1] * core_service.zoom + self.positions["y"] * core_service.zoom) + (simple_check_datas["h"] * self.zoom) / 2
         self.pin_rect = pygame.Rect(x, y, (simple_check_datas["w"] * 2) * self.zoom, (simple_check_datas["h"] * 2) * self.zoom)
+        self.update_dragged_image()
+
+    def draw_dragged_image(self, screen):
+        if self.dragged_icon_item_image:
+            dragged_x = self.pin_rect.x - (self.dragged_icon_item_image.get_rect().w / 3)
+            dragged_y = self.pin_rect.y - (self.dragged_icon_item_image.get_rect().h / 3)
+            screen.blit(self.dragged_icon_item_image, (dragged_x, dragged_y))
 
     def draw(self, screen):
         if not self.hide:
@@ -87,6 +98,7 @@ class SimpleCheck:
             pygame.gfxdraw.aacircle(screen, int(pin_center[0]), int(pin_center[1]), int(pin_radius * zoom),
                                          pygame.Color("black"))
 
+
     def draw_circle_with_thickness(self, surface, color, center, radius, thickness):
         for i in range(thickness):
             pygame.gfxdraw.aacircle(surface, int(center[0]), int(center[1]), int(radius + i), color)
@@ -103,9 +115,39 @@ class SimpleCheck:
                 group_check.checked = self.checked
                 group_check.update()
 
+    def right_click(self, mouse_position):
+        if self.dragged_item_name:
+            self.dragged_item_name = None
+            self.dragged_item_basename = None
+            self.dragged_item_index = None
+            self.dragged_icon_item_image = None
+            self.update()
+
     def wheel_click(self, mouse_position):
         if not self.checked:
             self.focused = not self.focused
+
+    def update_dragged_image(self):
+        if self.dragged_item_name:
+            item = self.map.tracker.find_item(self.dragged_item_name, self.dragged_item_name == self.dragged_item_basename)
+            if item:
+                if hasattr(item, "next_item_index"):
+                    if self.dragged_item_index > -1:
+                        self.dragged_icon_item_image = item.next_items[self.dragged_item_index]["Image"]
+                    else:
+                        self.dragged_icon_item_image = item.colored_image
+                else:
+                    self.dragged_icon_item_image = item.colored_image
+
+            self.dragged_icon_item_image = pygame.transform.smoothscale(self.dragged_icon_item_image, (30 * self.map.tracker.core_service.zoom, 30 * self.map.tracker.core_service.zoom))
+
+
+    def set_new_current_image(self, name, base_name, index=None):
+        self.dragged_item_name = name
+        self.dragged_item_basename = base_name
+        self.dragged_item_index = index
+        self.update()
+
 
     def get_rect(self):
         return self.pin_rect
@@ -114,20 +156,25 @@ class SimpleCheck:
         return self.pin_rect.x, self.pin_rect.y
 
     def get_data(self):
-        data = {
-            "id": self.id,
-            "name": self.name,
-            "checked": self.checked,
-            "hide": self.hide,
-            "focused": self.focused
-        }
+        data = {"id": self.id,
+                "name": self.name,
+                "checked": self.checked,
+                "hide": self.hide,
+                "focused": self.focused,
+                "dragged_item_name": self.dragged_item_name,
+                "dragged_item_basename": self.dragged_item_basename,
+                "dragged_item_index": self.dragged_item_index}
         return data
 
     def set_data(self, datas):
         self.checked = datas.get("checked", False)
         self.hide = datas.get("hide", False)
         self.focused = datas.get("focused", False)
+        self.dragged_item_name = datas.get("dragged_item_name", None)
+        self.dragged_item_basename = datas.get("dragged_item_basename", None)
+        self.dragged_item_index = datas.get("dragged_item_index", None)
         self.update()
+        self.update_dragged_image()
 
     def all_check_hidden(self):
         return False

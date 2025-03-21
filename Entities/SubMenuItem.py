@@ -14,6 +14,7 @@ class SubMenuItem(Item):
         self.background_image_name = background_image
         self.background_image = None
         self.base_image = None
+        self.can_drag = False
         self.resources_path = resources_path
         self.show_numbers_items_active = show_numbers_items_active
         self.show_numbers_checked_items = show_numbers_checked_items

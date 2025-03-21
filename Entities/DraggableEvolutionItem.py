@@ -16,7 +16,7 @@ class DraggableEvolutionItem(EvolutionItem):
             tracker = self.core_service.get_current_tracker()
             item = tracker.find_item(self.dragged_item_name, self.dragged_item_name == self.dragged_item_basename)
             if item:
-                if self.dragged_item_index and hasattr(item, "next_item_index"):
+                if hasattr(item, "next_item_index"):
                     if self.dragged_item_index > -1:
                         self.image = item.next_items[self.dragged_item_index]["Image"]
                     else:

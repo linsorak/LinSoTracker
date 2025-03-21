@@ -105,6 +105,10 @@ class Map:
             return
 
         for check in self.checks_list:
+            if isinstance(check, SimpleCheck):
+                check.draw_dragged_image(screen)
+
+        for check in self.checks_list:
             check.draw(screen)
 
         if self.check_window and self.check_window.is_open():
@@ -131,7 +135,7 @@ class Map:
                     check.left_click(mouse_position)
                     if not self.check_window.is_open():
                         self.check_window.update()
-                        self.check_window.open = True
+                        self.check_window.open_window()
                     return
                 elif button == 2:
                     check.wheel_click(mouse_position)
@@ -144,8 +148,12 @@ class Map:
             pos = check.get_position()
             dim = check.get_rect().size
             if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos, element_dimension=dim) and not check.hide and not self.check_window.is_open():
-                if button in (1, 3):
+                if button == 1:
                     check.left_click(mouse_position)
+                    self.update()
+                    return
+                elif button == 3:
+                    check.right_click(mouse_position)
                     self.update()
                     return
                 elif button == 2:

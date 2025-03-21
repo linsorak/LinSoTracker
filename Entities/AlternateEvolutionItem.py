@@ -21,10 +21,6 @@ class AlternateEvolutionItem(EvolutionItem):
         self.update()
 
     def right_click(self):
-        # if self.next_item_index >= 0:
-        #     self.next_item_index = self.next_item_index - 1
-        # else:
-        #     self.next_item_index = self.next_item_index + 1
         if -1 <= self.next_item_index < len(self.next_items) - 1:
             self.next_item_index += 1
         else:
@@ -51,3 +47,7 @@ class AlternateEvolutionItem(EvolutionItem):
     def reinitialize(self):
         self.value = None
         EvolutionItem.reinitialize(self)
+
+    def set_data(self, datas):
+        EvolutionItem.set_data(self, datas)
+        self.name = self.base_name
