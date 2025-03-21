@@ -10,6 +10,10 @@ from Entities.Maps.SimpleCheck import ConditionsType
 class CheckListItem(Sprite):
     def __init__(self, ident, name, position, conditions, tracker, hide=False, group=None):
         Sprite.__init__(self)
+        self.dragged_icon_item_image = None
+        self.dragged_item_index = None
+        self.dragged_item_basename = None
+        self.dragged_item_name = None
         self.y_line_end = None
         self.x_line_end = None
         self.y_line_start = None
@@ -83,6 +87,13 @@ class CheckListItem(Sprite):
                 group_check.checked = self.checked
                 group_check.update()
 
+    def right_click(self):
+        if self.dragged_item_name:
+            self.dragged_item_name = None
+            self.dragged_item_basename = None
+            self.dragged_item_index = None
+            self.dragged_icon_item_image = None
+
     def wheel_click(self):
         self.focused = not self.focused
         self.update()
@@ -102,12 +113,35 @@ class CheckListItem(Sprite):
 
     def get_dimensions(self):
         return self.surface.get_rect().w, self.surface.get_rect().h
+    
+    def set_new_current_image(self, name, base_name, index=None):
+        self.dragged_item_name = name
+        self.dragged_item_basename = base_name
+        self.dragged_item_index = index
+        self.update_dragged_image()
+        
+    def update_dragged_image(self):
+        if self.dragged_item_name:
+            item = self.tracker.find_item(self.dragged_item_name, self.dragged_item_name == self.dragged_item_basename)
+            if item:
+                if hasattr(item, "next_item_index"):
+                    if self.dragged_item_index > -1:
+                        self.dragged_icon_item_image = item.next_items[self.dragged_item_index]["Image"]
+                    else:
+                        self.dragged_icon_item_image = item.colored_image
+                else:
+                    self.dragged_icon_item_image = item.colored_image
+
+            self.dragged_icon_item_image = pygame.transform.smoothscale(self.dragged_icon_item_image, (26 * self.tracker.core_service.zoom, 26 * self.tracker.core_service.zoom))
+
 
     def draw(self, screen):
-        # screen.blit(self.surface_shadow, (self.position_draw[0] + 1, self.position_draw[1] + 1))
+        if self.dragged_icon_item_image:
+            pos_x = self.position_draw[0] - self.dragged_icon_item_image.get_rect().w
+            pos_y = ((self.surface.get_rect().h - self.dragged_icon_item_image.get_rect().h) / 2 )+ self.position_draw[1]
+            screen.blit(self.dragged_icon_item_image, (pos_x, pos_y))
         screen.blit(self.surface, self.position_draw)
         if self.checked:
-            # pygame.draw.line(screen, pygame.Color("black"), (self.x_line_start, self.y_line_start), (self.x_line_end , self.y_line_end ), int(4 * self.tracker.core_service.zoom))
             pygame.draw.line(screen, self.color, (self.x_line_start, self.y_line_start),
                              (self.x_line_end, self.y_line_end), int(2 * self.tracker.core_service.zoom))
 
@@ -117,7 +151,10 @@ class CheckListItem(Sprite):
             "name": self.name,
             "checked": self.checked,
             "hide": self.hide,
-            "focused": self.focused
+            "focused": self.focused,
+            "dragged_item_name": self.dragged_item_name,
+            "dragged_item_basename": self.dragged_item_basename,
+            "dragged_item_index": self.dragged_item_index
         }
         return data
 
@@ -125,4 +162,8 @@ class CheckListItem(Sprite):
         self.checked = datas.get("checked", False)
         self.hide = datas.get("hide", False)
         self.focused = datas.get("focused", False)
+        self.dragged_item_name = datas.get("dragged_item_name", None)
+        self.dragged_item_basename = datas.get("dragged_item_basename", None)
+        self.dragged_item_index = datas.get("dragged_item_index", None)
         self.update()
+        self.update_dragged_image()

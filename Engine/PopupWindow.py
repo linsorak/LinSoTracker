@@ -244,6 +244,10 @@ class PopupWindow:
                         click_found = True
                         check.wheel_click()
                         self.update()
+                    elif button == 3:
+                        click_found = True
+                        check.right_click()
+                        self.update()
                 else:
                     click_found = True
                     check.left_click()

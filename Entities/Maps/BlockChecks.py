@@ -1,5 +1,4 @@
 import os
-
 import pygame
 
 from Engine import MainMenu
@@ -8,7 +7,7 @@ from Entities.Maps.SimpleCheck import SimpleCheck, ConditionsType
 
 class BlockChecks(SimpleCheck):
     def __init__(self, ident, name, positions, linked_map, zone=None):
-        SimpleCheck.__init__(self, ident, name, positions, linked_map, True, hide=False, zone=zone)
+        super().__init__(ident, name, positions, linked_map, True, hide=False, zone=zone)
         self.position_logic_indicator = None
         self.surface_logic_indicator = None
         self.list_checks = []
@@ -16,6 +15,11 @@ class BlockChecks(SimpleCheck):
         self.all_logic = False
         self.logic_cpt = 0
         self.focused = False
+        self.has_attached_item_on_child = False
+
+        # On stocke ici la surface et le rect du point d'exclamation
+        self.exclamation_surface = None
+        self.exclamation_rect = None
 
     def add_check(self, check):
         self.list_checks.append(check)
@@ -29,6 +33,7 @@ class BlockChecks(SimpleCheck):
         self.all_logic = True
         self.checked = True
         self.focused = False
+        self.has_attached_item_on_child = False
 
         for check in self.list_checks:
             check.update()
@@ -43,6 +48,9 @@ class BlockChecks(SimpleCheck):
                     self.logic_cpt += 1
                 else:
                     self.all_logic = False
+
+                if check.dragged_icon_item_image:
+                    self.has_attached_item_on_child = True
 
         font = self.map.tracker.core_service.get_font("mapFont")
         map_font_path = os.path.join(self.map.tracker.core_service.get_tracker_temp_path(), font["Name"])
@@ -60,12 +68,12 @@ class BlockChecks(SimpleCheck):
         )
 
         color = "Done" if self.checked else (
-            "Logic" if self.all_logic else ("HaveLogic" if self.logic_cpt > 0 else "NotLogic"))
-
+            "Logic" if self.all_logic else ("HaveLogic" if self.logic_cpt > 0 else "NotLogic")
+        )
         self.pin_color = self.map.tracker.core_service.get_color_from_font(font, color)
 
+        # --- Calcul du nombre de checks « logic » ---
         temp_surface = pygame.Surface((0, 0), pygame.SRCALPHA, 32).convert_alpha()
-
         self.surface_logic_indicator, self.position_logic_indicator = MainMenu.MainMenu.draw_text(
             text=f"{self.logic_cpt}",
             font_name=font_path,
@@ -81,13 +89,50 @@ class BlockChecks(SimpleCheck):
         y_number = self.pin_rect.y + (self.pin_rect.h / 2) - (rect.h / 2) + (1.5 * zoom)
         self.position_logic_indicator = (x_number, y_number)
 
+        if self.has_attached_item_on_child:
+            temp_surface = pygame.Surface((0, 0), pygame.SRCALPHA, 32).convert_alpha()
+
+            exclamation_text = "!"
+            exclamation_color = (255, 255, 0)  # Rouge
+            exclamation_outline_size = 1 * zoom  # épaisseur du contour
+            exclamation_font_size = int(16 * zoom)
+
+            font_data = self.map.tracker.core_service.get_font("mapFont")
+            map_font_path = os.path.join(
+                self.map.tracker.core_service.get_tracker_temp_path(),
+                font_data["Name"]
+            )
+
+            # Création de la surface du "!" avec contour via draw_text
+            self.exclamation_surface, _ = MainMenu.MainMenu.draw_text(
+                text=exclamation_text,
+                font_name=map_font_path,
+                color=exclamation_color,
+                font_size=exclamation_font_size,
+                surface=temp_surface,
+                position=(0, 0),
+                outline=exclamation_outline_size
+            )
+
+            border_width = 2 * zoom
+            self.exclamation_rect = self.exclamation_surface.get_rect()
+            self.exclamation_rect.left = self.pin_rect.right - border_width
+            self.exclamation_rect.centery = self.pin_rect.centery
+        else:
+            self.exclamation_surface = None
+            self.exclamation_rect = None
+
     def draw(self, screen):
         if not self.all_check_hidden():
             font = self.map.tracker.core_service.get_font("mapFont")
             border_color = self.map.tracker.core_service.get_color_from_font(font, "Focused") if self.focused else (0, 0, 0)
             self.draw_rect(screen, self.pin_color, border_color, self.pin_rect, 2 * self.map.tracker.core_service.zoom)
+
             if self.logic_cpt > 0:
                 screen.blit(self.surface_logic_indicator, self.position_logic_indicator)
+
+            if self.exclamation_surface:
+                screen.blit(self.exclamation_surface, self.exclamation_rect)
 
     def left_click(self, mouse_position):
         self.set_current_block()
@@ -155,6 +200,6 @@ class BlockChecks(SimpleCheck):
         hidden = 0
         for check in self.list_checks:
             if check.hide:
-                hidden = hidden + 1
+                hidden += 1
 
         return hidden == len(self.list_checks)

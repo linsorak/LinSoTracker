@@ -23,6 +23,7 @@ from Entities.GoModeItem import GoModeItem
 from Entities.IncrementalItem import IncrementalItem
 from Entities.Item import Item
 from Entities.LabelItem import LabelItem
+from Entities.Maps.CheckListItem import CheckListItem
 from Entities.Maps.Map import Map
 from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
@@ -585,7 +586,7 @@ class Tracker:
 
     def items_mouse_down(self, mouse_position, button, item_list):
         for item in item_list:
-            if item.check_click(mouse_position) and not item.is_dragging and item.can_drag and item.show_item:
+            if item.check_click(mouse_position) and not item.is_dragging and item.can_drag and item.show_item and not isinstance(item, SubMenuItem):
                 item.is_dragging = True
                 self.is_moving = item
                 self.selected_items_list = item_list
@@ -624,7 +625,7 @@ class Tracker:
                 self._update_target_image(item)
                 break
 
-            if self.current_map:
+            if self.current_map and not self.current_map.check_window.is_open():
                 for check in (c for c in self.current_map.checks_list if isinstance(c, (SimpleCheck, BlockChecks))):
                     pos = check.get_position()
                     dim = check.get_rect().size
@@ -632,16 +633,29 @@ class Tracker:
                             mouse_positions=mouse_position,
                             element_positons=pos,
                             element_dimension=dim
-                    ) and not check.all_check_hidden()) and not self.current_map.check_window.is_open():
-                        if isinstance(check, BlockChecks):
-                            pass
-                            # print("test")
-                        elif type(check) is SimpleCheck:
+                    ) and not check.all_check_hidden()):
+                        if type(check) is SimpleCheck:
                             self._update_target_image(check)
                         break
                 else:
                     continue
                 break
+
+            elif self.current_map and self.current_map.check_window.is_open():
+                block_checks = [check for check in self.current_map.checks_list if isinstance(check, BlockChecks)]
+                inner_checks = [item for block in block_checks for item in block.list_checks]
+
+                for inner_check in inner_checks:
+                    pos = inner_check.get_position_draw()
+                    dim = inner_check.get_dimensions()
+                    if (self.core_service.is_on_element(
+                            mouse_positions=mouse_position,
+                            element_positons=pos,
+                            element_dimension=dim
+                    ) and not inner_check.hide):
+                        self._update_target_image(inner_check)
+                        print("jaaj")
+                        break
 
         self.is_moving.is_dragging = False
         self.is_moving.reset_position()
