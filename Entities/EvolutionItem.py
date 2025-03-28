@@ -8,6 +8,7 @@ class EvolutionItem(Item):
                  alternative_label=None, always_enable=False):
         self.label_center = label_center
         self.label = label
+        self.base_label = label
         self.next_item_index = -1
         self.next_items = next_items
         self.alternative_label = alternative_label
@@ -20,11 +21,17 @@ class EvolutionItem(Item):
                 self.next_item_index = self.next_item_index + 1
                 next_item = self.next_items[self.next_item_index]
                 self.name = next_item["Name"]
+                self.label = next_item["Label"]
             else:
                 self.next_item_index = -1
                 if not self.always_enable:
                     self.enable = False
                     self.name = self.base_name
+                    self.label = self.base_label
+                else:
+                    self.name = self.base_name
+                    self.label = self.base_label
+
         else:
             self.enable = True
         self.update()
@@ -35,27 +42,27 @@ class EvolutionItem(Item):
             self.next_item_index = len(self.next_items) - 1
             next_item = self.next_items[self.next_item_index]
             self.name = next_item["Name"]
+            self.label = next_item["Label"]
         else:
             if self.next_item_index > 0:
                 self.next_item_index = self.next_item_index - 1
                 next_item = self.next_items[self.next_item_index]
                 self.name = next_item["Name"]
+                self.label = next_item["Label"]
             elif self.next_item_index == 0:
-                if not self.always_enable:
-                    self.next_item_index = self.next_item_index - 1
-                    self.name = self.base_name
-                else:
-                    self.next_item_index = self.next_item_index - 1
-                    next_item = self.next_items[self.next_item_index]
-                    self.name = next_item["Name"]
+                self.next_item_index = self.next_item_index - 1
+                self.name = self.base_name
+                self.label = self.base_label
             else:
                 if not self.always_enable:
                     self.enable = False
                     self.name = self.base_name
+                    self.label = self.base_label
                 else:
                     self.next_item_index = len(self.next_items) - 1
                     next_item = self.next_items[self.next_item_index]
                     self.name = next_item["Name"]
+                    self.label =  next_item["Label"]
         self.update()
 
     def update(self):
@@ -117,7 +124,6 @@ class EvolutionItem(Item):
                                                image_surface=self.image,
                                                text_position=position)
 
-
     def get_data(self):
         data = Item.get_data(self)
         data["next_item_index"] = self.next_item_index
@@ -129,8 +135,10 @@ class EvolutionItem(Item):
         if datas["next_item_index"] != -1:
             next_item = self.next_items[self.next_item_index]
             self.name = next_item["Name"]
+            self.label = next_item["Label"]
         else:
             self.name = self.base_name
+            self.label = self.base_label
 
     def get_colored_image(self):
         if not self.enable:
@@ -141,4 +149,5 @@ class EvolutionItem(Item):
     def reinitialize(self):
         self.next_item_index = -1
         self.name = self.base_name
+        self.label = self.base_label
         Item.reinitialize(self)

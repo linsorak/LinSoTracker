@@ -93,8 +93,8 @@ class BlockChecks(SimpleCheck):
             temp_surface = pygame.Surface((0, 0), pygame.SRCALPHA, 32).convert_alpha()
 
             exclamation_text = "!"
-            exclamation_color = (255, 255, 0)  # Rouge
-            exclamation_outline_size = 1 * zoom  # épaisseur du contour
+            exclamation_color = (255, 255, 0)
+            exclamation_outline_size = 1 * zoom
             exclamation_font_size = int(16 * zoom)
 
             font_data = self.map.tracker.core_service.get_font("mapFont")
@@ -103,7 +103,6 @@ class BlockChecks(SimpleCheck):
                 font_data["Name"]
             )
 
-            # Création de la surface du "!" avec contour via draw_text
             self.exclamation_surface, _ = MainMenu.MainMenu.draw_text(
                 text=exclamation_text,
                 font_name=map_font_path,

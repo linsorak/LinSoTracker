@@ -79,8 +79,8 @@ class Tracker:
         self.box_label_map_name_rect = None
         self.mouse_check_found = None
         self.maps_list_window = PopupWindow(tracker=self, index_positions=(0, 0))
-        self.rules_options_list_window = PopupWindow(tracker=self, index_positions=(0, 0))
         self.maps_list = []
+        self.rules_windows_data = []
         self.submenus = pygame.sprite.Group()
         self.items = pygame.sprite.Group()
         self.template_name = template_name
@@ -223,28 +223,50 @@ class Tracker:
                                                             name=json_datas[0]["Datas"]["Name"],
                                                             position=positions)
                             self.map_name_items_list.append(temp_map_name)
-            if "RulesOptionsList" in self.tracker_json_data[4]:
-                rules = self.tracker_json_data[4]["RulesOptions"]
-                positions = {
-                    "x": self.background_image.get_rect().right,
-                    "y": self.background_image.get_rect().y
-                }
-                for i, rule in enumerate(rules):
-                    temp_rule = RulesOptionsListItem(
-                        tracker=self,
-                        ident=i,
-                        name=rule["Name"],
-                        position=positions,
-                        checked=True,
-                        hide_checks=rule.get("HideChecks"),
-                        actions=rule.get("Actions"),
-                        active_on_start=rule.get("Active", False),
-                        can_be_clickable=rule.get("CanBeClickable", True)
-                    )
-                    self.rules_options_items_list.append(temp_rule)
+
+            if "RulesOptionsLists" in self.tracker_json_data[4]:
+                for rules_options in self.tracker_json_data[4]["RulesOptionsLists"]:
+                    rules_options_data = {
+                        "Name": rules_options["Name"],
+                        "ButtonRectData": rules_options["ButtonRect"],
+                        "DrawBoxRect": rules_options["ListBox"]["DrawBoxRect"],
+                        "LabelY": rules_options["ListBox"]["LabelY"],
+                        "LeftArrow": rules_options["ListBox"]["LeftArrow"],
+                        "RightArrow": rules_options["ListBox"]["RightArrow"],
+                        "SubMenuBackground": rules_options["ListBox"]["SubMenuBackground"],
+                        "Background": self.bank.addZoomImage(
+                        os.path.join(self.resources_path, rules_options["ListBox"]["SubMenuBackground"])),
+                        "PopupWindow": PopupWindow(tracker=self, index_positions=(0, 0))
+                    }
+                    if "RulesOptions" in self.tracker_json_data[4]:
+                        rules_list = []
+                        rules = self.tracker_json_data[4]["RulesOptions"]
+                        positions = {
+                            "x": self.background_image.get_rect().right,
+                            "y": self.background_image.get_rect().y
+                        }
+                        for i, rule in enumerate(rules):
+                            if "ParentListName" in rule and rule["ParentListName"] == rules_options_data["Name"]:
+                                temp_rule = RulesOptionsListItem(
+                                    tracker=self,
+                                    ident=i,
+                                    name=rule["Name"],
+                                    position=positions,
+                                    checked=True,
+                                    hide_checks=rule.get("HideChecks"),
+                                    actions=rule.get("Actions"),
+                                    active_on_start=rule.get("Active", False),
+                                    can_be_clickable=rule.get("CanBeClickable", True)
+                                )
+                                if temp_rule.active_on_start:
+                                    temp_rule.left_click(force_click=True)
+
+                                rules_list.append(temp_rule)
+                        rules_options_data["Rules"] = rules_list
+
+                    self.rules_windows_data.append(rules_options_data)
+
             self.change_map(self.map_name_items_list[0])
-        for rule in [r for r in self.rules_options_items_list if r.active_on_start]:
-            rule.left_click(force_click=True)
         self.update()
 
     def update_popup(self, popup, popup_datas, title, title_font, background_image, items_list):
@@ -305,23 +327,22 @@ class Tracker:
                                   title_font="mapFontTitle",
                                   background_image=self.maps_list_background,
                                   items_list=self.map_name_items_list)
-            if "RulesOptionsList" in self.tracker_json_data[4]:
-                rules_rect = self.tracker_json_data[4]["RulesOptionsList"]["RulesOptionsListButtonRect"]
-                self.rules_options_button_rect = pygame.Rect(
-                    rules_rect["x"] * zoom,
-                    rules_rect["y"] * zoom,
-                    rules_rect["w"] * zoom,
-                    rules_rect["h"] * zoom
+
+            for rules_window_data in self.rules_windows_data:
+                rules_window_data["ButtonRect"] = pygame.Rect(
+                    rules_window_data["ButtonRectData"]["x"] * zoom,
+                    rules_window_data["ButtonRectData"]["y"] * zoom,
+                    rules_window_data["ButtonRectData"]["w"] * zoom,
+                    rules_window_data["ButtonRectData"]["h"] * zoom
                 )
-                rules_options_box_datas = self.tracker_json_data[4]["RulesOptionsList"]["RulesOptionListBox"]
-                self.rules_options_list_background = self.bank.addZoomImage(
-                    os.path.join(self.resources_path, rules_options_box_datas["SubMenuBackground"]))
-                self.update_popup(popup=self.rules_options_list_window,
-                                  popup_datas=rules_options_box_datas,
-                                  title="Rules Options",
+
+                self.update_popup(popup=rules_window_data["PopupWindow"],
+                                  popup_datas=rules_window_data,
+                                  title=rules_window_data["Name"],
                                   title_font="rulesOptionsFontTitle",
-                                  background_image=self.rules_options_list_background,
-                                  items_list=self.rules_options_items_list)
+                                  background_image=rules_window_data["Background"],
+                                  items_list=rules_window_data["Rules"])
+
 
     def update_cpt(self):
         if self.current_map:
@@ -654,7 +675,6 @@ class Tracker:
                             element_dimension=dim
                     ) and not inner_check.hide):
                         self._update_target_image(inner_check)
-                        print("jaaj")
                         break
 
         self.is_moving.is_dragging = False
@@ -665,12 +685,14 @@ class Tracker:
     def _handle_regular_click(self, mouse_position, button):
         if self.current_map:
             self.current_map.click(mouse_position, button)
-            if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open():
+            rules_win_open = next((r for r in self.rules_windows_data if r["PopupWindow"].is_open()), None)
+            if not self.maps_list_window.is_open() and not rules_win_open:
                 self.items_click(self.items, mouse_position, button)
             if self.maps_list_window.is_open():
                 self.maps_list_window.left_click(mouse_position)
-            if self.rules_options_list_window.is_open():
-                self.rules_options_list_window.left_click(mouse_position)
+
+            if rules_win_open:
+                rules_win_open["PopupWindow"].left_click(mouse_position)
 
             if (self.box_label_map_name_rect and
                     self.core_service.is_on_element(
@@ -682,16 +704,25 @@ class Tracker:
                 self.surface_check_zone_hint, self.position_check_zone_hint = (None, None)
                 self.mouse_check_found = None
 
-            if (self.rules_options_button_rect and
-                    self.core_service.is_on_element(
-                        mouse_positions=mouse_position,
-                        element_positons=(self.rules_options_button_rect.x, self.rules_options_button_rect.y),
-                        element_dimension=(self.rules_options_button_rect.w, self.rules_options_button_rect.h)
-                    )):
-                self.rules_options_list_window.open_window()
+            for rules_window_data in self.rules_windows_data:
+                if (rules_window_data["ButtonRect"] and not any(r["PopupWindow"].is_open() for r in self.rules_windows_data) and
+                        self.core_service.is_on_element(
+                            mouse_positions=mouse_position,
+                            element_positons=(rules_window_data["ButtonRect"].x, rules_window_data["ButtonRect"].y),
+                            element_dimension=(rules_window_data["ButtonRect"].w, rules_window_data["ButtonRect"].h)
+                        )):
+                    self.update_popup(popup=rules_window_data["PopupWindow"],
+                                      popup_datas=rules_window_data,
+                                      title=rules_window_data["Name"],
+                                      title_font="rulesOptionsFontTitle",
+                                      background_image=rules_window_data["Background"] ,
+                                      items_list=rules_window_data["Rules"])
+
+                    rules_window_data["PopupWindow"].open_window()
         else:
-            if not self.rules_options_list_window.is_open() or not self.maps_list_window.is_open():
-                self.items_click(self.items, mouse_position, button)
+            for rules_window_data in self.rules_windows_data:
+                if not rules_window_data["PopupWindow"].is_open() or not self.maps_list_window.is_open():
+                    self.items_click(self.items, mouse_position, button)
 
     def _handle_submenu_click(self, mouse_position, button):
         for submenu in self.submenus:
@@ -702,12 +733,10 @@ class Tracker:
                         item.update()
 
     def mouse_move(self, mouse_position):
-        # Détermine si un sous-menu est visible.
         submenu_found = any(submenu.show for submenu in self.submenus)
-        if self.current_map and self.current_map.check_window.is_open():
+        if self.current_map and self.current_map.check_window.is_open() or any(r["PopupWindow"].is_open() for r in self.rules_windows_data):
             submenu_found = True
 
-        # Gestion des "checks" de la carte si aucun sous-menu n'est actif.
         if self.current_map and self.current_map.checks_list and not submenu_found:
             self.mouse_check_found = None
 
@@ -756,7 +785,8 @@ class Tracker:
                 self.reset_hint()
 
 
-        if not self.maps_list_window.is_open() and not self.rules_options_list_window.is_open():
+
+        if not self.maps_list_window.is_open() and not any(r["PopupWindow"].is_open() for r in self.rules_windows_data):
             if not submenu_found:
                 items_to_check = self.items
             else:
@@ -836,10 +866,12 @@ class Tracker:
         if self.maps_list:
             maps_datas = [map_data.get_data() for map_data in self.maps_list]
             datas.append({"maps": maps_datas})
-            if self.rules_options_list_window.list_items:
-                rules_datas = [rule.get_data() for rule in self.rules_options_list_window.list_items]
-                datas.append({"rules": rules_datas})
+            for rules_window_data in self.rules_windows_data:
+                if rules_window_data["PopupWindow"].list_items:
+                    rules_datas = [rule.get_data() for rule in rules_window_data["PopupWindow"].list_items]
+                    datas.append({f"rules_{rules_window_data["Name"]}": rules_datas})
         return datas
+
 
     def load_data(self, datas):
         if datas[0].get("template_name") != self.template_name:
@@ -857,12 +889,13 @@ class Tracker:
                     map_name = map_data.get_name()
                     map_data.load_data(next((m for m in maps if m["name"] == map_name), None))
                     map_data.update()
-            if len(datas) > 3 and "rules" in datas[3]:
-                rules = datas[3].get("rules")
+            for rules_window_data in self.rules_windows_data:
+                rules = self.find_object_with_key(datas, f"rules_{rules_window_data["Name"]}")
+                rules = rules[f"rules_{rules_window_data["Name"]}"]
                 if rules:
                     for rule_data in rules:
                         rule = next(
-                            (r for r in self.rules_options_list_window.list_items if r.name == rule_data["name"]), None)
+                            (r for r in rules_window_data["PopupWindow"].list_items if r.name == rule_data["name"]), None)
                         if rule:
                             rule.set_data(rule_data)
                             rule.update()
@@ -870,6 +903,8 @@ class Tracker:
                 self.update()
                 self.update_cpt()
                 self.current_map.update()
+
+
 
     def change_zoom(self, value):
         datas = self.save_data()
@@ -908,60 +943,57 @@ class Tracker:
                     screen.blit(item.image, item.rect)
                 if isinstance(item, GoModeItem) and item.enable:
                     item.draw()
-            # self.items.draw(screen)
-            # for item in self.items:
-            #     if isinstance(item, GoModeItem) and item.enable:
-            #         item.draw()
-            #         break
+
             self.current_map.draw(screen)
             if self.surface_label_map_name:
                 screen.blit(self.surface_label_map_name, self.position_draw_label_map_name)
             screen.blit(self.surface_label_checks_cpt, self.position_draw_label_checks_cpt)
-            if self.maps_list_window.is_open() or self.rules_options_list_window.is_open():
-                info_object = pygame.display.Info()
-                s = pygame.Surface((info_object.current_w, info_object.current_h), pygame.SRCALPHA)
-                s.fill((0, 0, 0, 209))
-                screen.blit(s, (0, 0))
-                if self.maps_list_window.is_open():
-                    self.maps_list_window.draw(screen)
-                if self.rules_options_list_window.is_open():
-                    self.rules_options_list_window.draw(screen)
-            elif (self.mouse_check_found and not self.current_map.check_window.is_open()) or (
-                    self.core_service.show_hint_on_item and self.current_item_on_mouse):
-                temp_rect = pygame.Rect(self.position_check_hint[0], self.position_check_hint[1],
-                                        self.surface_check_hint.get_rect().w, self.surface_check_hint.get_rect().h)
-                if self.surface_check_zone_hint and self.position_check_zone_hint:
-                    temp_rect = pygame.Rect(
-                        self.position_check_hint[0] if self.position_check_hint[0] < self.position_check_zone_hint[
-                            0] else self.position_check_zone_hint[0],
-                        self.position_check_hint[1] - self.surface_check_zone_hint.get_rect().h,
-                        max(self.surface_check_hint.get_rect().w, self.surface_check_zone_hint.get_rect().w),
-                        self.surface_check_hint.get_rect().h + self.surface_check_zone_hint.get_rect().h
-                    )
-                if self.surface_check_attached_item and self.position_check_attached_item:
-                    attached_rect = self.surface_check_attached_item.get_rect()
-                    new_width = max(temp_rect.width, attached_rect.w)
-                    new_height = temp_rect.height + attached_rect.h
-                    temp_rect.width = new_width
-                    temp_rect.height = new_height
-                pygame.draw.rect(screen, (0, 0, 0), temp_rect)
-                if self.surface_check_zone_hint and self.position_check_zone_hint:
-                    screen.blit(self.surface_check_zone_hint,
-                                (self.position_check_zone_hint[0], self.position_check_zone_hint[1]))
-                    screen.blit(self.surface_check_hint,
-                                (self.position_check_hint[0],
-                                 self.position_check_hint[1] - self.surface_check_zone_hint.get_rect().h))
-                else:
-                    screen.blit(self.surface_check_hint, self.position_check_hint)
-                if self.surface_check_attached_item and self.position_check_attached_item:
-                    attached_rect = self.surface_check_attached_item.get_rect()
+            for rules_window_data in self.rules_windows_data:
+                if self.maps_list_window.is_open() or rules_window_data["PopupWindow"].is_open():
+                    info_object = pygame.display.Info()
+                    s = pygame.Surface((info_object.current_w, info_object.current_h), pygame.SRCALPHA)
+                    s.fill((0, 0, 0, 209))
+                    screen.blit(s, (0, 0))
+                    if self.maps_list_window.is_open():
+                        self.maps_list_window.draw(screen)
+                    if rules_window_data["PopupWindow"].is_open():
+                        rules_window_data["PopupWindow"].draw(screen)
+                elif (self.mouse_check_found and not self.current_map.check_window.is_open()) or (
+                        self.core_service.show_hint_on_item and self.current_item_on_mouse):
+                    temp_rect = pygame.Rect(self.position_check_hint[0], self.position_check_hint[1],
+                                            self.surface_check_hint.get_rect().w, self.surface_check_hint.get_rect().h)
                     if self.surface_check_zone_hint and self.position_check_zone_hint:
-                        vertical = self.position_check_zone_hint[1] + self.surface_check_zone_hint.get_rect().h
+                        temp_rect = pygame.Rect(
+                            self.position_check_hint[0] if self.position_check_hint[0] < self.position_check_zone_hint[
+                                0] else self.position_check_zone_hint[0],
+                            self.position_check_hint[1] - self.surface_check_zone_hint.get_rect().h,
+                            max(self.surface_check_hint.get_rect().w, self.surface_check_zone_hint.get_rect().w),
+                            self.surface_check_hint.get_rect().h + self.surface_check_zone_hint.get_rect().h
+                        )
+                    if self.surface_check_attached_item and self.position_check_attached_item:
+                        attached_rect = self.surface_check_attached_item.get_rect()
+                        new_width = max(temp_rect.width, attached_rect.w)
+                        new_height = temp_rect.height + attached_rect.h
+                        temp_rect.width = new_width
+                        temp_rect.height = new_height
+                    pygame.draw.rect(screen, (0, 0, 0), temp_rect)
+                    if self.surface_check_zone_hint and self.position_check_zone_hint:
+                        screen.blit(self.surface_check_zone_hint,
+                                    (self.position_check_zone_hint[0], self.position_check_zone_hint[1]))
+                        screen.blit(self.surface_check_hint,
+                                    (self.position_check_hint[0],
+                                     self.position_check_hint[1] - self.surface_check_zone_hint.get_rect().h))
                     else:
-                        vertical = self.position_check_hint[1] + self.surface_check_hint.get_rect().h
-                    horizontal = temp_rect.x + (temp_rect.width - attached_rect.width) // 2
-                    attached_position = (horizontal, vertical)
-                    screen.blit(self.surface_check_attached_item, attached_position)
+                        screen.blit(self.surface_check_hint, self.position_check_hint)
+                    if self.surface_check_attached_item and self.position_check_attached_item:
+                        attached_rect = self.surface_check_attached_item.get_rect()
+                        if self.surface_check_zone_hint and self.position_check_zone_hint:
+                            vertical = self.position_check_zone_hint[1] + self.surface_check_zone_hint.get_rect().h
+                        else:
+                            vertical = self.position_check_hint[1] + self.surface_check_hint.get_rect().h
+                        horizontal = temp_rect.x + (temp_rect.width - attached_rect.width) // 2
+                        attached_position = (horizontal, vertical)
+                        screen.blit(self.surface_check_attached_item, attached_position)
 
             if self.is_moving in self.items:
                 screen.blit(self.is_moving.image, self.is_moving.rect)
@@ -1025,12 +1057,30 @@ class Tracker:
                     return item
         return None
 
+    def find_object_with_key(self, obj, key):
+        if isinstance(obj, dict):
+            if key in obj:
+                return obj
+            for v in obj.values():
+                result = self.find_object_with_key(v, key)
+                if result:
+                    return result
+        elif isinstance(obj, list):
+            for item in obj:
+                result = self.find_object_with_key(item, key)
+                if result:
+                    return result
+        return None
+
     @staticmethod
     def _item_has_index(item, index):
         if index is None:
             return True
 
-        new_index = "item.value {}".format(index)
+        if isinstance(item, IncrementalItem):
+            new_index = "item.increments_position {}".format(index)
+        else:
+            new_index = "item.value {}".format(index)
         return eval(new_index)
 
     @staticmethod
@@ -1085,11 +1135,12 @@ class Tracker:
         """
         Check if a rule is active in the list of rule options.
         """
-        if self.rules_options_list_window.list_items:
-            for rule_option in self.rules_options_list_window.list_items:
-                if rule_option.name == rule:
-                    return rule_option.is_active()
-            return False
+        for rules_window_data in self.rules_windows_data:
+            popup = rules_window_data["PopupWindow"]
+            if popup.list_items:
+                for rule_option in popup.list_items:
+                    if rule_option.name == rule:
+                        return rule_option.is_active()
         return False
 
     def check_sub_check(self, check, check_name):

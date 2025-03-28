@@ -64,7 +64,7 @@ def main():
         clock = core_service.clock
         loop = True
         mouse_position = (0, 0)
-        CLICK_THRESHOLD = 100
+        CLICK_THRESHOLD = 150
         is_mouse_down = False
         start_time = 0
         button_event = None
