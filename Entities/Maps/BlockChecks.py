@@ -49,8 +49,8 @@ class BlockChecks(SimpleCheck):
                 else:
                     self.all_logic = False
 
-                if check.dragged_icon_item_image:
-                    self.has_attached_item_on_child = True
+            if check.dragged_icon_item_image and not check.hide:
+                self.has_attached_item_on_child = True
 
         font = self.map.tracker.core_service.get_font("mapFont")
         map_font_path = os.path.join(self.map.tracker.core_service.get_tracker_temp_path(), font["Name"])
@@ -95,7 +95,7 @@ class BlockChecks(SimpleCheck):
             exclamation_text = "!"
             exclamation_color = (255, 255, 0)
             exclamation_outline_size = 1 * zoom
-            exclamation_font_size = int(16 * zoom)
+            exclamation_font_size = int(23 * zoom)
 
             font_data = self.map.tracker.core_service.get_font("mapFont")
             map_font_path = os.path.join(

@@ -720,9 +720,9 @@ class Tracker:
 
                     rules_window_data["PopupWindow"].open_window()
         else:
-            for rules_window_data in self.rules_windows_data:
-                if not rules_window_data["PopupWindow"].is_open() or not self.maps_list_window.is_open():
-                    self.items_click(self.items, mouse_position, button)
+
+            if not any(r["PopupWindow"].is_open() for r in self.rules_windows_data) or not self.maps_list_window.is_open():
+                self.items_click(self.items, mouse_position, button)
 
     def _handle_submenu_click(self, mouse_position, button):
         for submenu in self.submenus:

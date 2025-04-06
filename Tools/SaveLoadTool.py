@@ -3,16 +3,13 @@ from tkinter import filedialog, messagebox
 
 from cryptography.fernet import Fernet
 
-from Tools.CoreService import CoreService
-
-core_service = CoreService()
-
+key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
 
 class SaveLoadTool:
     def __init__(self):
         self.extension = ".trackersave"
         self.filetypes = [("LinSoTracker Save", self.extension)]
-        self.fernet = Fernet(core_service.key_encryption)
+        self.fernet = Fernet(key_encryption)
 
     def openFileNameDialog(self):
         filename = filedialog.askopenfilename(initialdir="/", title="Load tracker save",

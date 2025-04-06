@@ -122,7 +122,6 @@ class PopupWindow:
         try:
             new_list = [check for check in self.list_items.get_checks() if not check.hide]
             get_check = new_list
-            print(get_check)
 
         except AttributeError:
             get_check = self.list_items

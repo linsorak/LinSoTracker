@@ -520,17 +520,20 @@ class MainMenu:
 
     @staticmethod
     def draw_text(text, font_name, color, font_size, surface, position, outline=2, color_outline=(0, 0, 0)):
-        outline_temp = outline
-        core_service = CoreService()
-        if core_service.zoom == 1 and outline == 1:
-            outline_temp = 2
+        try:
+            outline_temp = outline
+            core_service = CoreService()
+            if core_service.zoom == 1 and outline == 1:
+                outline_temp = 2
 
-        tsurf, tpos = ptext.draw(str(text), position, fontname=font_name, antialias=True,
-                                 owidth=outline_temp, ocolor=color_outline, color=color, fontsize=font_size,
-                                 surf=surface)
-        ptext.MEMORY_REDUCTION_FACTOR = 0
-        ptext.AUTO_CLEAN = True
-        return tsurf, tpos
+            tsurf, tpos = ptext.draw(str(text), position, fontname=font_name, antialias=True,
+                                     owidth=outline_temp, ocolor=color_outline, color=color, fontsize=font_size,
+                                     surf=surface)
+            ptext.MEMORY_REDUCTION_FACTOR = 0
+            ptext.AUTO_CLEAN = True
+            return tsurf, tpos
+        except Exception as e:
+            print(e)
 
     def click_down(self, mouse_position, button):
         if self.loaded_tracker:

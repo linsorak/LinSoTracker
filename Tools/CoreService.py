@@ -37,7 +37,7 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.4 BETA-08"
+        self.version = "2.4"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -97,14 +97,21 @@ class CoreService(metaclass=Singleton):
 
     def save_configuration(self, session, value):
         user_configuration = os.path.join(self.temp_path_fixe, "user.conf")
-        if os.path.exists(user_configuration):
-            data = []
-            with open(user_configuration) as f:
-                data = json.load(f)
-                data[session] = value
 
+        data = {}
+        if os.path.exists(user_configuration):
+            try:
+                with open(user_configuration, 'r') as f:
+                    data = json.load(f)
+            except json.JSONDecodeError:
+                print("The file 'user.conf' is corrupted or empty. Resetting the file.")
+                data = {}
+        data[session] = value
+        try:
             with open(user_configuration, 'w') as f:
                 json.dump(data, f, indent=2)
+        except OSError as e:
+            print(f"Failed to write to 'user.conf': {e}")
 
     def load_default_configuration(self):
         user_configuration = os.path.join(self.temp_path_fixe, "user.conf")

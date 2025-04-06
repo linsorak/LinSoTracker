@@ -87,7 +87,7 @@ class RulesOptionsListItem(CheckListItem):
                         matching_rule.do_actions()
                         matching_rule.set_hidden_checks()
 
-                elif "SetLeftClick" or "SetWheelClick" or "SetRightClick" in action_dict:
+                elif "SetLeftClick" or "SetWheelClick" or "SetRightClick" or "ResetItem" in action_dict:
                     action_name = list(action_dict.keys())[0]
                     rule_action = action_dict[action_name]
                     item = self.tracker.find_item(rule_action["Item"], True)
@@ -95,15 +95,18 @@ class RulesOptionsListItem(CheckListItem):
                     if item:
                         if not self.checked:
                             item.reset()
-                            for i in range(rule_action.get("Counter", 0)):
-                                if action_name == "SetLeftClick":
-                                    item.left_click()
-                                elif action_name == "SetWheelClick":
-                                    item.wheel_click()
-                                elif action_name == "SetRightClick":
-                                    item.right_click()
+                            if action_name != "ResetItem" :
+                                for i in range(rule_action.get("Counter", 0)):
+                                    if action_name == "SetLeftClick":
+                                        item.left_click()
+                                    elif action_name == "SetWheelClick":
+                                        item.wheel_click()
+                                    elif action_name == "SetRightClick":
+                                        item.right_click()
                         else:
                             item.reset()
+                        item.update()
+
 
     def left_click(self, force_click=False):
         if self.can_be_clickable or force_click:
