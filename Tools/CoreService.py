@@ -156,25 +156,30 @@ class CoreService(metaclass=Singleton):
             data_json = json.loads(response.read())
 
             if "lastest_version" in data_json:
-                if self.get_version() != data_json["lastest_version"] and self.detect_os() == "win" and not self.dev_version:
+                if self.get_version() != data_json["lastest_version"] and (self.detect_os() == "win" or self.detect_os() == "linux") and not self.dev_version:
                     self.new_version = data_json["lastest_version"]
 
                     args_current_version = f'--current_version="{self.version}"'
                     args_url_json = f'--url_json="{url}"'
                     args_destination_path = f'--destination_path="{self.app_path}"'
-                    args_file_to_execute = f'--file_to_execute="{self.app_name}.exe"'
+                    args_file_to_execute = f'--file_to_execute="{self.app_name}"'
+
+                    path_to_exe = os.path.join(self.app_path, "updater")
+                    if self.detect_os() == "win":
+                        args_file_to_execute = f'{args_file_to_execute}.exe'
+                        path_to_exe = f'{path_to_exe}.exe'
+
                     arguments = [args_current_version,
                                  args_url_json,
                                  args_destination_path,
                                  args_file_to_execute]
 
-                    path_to_exe = os.path.join(self.app_path, "updater.exe")
-
                     if self.detect_os() == "win":
                         cmd = f'start /B "" "{path_to_exe}" {" ".join(arguments)}'
                         subprocess.Popen(cmd, shell=True)
                     else:
-                        subprocess.Popen(["nohup", path_to_exe] + arguments + ["&"])
+                        cmd = f'nohup {path_to_exe} {" ".join(arguments)} > /dev/null 2>&1 &'
+                        subprocess.Popen(cmd, shell=True)
 
                     time.sleep(1)
                     os._exit(0)

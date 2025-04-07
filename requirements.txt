@@ -1,4 +1,4 @@
-pygame
+pygame-ce
 pygame_menu
 cryptography
 pyinstaller
