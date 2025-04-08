@@ -14,20 +14,26 @@ class SaveLoadTool:
     def openFileNameDialog(self):
         filename = filedialog.askopenfilename(initialdir="/", title="Load tracker save",
                                               filetypes=self.filetypes)
-        return self.loadEcryptedFile(filename)
+        return self.loadFile(filename)
 
-    def loadEcryptedFile(self, filename):
+    def loadFile(self, filename):
         if filename:
-            # if filename.endswith(self.filetypes[0]):
-            f = open(filename)
-            with open(filename, 'rb') as enc_file:
+            try:
+                with open(filename, 'rb') as file:
+                    content = file.read()
+
                 try:
-                    encrypted = enc_file.read()
-                    decrypted = self.fernet.decrypt(encrypted)
+                    decrypted = self.fernet.decrypt(content)
                     return json.loads(decrypted)
                 except:
-                    messagebox.showerror('Error', 'This save is not compatible with this version')
-                    return None
+                    try:
+                        return json.loads(content.decode('utf-8'))
+                    except:
+                        messagebox.showerror('Error', 'This save is not compatible with this version')
+                        return None
+            except Exception as e:
+                messagebox.showerror('Error', f'Failed to load the file: {str(e)}')
+                return None
         else:
             return None
 
@@ -41,7 +47,7 @@ class SaveLoadTool:
 
             # json_data_dump = json.dumps(data, indent=2)
             json_data_dump = json.dumps(data, indent=4).encode('utf-8')
-            encrypted = self.fernet.encrypt(json_data_dump)
+            # encrypted = self.fernet.encrypt(json_data_dump)
             with open(filename, 'wb') as f:
-                f.write(encrypted)
+                f.write(json_data_dump)
                 f.close()

@@ -120,7 +120,8 @@ class Tracker:
         self.selected_items_list = None
         self.current_editablebox = None
         self.loaded = True
-        self.update_draggable_items()
+        # self.update_draggable_items()
+        self.update_items()
 
     def get_font_data(self, font_session):
         if font_session not in self._font_cache:
@@ -136,7 +137,7 @@ class Tracker:
                 save_name = os.path.join(save_directory, self.template_name + ".trackersave")
                 save_tool = SaveLoadTool()
                 if os.path.exists(save_name):
-                    f = save_tool.loadEcryptedFile(save_name)
+                    f = save_tool.loadFile(save_name)
                     if f:
                         if f[0]["template_name"] == self.template_name:
                             self.load_data(f)
@@ -171,33 +172,36 @@ class Tracker:
                 zip.close()
 
     def init_tracker(self):
-        filename = os.path.join(self.resources_path, "tracker.json")
-        if os.path.isfile(filename):
-            with open(filename, 'r') as file:
-                self.tracker_json_data = json.load(file)
-        json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
-        zoom = self.core_service.zoom
-        w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * zoom
-        h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * zoom
-        pygame.display.set_mode((w, h))
-        self.core_service.setgamewindowcenter(w, h)
-        self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
-        items_sheets = self.tracker_json_data[1]["Datas"]["Items"]
-        self.list_items_sheets = []
-        for sheet_name, sheet_info in items_sheets.items():
-            image_sheet = self.bank.addImage(os.path.join(self.resources_path, sheet_info["ItemsSheet"]))
-            items_sheet_data = ImageSheet(image_sheet, sheet_info["ItemsSheetDimensions"]["width"],
-                                          sheet_info["ItemsSheetDimensions"]["height"])
-            self.list_items_sheets.append({
-                "Name": sheet_name,
-                "ImageSheet": items_sheet_data,
-                "ImageSheetDimensions": sheet_info["ItemsSheetDimensions"]
-            })
-        bg_color = self.tracker_json_data[1]["Datas"]["BackgroundColor"]
-        self.core_service.set_background_color(bg_color["r"], bg_color["g"], bg_color["b"])
-        self.menu = Menu((w, h), self)
-        self.menu.set_tracker(self)
-        self.esc_menu_image = self.bank.addImage(os.path.join(self.resources_base_path, "menu.png"))
+        try:
+            filename = os.path.join(self.resources_path, "tracker.json")
+            if os.path.isfile(filename):
+                with open(filename, 'r') as file:
+                    self.tracker_json_data = json.load(file)
+            json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
+            zoom = self.core_service.zoom
+            w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * zoom
+            h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * zoom
+            pygame.display.set_mode((w, h))
+            self.core_service.setgamewindowcenter(w, h)
+            self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
+            items_sheets = self.tracker_json_data[1]["Datas"]["Items"]
+            self.list_items_sheets = []
+            for sheet_name, sheet_info in items_sheets.items():
+                image_sheet = self.bank.addImage(os.path.join(self.resources_path, sheet_info["ItemsSheet"]))
+                items_sheet_data = ImageSheet(image_sheet, sheet_info["ItemsSheetDimensions"]["width"],
+                                              sheet_info["ItemsSheetDimensions"]["height"])
+                self.list_items_sheets.append({
+                    "Name": sheet_name,
+                    "ImageSheet": items_sheet_data,
+                    "ImageSheetDimensions": sheet_info["ItemsSheetDimensions"]
+                })
+            bg_color = self.tracker_json_data[1]["Datas"]["BackgroundColor"]
+            self.core_service.set_background_color(bg_color["r"], bg_color["g"], bg_color["b"])
+            self.menu = Menu((w, h), self)
+            self.menu.set_tracker(self)
+            self.esc_menu_image = self.bank.addImage(os.path.join(self.resources_base_path, "menu.png"))
+        except pygame.error:
+            pass
 
     def init_maps_datas(self):
         self.map_name_items_list = []
@@ -853,6 +857,11 @@ class Tracker:
                     item.enable_click()
                 else:
                     item.disable_click()
+
+    def update_items(self):
+        for item in self.items:
+            item.update()
+
 
     def update_draggable_items(self):
         for item in self.items:

@@ -52,7 +52,7 @@ class Item(pygame.sprite.Sprite):
         self.start_drag_time = 0
         self.drag_delay = 150
 
-        self.update()
+        # self.update()
 
     def get_position(self):
         return self.position
@@ -79,11 +79,9 @@ class Item(pygame.sprite.Sprite):
 
             if self.is_dragging and self.can_drag:
                 self.rect.center = pygame.mouse.get_pos()
-
-
         else:
             self.image = pygame.Surface((0, 0))
-            self.set_child_visibilty("inactive_items", False)
+            # self.set_child_visibilty("inactive_items", False)
 
     def update_hint(self, image):
         # self.update()
@@ -137,8 +135,10 @@ class Item(pygame.sprite.Sprite):
         if child_lst:
             for child in child_lst:
                 child.show_item = visible
+
                 if not visible:
                     child.reinitialize()
+
                 child.update()
                 sub_child_lst = getattr(child, child_list_name)
                 if sub_child_lst and not visible:
@@ -237,9 +237,9 @@ class Item(pygame.sprite.Sprite):
 
     def set_data(self, datas):
         if not self.always_enable:
-            self.enable = datas["enable"]
-        self.hint_show = datas["hint_show"]
-        self.show_item = datas["show_item"]
+            self.enable = datas.get("enable", False)
+        self.hint_show = datas.get("hint_show", False)
+        self.show_item = datas.get("show_item", True)
         self.update()
 
     def reset(self):

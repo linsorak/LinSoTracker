@@ -130,9 +130,9 @@ class EvolutionItem(Item):
         return data
 
     def set_data(self, datas):
-        self.next_item_index = datas["next_item_index"]
+        self.next_item_index = datas.get("next_item_index", -1)
         Item.set_data(self, datas)
-        if datas["next_item_index"] != -1:
+        if self.next_item_index != -1:
             next_item = self.next_items[self.next_item_index]
             self.name = next_item["Name"]
             self.label = next_item["Label"]

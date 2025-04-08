@@ -67,15 +67,19 @@ class CheckListItem(Sprite):
 
         temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
         temp_surface = temp_surface.convert_alpha()
-        self.surface, self.position_draw = MainMenu.MainMenu.draw_text(
-            text=self.name,
-            font_name=font_path,
-            color=self.color,
-            font_size=font["Size"] * self.tracker.core_service.zoom,
-            surface=temp_surface,
-            position=(self.position["x"], self.position["y"]),
-            outline=1 * self.tracker.core_service.zoom,
-            color_outline=outline_color)
+
+        try:
+            self.surface, self.position_draw = MainMenu.MainMenu.draw_text(
+                text=self.name,
+                font_name=font_path,
+                color=self.color,
+                font_size=font["Size"] * self.tracker.core_service.zoom,
+                surface=temp_surface,
+                position=(self.position["x"], self.position["y"]),
+                outline=1 * self.tracker.core_service.zoom,
+                color_outline=outline_color)
+        except Exception as e:
+            pass
 
     def left_click(self):
         self.checked = not self.checked
