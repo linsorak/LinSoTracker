@@ -75,12 +75,17 @@ class RulesOptionsListItem(CheckListItem):
                 if "SetRule" in action_dict:
                     rule_action = action_dict["SetRule"]
                     rule_name = rule_action["RuleName"]
+                    rule_active = False
+                    matching_rule = None
 
-                    rule_active = rule_action.get("Active", False) if not self.checked else False
+                    if not self.checked:
+                        rule_active = rule_action.get("Active", False)
 
-                    matching_rules = filter(lambda rule_item: rule_item.name == rule_name,
-                                            self.tracker.rules_options_items_list)
-                    matching_rule = next(matching_rules, None)
+                    for rules_window in self.tracker.rules_windows_data:
+                        for rule_item in rules_window["Rules"]:
+                            if rule_item.name == rule_name:
+                                matching_rule = rule_item
+
                     if matching_rule:
                         matching_rule.checked = not rule_active
                         matching_rule.update()
