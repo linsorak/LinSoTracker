@@ -34,6 +34,7 @@ class SimpleCheck:
         self.dragged_icon_item_image = None
 
         if type(self.conditions) == str:
+            self.conditions = self.conditions.strip()
             self.conditions = self.conditions.replace("have(", "self.map.tracker.have(")
             self.conditions = self.conditions.replace("do(", "self.map.tracker.do(")
             self.conditions = self.conditions.replace("rules(", "self.map.tracker.rules(")
@@ -41,6 +42,9 @@ class SimpleCheck:
             self.conditions = self.conditions.replace("haveAlternateValue(", "self.map.tracker.haveAlternateValue(")
             self.conditions = self.conditions.replace("isChecked(", "self.map.tracker.isChecked(")
             self.conditions = self.conditions.replace("isVisible(", "self.map.tracker.isVisible(")
+            self.compiled_conditions = compile(self.conditions, "<simple-check-condition>", "eval")
+        else:
+            self.compiled_conditions = None
 
     def update(self):
         font = self.map.tracker.core_service.get_font("mapFont")
@@ -48,7 +52,7 @@ class SimpleCheck:
         index_positions = self.map.index_positions
         simple_check_datas = self.map.tracker.tracker_json_data[4]["SizeSimpleCheck"]
 
-        if eval(self.conditions):
+        if self.evaluate_conditions():
             self.state = ConditionsType.LOGIC
             self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "Logic")
         else:
@@ -65,6 +69,11 @@ class SimpleCheck:
         y = (index_positions[1] * core_service.zoom + self.positions["y"] * core_service.zoom) + (simple_check_datas["h"] * self.zoom) / 2
         self.pin_rect = pygame.Rect(x, y, (simple_check_datas["w"] * 2) * self.zoom, (simple_check_datas["h"] * 2) * self.zoom)
         self.update_dragged_image()
+
+    def evaluate_conditions(self):
+        if self.compiled_conditions:
+            return eval(self.compiled_conditions)
+        return bool(self.conditions)
 
     def draw_dragged_image(self, screen):
         if self.dragged_icon_item_image:

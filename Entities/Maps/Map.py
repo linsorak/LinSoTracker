@@ -1,8 +1,6 @@
 import os
 import pygame
 
-from concurrent.futures import ThreadPoolExecutor
-
 from Engine.PopupWindow import PopupWindow
 from Entities.Maps.BlockChecks import BlockChecks
 from Entities.Maps.CheckListItem import CheckListItem
@@ -20,10 +18,12 @@ class Map:
         self.active = active
         self.check_window = PopupWindow(tracker=self.tracker, index_positions=self.index_positions)
         self.checks_list = []
+        self.block_checks = []
+        self.simple_checks = []
+        self.grouped_checks = {}
         self.current_block_checks = None
         self._process_data()
         self._process_checks()
-        self.executor = ThreadPoolExecutor(max_workers=min(32, len(self.checks_list) or 1))
         self._last_zoom = None
 
     def _process_data(self):
@@ -44,11 +44,19 @@ class Map:
                     temp_check = CheckListItem(check_item["Id"], check_item["Name"], check["Positions"],
                                                check_item["Conditions"], self.tracker, group=check_item.get("Group", None))
                     block.add_check(temp_check)
+                    self._register_grouped_check(temp_check)
                 self.checks_list.append(block)
+                self.block_checks.append(block)
             elif kind == "SimpleCheck":
                 simple_check = SimpleCheck(check["Id"], check["Name"], check["Positions"], self,
                                            check["Conditions"], zone=check.get("Zone"), group=check.get("Group", None))
                 self.checks_list.append(simple_check)
+                self.simple_checks.append(simple_check)
+                self._register_grouped_check(simple_check)
+
+    def _register_grouped_check(self, check):
+        if check.group:
+            self.grouped_checks.setdefault(check.group, []).append(check)
 
     def update(self):
         if not self.can_be_updated:
@@ -64,7 +72,8 @@ class Map:
                 os.path.join(resources_path, self.checks_list_background_filename))
             self._last_zoom = zoom
 
-        list(self.executor.map(lambda check: check.update(), self.checks_list))
+        for check in self.checks_list:
+            check.update()
         if self.current_block_checks:
             box_rect_data = datas["DrawBoxRectSubTitle"] if self.current_block_checks.zone else datas["DrawBoxRect"]
             bg_rect = self.checks_list_background.get_rect()
@@ -104,9 +113,8 @@ class Map:
         if not self.active:
             return
 
-        for check in self.checks_list:
-            if isinstance(check, SimpleCheck):
-                check.draw_dragged_image(screen)
+        for check in self.simple_checks:
+            check.draw_dragged_image(screen)
 
         for check in self.checks_list:
             check.draw(screen)
@@ -121,83 +129,96 @@ class Map:
     def click(self, mouse_position, button):
         self.click_map(mouse_position, button)
 
+    def find_check_at_position(self, mouse_position, include_simple=True, include_blocks=True):
+        if include_blocks:
+            for check in self.block_checks:
+                if self.tracker.core_service.is_on_element(
+                        mouse_positions=mouse_position,
+                        element_positons=check.get_position(),
+                        element_dimension=check.get_rect().size
+                ) and not check.all_check_hidden():
+                    return check
+        if include_simple and not self.check_window.is_open():
+            for check in self.simple_checks:
+                if self.tracker.core_service.is_on_element(
+                        mouse_positions=mouse_position,
+                        element_positons=check.get_position(),
+                        element_dimension=check.get_rect().size
+                ) and not check.hide:
+                    return check
+        return None
+
     def click_map(self, mouse_position, button):
         if self.check_window.is_open():
             self.check_window.left_click(mouse_position, button)
         else:
             self.current_block_checks = None
 
-        for check in (c for c in self.checks_list if isinstance(c, BlockChecks)):
-            pos = check.get_position()
-            dim = check.get_rect().size
-            if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos, element_dimension=dim) and not check.all_check_hidden():
-                if button == 1:
-                    check.left_click(mouse_position)
-                    if not self.check_window.is_open():
-                        self.check_window.update()
-                        self.check_window.open_window()
-                    return
-                elif button == 2:
-                    check.wheel_click(mouse_position)
-                    return
-                elif button == 3:
-                    check.right_click(mouse_position)
-                    return
+        check = self.find_check_at_position(mouse_position, include_simple=False)
+        if check:
+            if button == 1:
+                check.left_click(mouse_position)
+                if not self.check_window.is_open():
+                    self.check_window.update()
+                    self.check_window.open_window()
+                return
+            elif button == 2:
+                check.wheel_click(mouse_position)
+                return
+            elif button == 3:
+                check.right_click(mouse_position)
+                return
 
-        for check in (c for c in self.checks_list if isinstance(c, SimpleCheck)):
-            pos = check.get_position()
-            dim = check.get_rect().size
-            if self.tracker.core_service.is_on_element(mouse_positions=mouse_position, element_positons=pos, element_dimension=dim) and not check.hide and not self.check_window.is_open():
-                if button == 1:
-                    check.left_click(mouse_position)
-                    self.update()
-                    return
-                elif button == 3:
-                    check.right_click(mouse_position)
-                    self.update()
-                    return
-                elif button == 2:
-                    check.wheel_click(mouse_position)
-                    return
+        check = self.find_check_at_position(mouse_position, include_blocks=False)
+        if check:
+            if button == 1:
+                check.left_click(mouse_position)
+                self.update_after_check_click(check)
+                return
+            elif button == 3:
+                check.right_click(mouse_position)
+                self.update_after_check_click(check)
+                return
+            elif button == 2:
+                check.wheel_click(mouse_position)
+                return
 
         if self.check_window.is_open():
             self.check_window.update()
+
+    def update_after_check_click(self, check):
+        if check.group:
+            for group_check in self.grouped_checks.get(check.group, []):
+                group_check.update()
+        else:
+            check.update()
+        self.tracker.update_cpt()
 
 
     def get_count_checks(self):
         cpt_logic = 0
         cpt_left = 0
 
-        for check in self.checks_list:
-            if isinstance(check, BlockChecks):
-                for sub_check in check.list_checks:
-                    if not sub_check.hide and not sub_check.checked:
-                        cpt_left += 1
-                        if sub_check.state == ConditionsType.LOGIC:
-                            cpt_logic += 1
-            elif isinstance(check, SimpleCheck):
-                if not check.hide and not check.checked:
+        for check in self.block_checks:
+            for sub_check in check.list_checks:
+                if not sub_check.hide and not sub_check.checked:
                     cpt_left += 1
-                    if check.state == ConditionsType.LOGIC:
+                    if sub_check.state == ConditionsType.LOGIC:
                         cpt_logic += 1
+        for check in self.simple_checks:
+            if not check.hide and not check.checked:
+                cpt_left += 1
+                if check.state == ConditionsType.LOGIC:
+                    cpt_logic += 1
 
         return cpt_logic, cpt_left
 
     def get_all_group_checks(self, call_check, group_name):
-        group = []
-        def simple_check_process(tmp_check):
-            if not tmp_check.hide and tmp_check.group == group_name:
-                if call_check != tmp_check:
-                    group.append(tmp_check)
-
-        for check in self.checks_list:
-            if isinstance(check, BlockChecks):
-                for sub_check in check.list_checks:
-                    simple_check_process(sub_check)
-            elif isinstance(check, SimpleCheck):
-                simple_check_process(check)
-
-        return group
+        return [
+            check
+            for check in self.grouped_checks.get(group_name, [])
+            if check is not call_check and not check.hide
+        ]
 
 
     def get_data(self):

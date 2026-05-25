@@ -1,7 +1,6 @@
 import json
-import multiprocessing
 import os
-from multiprocessing.pool import ThreadPool
+import re
 from tkinter import messagebox
 from zipfile import ZipFile
 
@@ -27,7 +26,6 @@ from Entities.Maps.CheckListItem import CheckListItem
 from Entities.Maps.Map import Map
 from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
-from Entities.Maps.SimpleCheck import SimpleCheck
 from Entities.OpenLinkItem import OpenLinkItem
 from Entities.SubMenuItem import SubMenuItem
 from Tools.Bank import Bank
@@ -38,9 +36,10 @@ from Entities.Maps.BlockChecks import BlockChecks
 
 
 class Tracker:
-    def __init__(self, template_name, main_menu, is_dev_template=False):
+    def __init__(self, template_name, main_menu, is_dev_template=False, progress_callback=None):
         self.loaded = False
         self.is_dev_template = is_dev_template
+        self.progress_callback = progress_callback
         self.position_check_zone_hint = None
         self.surface_check_zone_hint = None
         self.initialized = False
@@ -91,11 +90,21 @@ class Tracker:
 
         self._font_cache = {}
         self._compiled_actions = {}
+        self._items_by_name = {}
+        self._items_by_base_name = {}
+        self._simple_checks_by_name = {}
+        self._block_checks_by_name = {}
+        self._check_dependencies_by_item = {}
+        self._parent_block_by_check = {}
+        self._item_action_batch_depth = 0
+        self._item_action_batch_before_states = None
+        self._item_action_batch_dirty = False
 
-        self._pool = ThreadPool(processes=multiprocessing.cpu_count())
-
+        self._report_loading(0.05, "Preparing template")
         self.extract_data()
+        self._report_loading(0.25, "Loading assets")
         self.init_tracker()
+        self._report_loading(0.40, "Building interface")
 
         self.manager = pygame_gui.UIManager(pygame.display.get_surface().get_size())
 
@@ -104,7 +113,11 @@ class Tracker:
         self.core_service.set_current_tracker_name(self.template_name)
         self.core_service.set_current_tracker(self)
         self.init_items()
+        self.rebuild_item_indexes()
+        self._report_loading(0.60, "Loading maps")
         self.init_maps_datas()
+        self.rebuild_check_indexes()
+        self._report_loading(0.80, "Applying settings")
         self.menu.set_zoom_index(self.core_service.zoom_index)
         self.menu.set_sound_check(self.core_service.sound_active)
         self.menu.set_esc_check(self.core_service.draw_esc_menu_label)
@@ -113,6 +126,7 @@ class Tracker:
         self.sound_cancel = pygame.mixer.Sound(os.path.join(self.resources_base_path, "cancel.wav"))
         pygame.mixer.Sound.set_volume(self.sound_select, 0.3)
         pygame.mixer.Sound.set_volume(self.sound_cancel, 0.3)
+        self._report_loading(0.88, "Loading save")
         self.check_is_default_save()
         self.core_service.load_default_configuration()
         self.is_moving = None
@@ -121,7 +135,13 @@ class Tracker:
         self.current_editablebox = None
         self.loaded = True
         # self.update_draggable_items()
+        self._report_loading(0.96, "Finalizing")
         self.update_items()
+        self._report_loading(1.0, "Ready")
+
+    def _report_loading(self, progress, label):
+        if self.progress_callback:
+            self.progress_callback(progress, label)
 
     def get_font_data(self, font_session):
         if font_session not in self._font_cache:
@@ -164,11 +184,13 @@ class Tracker:
             if os.path.isfile(filename):
                 zip = ZipFile(filename)
                 list_files = zip.namelist()
-                for file in list_files:
+                total_files = len(list_files) or 1
+                for index, file in enumerate(list_files):
                     try:
                         zip.extract(file, self.resources_path)
                     except PermissionError:
                         pass
+                    self._report_loading(0.05 + (0.20 * ((index + 1) / total_files)), "Extracting template")
                 zip.close()
 
     def init_tracker(self):
@@ -182,11 +204,13 @@ class Tracker:
             w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * zoom
             h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * zoom
             pygame.display.set_mode((w, h))
+            self._report_loading(0.32, "Resizing window")
             self.core_service.setgamewindowcenter(w, h)
             self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
             items_sheets = self.tracker_json_data[1]["Datas"]["Items"]
             self.list_items_sheets = []
-            for sheet_name, sheet_info in items_sheets.items():
+            total_sheets = len(items_sheets) or 1
+            for index, (sheet_name, sheet_info) in enumerate(items_sheets.items()):
                 image_sheet = self.bank.addImage(os.path.join(self.resources_path, sheet_info["ItemsSheet"]))
                 items_sheet_data = ImageSheet(image_sheet, sheet_info["ItemsSheetDimensions"]["width"],
                                               sheet_info["ItemsSheetDimensions"]["height"])
@@ -195,6 +219,7 @@ class Tracker:
                     "ImageSheet": items_sheet_data,
                     "ImageSheetDimensions": sheet_info["ItemsSheetDimensions"]
                 })
+                self._report_loading(0.32 + (0.08 * ((index + 1) / total_sheets)), "Loading assets")
             bg_color = self.tracker_json_data[1]["Datas"]["BackgroundColor"]
             self.core_service.set_background_color(bg_color["r"], bg_color["g"], bg_color["b"])
             self.menu = Menu((w, h), self)
@@ -210,7 +235,8 @@ class Tracker:
             if "Maps" in self.tracker_json_data[4]:
                 self.maps_names = []
                 maps = self.tracker_json_data[4]["Maps"]
-                for map_data in maps:
+                total_maps = len(maps) or 1
+                for index, map_data in enumerate(maps):
                     filename = os.path.join(self.resources_path, map_data["Datas"])
                     if os.path.isfile(filename):
                         with open(filename, 'r') as file:
@@ -227,6 +253,8 @@ class Tracker:
                                                             name=json_datas[0]["Datas"]["Name"],
                                                             position=positions)
                             self.map_name_items_list.append(temp_map_name)
+                    self._report_loading(0.60 + (0.12 * ((index + 1) / total_maps)), "Loading maps")
+                self.rebuild_check_indexes()
 
             if "RulesOptionsLists" in self.tracker_json_data[4]:
                 for rules_options in self.tracker_json_data[4]["RulesOptionsLists"]:
@@ -270,6 +298,7 @@ class Tracker:
 
                     self.rules_windows_data.append(rules_options_data)
 
+            self._report_loading(0.76, "Preparing map")
             self.change_map(self.map_name_items_list[0])
         self.update()
 
@@ -537,6 +566,8 @@ class Tracker:
                 item_list.add(_item)
 
     def init_items(self):
+        self._items_by_name = {}
+        self._items_by_base_name = {}
         for item in self.tracker_json_data[3]["Items"]:
             self.init_item(item, self.items, self.manager)
         for item in self.items:
@@ -544,6 +575,59 @@ class Tracker:
             self.add_sub_special_item(item, self.items, "active_items_data", "active_items")
             self.add_sub_special_item(item, self.items, "inactive_items_data", "inactive_items",
                                       visibility=item.show_item)
+        self.rebuild_item_indexes()
+
+    def rebuild_item_indexes(self):
+        self._items_by_name = {}
+        self._items_by_base_name = {}
+
+        def register(item):
+            self._items_by_name.setdefault(item.name, item)
+            self._items_by_base_name.setdefault(item.base_name, item)
+
+        for item in self.items:
+            register(item)
+            if isinstance(item, SubMenuItem):
+                for sub_item in item.items:
+                    register(sub_item)
+
+    def rebuild_check_indexes(self):
+        self._simple_checks_by_name = {}
+        self._block_checks_by_name = {}
+        self._check_dependencies_by_item = {}
+        self._parent_block_by_check = {}
+        for map_item in self.maps_list:
+            for check in map_item.simple_checks:
+                self._simple_checks_by_name.setdefault(check.name, []).append(check)
+                self._register_check_dependencies(check)
+            for block in map_item.block_checks:
+                self._block_checks_by_name.setdefault(block.name, []).append(block)
+                for check in block.list_checks:
+                    self._parent_block_by_check[check] = block
+                    self._register_check_dependencies(check)
+
+    def _register_check_dependencies(self, check):
+        for item_name in self._collect_condition_item_dependencies(getattr(check, "conditions", None)):
+            self._check_dependencies_by_item.setdefault(item_name, set()).add(check)
+
+    def _collect_condition_item_dependencies(self, code, seen_actions=None):
+        if not isinstance(code, str):
+            return set()
+
+        seen_actions = seen_actions or set()
+        dependencies = set()
+        item_calls = ("have", "haveAlternateValue", "isChecked", "isVisible")
+        item_pattern = r"(?:{})\(\s*['\"]([^'\"]+)['\"]".format("|".join(item_calls))
+        dependencies.update(re.findall(item_pattern, code))
+
+        for action in re.findall(r"do\(\s*['\"]([^'\"]+)['\"]", code):
+            if action in seen_actions:
+                continue
+            seen_actions.add(action)
+            action_code = self.tracker_json_data[4].get("ActionsConditions", {}).get(action)
+            dependencies.update(self._collect_condition_item_dependencies(action_code, seen_actions))
+
+        return dependencies
 
     def add_sub_special_item(self, item, item_list, data_items_name, items_list_name, visibility=False):
         item_data = getattr(item, data_items_name)
@@ -588,6 +672,7 @@ class Tracker:
         for item in item_list:
             if item.check_click(mouse_position) and self.is_moving is None and item.show_item and not isinstance(item,
                                                                                                                  ImageItem):
+                before_states = self._snapshot_item_states()
                 if button == 1:
                     item.left_click()
                 elif button == 2:
@@ -598,9 +683,11 @@ class Tracker:
                     item.wheel_up()
                 elif button == 5:
                     item.wheel_down()
+                self.rebuild_item_indexes()
+                changed_item_names = self._get_changed_item_names(before_states)
                 self.current_item_on_mouse = None
                 if self.current_map:
-                    self.current_map.update()
+                    self.update_checks_for_changed_items(changed_item_names)
                 if self.core_service.sound_active and button in (1, 3):
                     if item.enable:
                         self.sound_select.play()
@@ -608,6 +695,111 @@ class Tracker:
                         self.sound_cancel.play()
                 return True
         return False
+
+    def _iter_unique_items(self):
+        seen = set()
+        for item in self.items:
+            if id(item) not in seen:
+                seen.add(id(item))
+                yield item
+            if isinstance(item, SubMenuItem):
+                for sub_item in item.items:
+                    if id(sub_item) not in seen:
+                        seen.add(id(sub_item))
+                        yield sub_item
+
+    @staticmethod
+    def _item_state_signature(item):
+        return (
+            item.name,
+            item.base_name,
+            getattr(item, "enable", None),
+            getattr(item, "hint_show", None),
+            getattr(item, "show_item", None),
+            getattr(item, "check", None),
+            getattr(item, "value", None),
+            getattr(item, "used_max_value", None),
+            getattr(item, "increments_position", None),
+            getattr(item, "next_item_index", None),
+            getattr(item, "label_count", None),
+        )
+
+    def _snapshot_item_states(self):
+        return {
+            id(item): {
+                "name": item.name,
+                "base_name": item.base_name,
+                "state": self._item_state_signature(item)
+            }
+            for item in self._iter_unique_items()
+        }
+
+    def _get_changed_item_names(self, before_states):
+        changed_names = set()
+        for item in self._iter_unique_items():
+            before = before_states.get(id(item))
+            current_state = self._item_state_signature(item)
+            if before is None or before["state"] != current_state:
+                changed_names.update((item.name, item.base_name))
+                if before:
+                    changed_names.update((before["name"], before["base_name"]))
+        return {name for name in changed_names if name}
+
+    def update_checks_for_changed_items(self, changed_item_names):
+        if not changed_item_names:
+            return
+
+        affected_checks = set()
+        affected_blocks = set()
+        for item_name in changed_item_names:
+            affected_checks.update(self._check_dependencies_by_item.get(item_name, set()))
+
+        if not affected_checks:
+            return
+
+        for check in affected_checks:
+            parent_block = self._parent_block_by_check.get(check)
+            if parent_block:
+                affected_blocks.add(parent_block)
+            else:
+                check.update()
+
+        for block in affected_blocks:
+            block.update()
+
+        self.update_cpt()
+        if self.current_map and self.current_map.check_window.is_open():
+            current_block = self.current_map.current_block_checks
+            if current_block in affected_blocks or any(self._parent_block_by_check.get(check) is current_block
+                                                       for check in affected_checks):
+                self.current_map.check_window.update()
+
+    def begin_item_action_batch(self):
+        if self._item_action_batch_depth == 0:
+            self._item_action_batch_before_states = self._snapshot_item_states()
+            self._item_action_batch_dirty = False
+        self._item_action_batch_depth += 1
+
+    def mark_item_action_batch_dirty(self):
+        if self._item_action_batch_depth > 0:
+            self._item_action_batch_dirty = True
+
+    def end_item_action_batch(self):
+        if self._item_action_batch_depth == 0:
+            return
+
+        self._item_action_batch_depth -= 1
+        if self._item_action_batch_depth > 0:
+            return
+
+        before_states = self._item_action_batch_before_states
+        dirty = self._item_action_batch_dirty
+        self._item_action_batch_before_states = None
+        self._item_action_batch_dirty = False
+
+        if dirty and before_states is not None:
+            self.rebuild_item_indexes()
+            self.update_checks_for_changed_items(self._get_changed_item_names(before_states))
 
     def items_mouse_down(self, mouse_position, button, item_list):
         for item in item_list:
@@ -619,6 +811,8 @@ class Tracker:
 
     def click_down(self, mouse_position, button):
         can_click = not any(submenu.show for submenu in self.submenus)
+        if self.maps_list_window.is_open() or any(r["PopupWindow"].is_open() for r in self.rules_windows_data):
+            return
         if can_click:
             self.items_mouse_down(mouse_position, button, self.items)
         else:
@@ -645,46 +839,44 @@ class Tracker:
         )
 
     def _handle_moving_click(self, mouse_position):
+        drop_found = False
         for item in self.selected_items_list:
             if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
                 self._update_target_image(item)
+                drop_found = True
                 break
 
+        else:
             if self.current_map and not self.current_map.check_window.is_open():
-                for check in (c for c in self.current_map.checks_list if isinstance(c, (SimpleCheck, BlockChecks))):
-                    pos = check.get_position()
-                    dim = check.get_rect().size
-                    if (self.core_service.is_on_element(
-                            mouse_positions=mouse_position,
-                            element_positons=pos,
-                            element_dimension=dim
-                    ) and not check.all_check_hidden()):
-                        if type(check) is SimpleCheck:
-                            self._update_target_image(check)
-                        break
-                else:
-                    continue
-                break
+                check = self.current_map.find_check_at_position(mouse_position, include_blocks=False)
+                if check:
+                    self._update_target_image(check)
+                    drop_found = True
 
             elif self.current_map and self.current_map.check_window.is_open():
-                block_checks = [check for check in self.current_map.checks_list if isinstance(check, BlockChecks)]
-                inner_checks = [item for block in block_checks for item in block.list_checks]
-
-                for inner_check in inner_checks:
-                    pos = inner_check.get_position_draw()
-                    dim = inner_check.get_dimensions()
-                    if (self.core_service.is_on_element(
-                            mouse_positions=mouse_position,
-                            element_positons=pos,
-                            element_dimension=dim
-                    ) and not inner_check.hide):
-                        self._update_target_image(inner_check)
-                        break
+                block = self.current_map.current_block_checks
+                if block:
+                    for inner_check in block.list_checks:
+                        if not inner_check.show or inner_check.hide:
+                            continue
+                        pos = inner_check.get_position_draw()
+                        dim = inner_check.get_dimensions()
+                        if self.core_service.is_on_element(
+                                mouse_positions=mouse_position,
+                                element_positons=pos,
+                                element_dimension=dim
+                        ):
+                            self._update_target_image(inner_check)
+                            drop_found = True
+                            break
 
         self.is_moving.is_dragging = False
         self.is_moving.reset_position()
         self.is_moving.update()
+        if drop_found and self.current_map and not self.current_map.check_window.is_open():
+            self.current_map.update()
         self.is_moving = None
+        self.selected_items_list = None
 
     def _handle_regular_click(self, mouse_position, button):
         if self.current_map:
@@ -741,48 +933,51 @@ class Tracker:
         if self.current_map and self.current_map.check_window.is_open() or any(r["PopupWindow"].is_open() for r in self.rules_windows_data):
             submenu_found = True
 
-        if self.current_map and self.current_map.checks_list and not submenu_found:
-            self.mouse_check_found = None
+        if self.is_moving:
+            self.current_item_on_mouse = None
+            if self.current_map and self.current_map.checks_list and not submenu_found:
+                hovered_check = self.current_map.find_check_at_position(mouse_position)
+                self.mouse_check_found = hovered_check
 
-            for check in self.current_map.checks_list:
-                if (not check.hide and not check.all_check_hidden() and
-                            not isinstance(check, ImageItem) and
-                            self.core_service.is_on_element(
-                                mouse_positions=mouse_position,
-                                element_positons=check.get_position(),
-                                element_dimension=(check.get_rect().w, check.get_rect().h)
-                            )):
-                    self.mouse_check_found = check
+                if hovered_check:
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                    if (isinstance(hovered_check, BlockChecks) and
+                            self.current_map.current_block_checks is not hovered_check):
+                        hovered_check.left_click(mouse_position)
+                        if not self.current_map.check_window.is_open():
+                            self.current_map.check_window.open_window()
+                else:
+                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                    self.reset_hint()
+            return
+
+        if self.current_map and self.current_map.checks_list and not submenu_found:
+            previous_check = self.mouse_check_found
+            self.mouse_check_found = self.current_map.find_check_at_position(mouse_position)
 
             if self.mouse_check_found:
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-                self.surface_check_hint, self.position_check_hint = self.update_hint(
-                    self.mouse_check_found, "mapFontCheckHint", True
-                )
-                if self.mouse_check_found.zone:
-                    self.surface_check_zone_hint, self.position_check_zone_hint = self.update_hint(
-                        self.mouse_check_found, "mapFontCheckZoneHint", True, zone=True
+                if self.mouse_check_found is not previous_check:
+                    self.surface_check_hint, self.position_check_hint = self.update_hint(
+                        self.mouse_check_found, "mapFontCheckHint", True
                     )
-                else:
-                    self.surface_check_zone_hint, self.position_check_zone_hint = (None, None)
+                    if self.mouse_check_found.zone:
+                        self.surface_check_zone_hint, self.position_check_zone_hint = self.update_hint(
+                            self.mouse_check_found, "mapFontCheckZoneHint", True, zone=True
+                        )
+                    else:
+                        self.surface_check_zone_hint, self.position_check_zone_hint = (None, None)
 
-                if self.mouse_check_found.dragged_item_name:
-                    attached_image_data = {
-                        "image": self.mouse_check_found.dragged_icon_item_image,
-                        "name": self.mouse_check_found.dragged_item_name,
-                    }
-                    self.surface_check_attached_item, self.position_check_attached_item = self.update_hint(
-                        self.mouse_check_found, "mapFontCheckZoneHint", True, attached_item=attached_image_data
-                    )
-                else:
-                    self.surface_check_attached_item, self.position_check_attached_item = (None, None)
-
-                if isinstance(self.mouse_check_found, BlockChecks) and self.is_moving:
-                    self.current_map.current_block_checks = None
-                    self.mouse_check_found.left_click(mouse_position)
-                    if not self.current_map.check_window.is_open():
-                        self.current_map.update()
-                        self.current_map.check_window.open_window()
+                    if self.mouse_check_found.dragged_item_name:
+                        attached_image_data = {
+                            "image": self.mouse_check_found.dragged_icon_item_image,
+                            "name": self.mouse_check_found.dragged_item_name,
+                        }
+                        self.surface_check_attached_item, self.position_check_attached_item = self.update_hint(
+                            self.mouse_check_found, "mapFontCheckZoneHint", True, attached_item=attached_image_data
+                        )
+                    else:
+                        self.surface_check_attached_item, self.position_check_attached_item = (None, None)
 
             else:
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
@@ -802,8 +997,9 @@ class Tracker:
                         element_positons=item.get_position(),
                         element_dimension=(item.get_rect().w, item.get_rect().h)
                 ) and not isinstance(item, ImageItem):
+                    if self.current_item_on_mouse is not item:
+                        self.surface_check_hint, self.position_check_hint = self.update_hint(item, "labelItemFont", False)
                     self.current_item_on_mouse = item
-                    self.surface_check_hint, self.position_check_hint = self.update_hint(item, "labelItemFont", False)
                     break
             else:
                 self.current_item_on_mouse = None
@@ -878,7 +1074,7 @@ class Tracker:
             for rules_window_data in self.rules_windows_data:
                 if rules_window_data["PopupWindow"].list_items:
                     rules_datas = [rule.get_data() for rule in rules_window_data["PopupWindow"].list_items]
-                    datas.append({f"rules_{rules_window_data["Name"]}": rules_datas})
+                    datas.append({f"rules_{rules_window_data['Name']}": rules_datas})
         return datas
 
 
@@ -891,6 +1087,7 @@ class Tracker:
                 item = item_lookup.get((data["name"], data["id"]))
                 if item:
                     item.set_data(data)
+            self.rebuild_item_indexes()
         if len(datas) > 2 and "maps" in datas[2]:
             maps = datas[2].get("maps")
             if maps:
@@ -899,8 +1096,9 @@ class Tracker:
                     map_data.load_data(next((m for m in maps if m["name"] == map_name), None))
                     map_data.update()
             for rules_window_data in self.rules_windows_data:
-                rules = self.find_object_with_key(datas, f"rules_{rules_window_data["Name"]}")
-                rules = rules[f"rules_{rules_window_data["Name"]}"]
+                rules_key = f"rules_{rules_window_data['Name']}"
+                rules = self.find_object_with_key(datas, rules_key)
+                rules = rules[rules_key]
                 if rules:
                     for rule_data in rules:
                         rule = next(
@@ -915,22 +1113,36 @@ class Tracker:
 
 
 
-    def change_zoom(self, value):
+    def change_zoom(self, value, progress_callback=None):
+        if progress_callback:
+            progress_callback(0.10, "Preparing main menu")
         datas = self.save_data()
         self.core_service.zoom = value
         self.items = pygame.sprite.Group()
         self.submenus = pygame.sprite.Group()
         json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
+        if progress_callback:
+            progress_callback(0.25, "Resetting zoom")
         w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
         h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
         pygame.display.set_mode((w, h))
+        if progress_callback:
+            progress_callback(0.35, "Resizing window")
         self.init_items()
+        self.rebuild_item_indexes()
+        if progress_callback:
+            progress_callback(0.50, "Rebuilding items")
         self.menu.get_menu().resize(width=w, height=h)
         self.load_data(datas)
+        self.rebuild_check_indexes()
+        if progress_callback:
+            progress_callback(0.60, "Restoring state")
         self.update()
         if self.current_map:
             self.current_map.update()
+        if progress_callback:
+            progress_callback(0.68, "Finalizing")
 
     def reset_hint(self):
         self.mouse_check_found = None
@@ -967,8 +1179,9 @@ class Tracker:
                         self.maps_list_window.draw(screen)
                     if rules_window_data["PopupWindow"].is_open():
                         rules_window_data["PopupWindow"].draw(screen)
-                elif (self.mouse_check_found and not self.current_map.check_window.is_open()) or (
-                        self.core_service.show_hint_on_item and self.current_item_on_mouse):
+                elif not self.is_moving and (
+                        (self.mouse_check_found and not self.current_map.check_window.is_open()) or
+                        (self.core_service.show_hint_on_item and self.current_item_on_mouse)):
                     temp_rect = pygame.Rect(self.position_check_hint[0], self.position_check_hint[1],
                                             self.surface_check_hint.get_rect().w, self.surface_check_hint.get_rect().h)
                     if self.surface_check_zone_hint and self.position_check_zone_hint:
@@ -1016,7 +1229,8 @@ class Tracker:
             self.manager.draw_ui(screen)
         for submenu in self.submenus:
             submenu.draw_submenu(screen, time_delta)
-        if self.current_item_on_mouse and self.core_service.show_hint_on_item and self.current_item_on_mouse.show_item:
+        if (not self.is_moving and self.current_item_on_mouse and self.core_service.show_hint_on_item and
+                self.current_item_on_mouse.show_item):
             temp_rect = pygame.Rect(self.position_check_hint[0], self.position_check_hint[1],
                                     self.surface_check_hint.get_rect().w, self.surface_check_hint.get_rect().h)
             pygame.draw.rect(screen, (0, 0, 0), temp_rect)
@@ -1054,17 +1268,15 @@ class Tracker:
         self.main_menu.reset_tracker()
 
     def find_item(self, item_name, is_base_name=False):
-        for item in self.items:
-            if isinstance(item, SubMenuItem):
-                for sub_item in item.items:
-                    name = sub_item.base_name if is_base_name else sub_item.name
-                    if name == item_name:
-                        return sub_item
-            else:
-                name = item.base_name if is_base_name else item.name
-                if name == item_name:
-                    return item
-        return None
+        lookup = self._items_by_base_name if is_base_name else self._items_by_name
+        item = lookup.get(item_name)
+        if item:
+            return item
+
+        # Fallback for any dynamic item created after the last index rebuild.
+        self.rebuild_item_indexes()
+        lookup = self._items_by_base_name if is_base_name else self._items_by_name
+        return lookup.get(item_name)
 
     def find_object_with_key(self, obj, key):
         if isinstance(obj, dict):
@@ -1163,20 +1375,13 @@ class Tracker:
         return None
 
     def have_check(self, check_name, block_name=None):
-        """
-        Search through maps for checks that match check_name or block_name,
-        then return the result of the first found check (using parallel processing if available).
-        """
-        tasks = [
-            (check, check_name)
-            for map_obj in self.maps_list
-            for check in map_obj.checks_list
-            if (isinstance(check, BlockChecks) and block_name is not None and check.name == block_name)
-               or (isinstance(check, SimpleCheck) and check.name == check_name)
-        ]
-        if tasks and self._pool is not None:
-            results = self._pool.starmap(self.check_sub_check, tasks)
-            for result in results:
+        if block_name is not None:
+            for block in self._block_checks_by_name.get(block_name, []):
+                result = self.check_sub_check(block, check_name)
                 if result is not None:
                     return result
+            return None
+
+        for check in self._simple_checks_by_name.get(check_name, []):
+            return check.checked
         return None

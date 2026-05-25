@@ -1,6 +1,9 @@
-pygame-ce
-pygame_menu
-cryptography
-pyinstaller
-pygame_gui
-numpy
+cryptography>=48.0.0
+pygame-ce>=2.5.7
+pygame-menu>=4.5.2
+pygame_gui>=0.6.14
+
+# Build tools for build-nuitka-onefile.bat
+nuitka>=4.1.1
+ordered-set>=4.1.0
+zstandard>=0.25.0

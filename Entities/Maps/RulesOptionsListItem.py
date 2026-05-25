@@ -3,9 +3,7 @@ import os
 import pygame
 
 from Engine import MainMenu
-from Entities.Maps.BlockChecks import BlockChecks
 from Entities.Maps.CheckListItem import CheckListItem
-from Entities.Maps.SimpleCheck import SimpleCheck
 
 
 class RulesOptionsListItem(CheckListItem):
@@ -45,29 +43,23 @@ class RulesOptionsListItem(CheckListItem):
         return not self.checked
 
     def set_hidden_checks(self):
-        cpt = 0
         if self.hide_checks:
             for hidden_check in self.hide_checks:
-                for map in self.tracker.maps_list:
-                    for check in map.checks_list:
-                        if type(check) == SimpleCheck and hidden_check["Kind"] == "SimpleCheck":
-                            for hidden_check_name in hidden_check["Checks"]:
-                                if hidden_check_name.lower() == check.name.lower():
-                                    if self.checked:
-                                        check.hide = True
-                                    else:
-                                        check.hide = False
-                                    break
-                        elif type(check) == BlockChecks and hidden_check["Kind"] == "Block":
-                            if hidden_check["Name"].lower() == check.name.lower():
-                                for check_item in check.list_checks:
-                                    for block_hidden_check in hidden_check["Checks"]:
-                                        if check_item.name.lower() == block_hidden_check.lower():
-                                            if self.checked:
-                                                check_item.hide = True
-                                            else:
-                                                check_item.hide = False
-                                            break
+                if hidden_check["Kind"] == "SimpleCheck":
+                    hidden_names = {name.lower() for name in hidden_check["Checks"]}
+                    for check_name, checks in self.tracker._simple_checks_by_name.items():
+                        if check_name.lower() in hidden_names:
+                            for check in checks:
+                                check.hide = self.checked
+                elif hidden_check["Kind"] == "Block":
+                    block_name = hidden_check["Name"].lower()
+                    hidden_names = {name.lower() for name in hidden_check["Checks"]}
+                    for check_name, blocks in self.tracker._block_checks_by_name.items():
+                        if check_name.lower() == block_name:
+                            for block in blocks:
+                                for check_item in block.list_checks:
+                                    if check_item.name.lower() in hidden_names:
+                                        check_item.hide = self.checked
 
     def do_actions(self):
         if self.actions:
@@ -92,12 +84,14 @@ class RulesOptionsListItem(CheckListItem):
                         matching_rule.do_actions()
                         matching_rule.set_hidden_checks()
 
-                elif "SetLeftClick" or "SetWheelClick" or "SetRightClick" or "ResetItem" in action_dict:
+                elif any(action in action_dict for action in ("SetLeftClick", "SetWheelClick", "SetRightClick", "ResetItem")):
                     action_name = list(action_dict.keys())[0]
                     rule_action = action_dict[action_name]
                     item = self.tracker.find_item(rule_action["Item"], True)
 
                     if item:
+                        is_batched = self.tracker._item_action_batch_depth > 0
+                        before_states = None if is_batched else self.tracker._snapshot_item_states()
                         if not self.checked:
                             item.reset()
                             if action_name != "ResetItem" :
@@ -111,10 +105,21 @@ class RulesOptionsListItem(CheckListItem):
                         else:
                             item.reset()
                         item.update()
+                        if is_batched:
+                            self.tracker.mark_item_action_batch_dirty()
+                        else:
+                            self.tracker.rebuild_item_indexes()
+                            self.tracker.update_checks_for_changed_items(
+                                self.tracker._get_changed_item_names(before_states)
+                            )
 
 
     def left_click(self, force_click=False):
         if self.can_be_clickable or force_click:
-            super().left_click()
-            self.set_hidden_checks()
-            self.do_actions()
+            self.tracker.begin_item_action_batch()
+            try:
+                super().left_click()
+                self.set_hidden_checks()
+                self.do_actions()
+            finally:
+                self.tracker.end_item_action_batch()

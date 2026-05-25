@@ -37,7 +37,7 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.4.1.1"
+        self.version = "2.5"
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -47,13 +47,11 @@ class CoreService(metaclass=Singleton):
         self.draw_esc_menu_label = True
         self.current_tracker = None
         self.current_tracker_name = None
-        self.app_path = os.path.abspath(os.path.dirname(__file__)).replace("{}{}".format(os.sep, "Tools"), os.sep)
+        self.app_path = self.resolve_app_path()
         self.menu_font = None
-
-        if getattr(sys, 'frozen', False):
-            self.app_path = os.path.dirname(sys.executable)
-        elif __file__:
-            self.app_path = os.path.dirname(__file__).replace("Tools", "")
+        self.launch_registered = False
+        self.launch_count = 0
+        self.show_donation_popup = False
 
         self.temp_path_fixe = os.path.join(os.path.expanduser('~/Documents'), self.app_name)
 
@@ -95,6 +93,26 @@ class CoreService(metaclass=Singleton):
     def get_current_tracker(self):
         return self.current_tracker
 
+    @staticmethod
+    def resolve_app_path():
+        try:
+            compiled = globals().get("__compiled__")
+            containing_dir = getattr(compiled, "containing_dir", None)
+            if containing_dir:
+                return os.path.abspath(containing_dir)
+        except NameError:
+            pass
+
+        if getattr(sys, 'frozen', False):
+            return os.path.dirname(sys.executable)
+
+        if getattr(sys, 'argv', None) and sys.argv[0]:
+            argv_path = os.path.abspath(sys.argv[0])
+            if os.path.exists(argv_path):
+                return os.path.dirname(argv_path)
+
+        return os.path.abspath(os.path.dirname(__file__)).replace("{}{}".format(os.sep, "Tools"), os.sep)
+
     def save_configuration(self, session, value):
         user_configuration = os.path.join(self.temp_path_fixe, "user.conf")
 
@@ -112,6 +130,32 @@ class CoreService(metaclass=Singleton):
                 json.dump(data, f, indent=2)
         except OSError as e:
             print(f"Failed to write to 'user.conf': {e}")
+
+    def register_app_launch(self):
+        if self.launch_registered:
+            return self.show_donation_popup
+
+        user_configuration = os.path.join(self.temp_path_fixe, "user.conf")
+        data = {}
+        if os.path.exists(user_configuration):
+            try:
+                with open(user_configuration, 'r') as f:
+                    data = json.load(f)
+            except json.JSONDecodeError:
+                data = {}
+
+        self.launch_count = data.get("launchCount", 0) + 1
+        data["launchCount"] = self.launch_count
+        self.show_donation_popup = self.launch_count == 1 or self.launch_count % 10 == 0
+        self.launch_registered = True
+
+        try:
+            with open(user_configuration, 'w') as f:
+                json.dump(data, f, indent=2)
+        except OSError as e:
+            print(f"Failed to write to 'user.conf': {e}")
+
+        return self.show_donation_popup
 
     def load_default_configuration(self):
         user_configuration = os.path.join(self.temp_path_fixe, "user.conf")

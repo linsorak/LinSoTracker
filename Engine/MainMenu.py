@@ -63,6 +63,12 @@ class MainMenu:
         self.moved_tracker = None
         self.fade_value = self.fade_engine.getFadeValue()
         self.core_service = CoreService()
+        self.show_donation_popup = self.core_service.register_app_launch()
+        self.donation_paypal_rect = None
+        self.donation_close_rect = None
+        self.loading_active = False
+        self.loading_progress = 0
+        self.loading_label = ""
         self.bank = Bank()
         self.template_directory = os.path.join(self.core_service.get_app_path(), "templates")
         self.dev_template_directory = os.path.join(self.core_service.get_app_path(), "devtemplates")
@@ -168,91 +174,240 @@ class MainMenu:
 
     def draw(self, screen, time_delta):
         if not self.loaded_tracker:
-            screen.blit(self.background_image, (0, 0))
-            l_arrow, r_arrow = self.arrow_left.copy(), self.arrow_right.copy()
-            x_left_arrow, y_left_arrow = 285, 530
-            x_right_arrow, y_right_arrow = x_left_arrow + self.content.get_rect().w, y_left_arrow
-            self.left_arrow_positions, self.right_arrow_positions = (x_left_arrow, y_left_arrow), (
-                x_right_arrow, y_right_arrow)
-
-            if self.current_page == 1:
-                self.core_service.convert_to_gs(l_arrow)
-                l_arrow = self.core_service.set_image_transparent(image=l_arrow, opacity_disable=0.6)
-
-            if self.current_page == self.max_pages:
-                self.core_service.convert_to_gs(r_arrow)
-                r_arrow = self.core_service.set_image_transparent(image=r_arrow, opacity_disable=0.6)
-
-            index_templates = 0 + (self.max_icon_per_page * (self.current_page - 1))
-            self.menu_content = []
-
-            for i in range(self.max_row):
-                for j in range(self.max_column):
-                    if index_templates < len(self.template_list):
-                        content_rect = self.content.get_rect()
-                        content_x = (content_rect.w * (j + 1) + content_rect.w) + self.x_offset + (
-                                self.space_offset * j)
-                        content_y = (content_rect.h * (i + 1) + content_rect.h) + self.y_offset + (
-                                self.space_offset * i)
-                        icon_x, icon_y = content_x + 10, content_y + 5
-                        current_template = self.template_list[index_templates]
-                        outdated, valid = "outdated" in current_template and current_template["outdated"], \
-                            current_template["valid"]
-
-                        if valid:
-                            if outdated:
-                                content_image = self.content_update
-                            else:
-                                if "official" in current_template:
-                                    content_image = self.content_official
-                                elif "is_dev_template" in current_template:
-                                    content_image = self.content_indev
-                                else:
-                                    content_image = self.content
-                        else:
-                            content_image = self.content_error
-
-                        screen.blit(content_image, (content_x, content_y))
-                        screen.blit(current_template["icon"], (icon_x, icon_y))
-
-                        if outdated:
-                            screen.blit(self.icon_update, (content_x, content_y))
-
-                        if "official" in current_template and not outdated:
-                            screen.blit(self.icon_official, (content_x, content_y))
-
-                        elif "is_dev_template" in current_template and not outdated:
-                            screen.blit(self.icon_indev, (content_x, content_y))
-
-                        self.menu_content.append({"positions": (content_x, content_y),
-                                                  "dimensions": (content_rect.w, content_rect.h),
-                                                  "template": current_template})
-
-                        index_templates += 1
-
-            screen.blit(l_arrow, self.left_arrow_positions)
-            screen.blit(r_arrow, self.right_arrow_positions)
-
-            temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32).convert_alpha()
-            pages, pos_pages = self.draw_text(text="{}/{}".format(self.current_page, self.max_pages),
-                                              font_name=self.font_data["path"],
-                                              color=self.font_data["color_normal"],
-                                              font_size=self.font_data["page_size"],
-                                              surface=temp_surface,
-                                              position=(0, 0),
-                                              outline=1)
-
-            space_between_arrow = x_right_arrow - x_left_arrow
-            x_pages = (space_between_arrow / 2 - pages.get_rect().w / 2) + x_left_arrow + (l_arrow.get_rect().w / 2)
-            y_pages = (l_arrow.get_rect().h / 2) - (pages.get_rect().h / 2) + y_left_arrow
-
-            screen.blit(pages, (x_pages, y_pages))
-            pos_dev_y = self.draw_info_text(screen)
-
-            if self.moved_tracker:
-                self.draw_fade_effect(screen, pos_dev_y)
+            self.draw_home(screen)
         else:
             self.loaded_tracker.draw(screen, time_delta)
+        if self.loading_active:
+            self.draw_loading_overlay(screen, self.loading_progress, self.loading_label)
+        if self.show_donation_popup:
+            self.draw_donation_popup(screen)
+
+    def draw_donation_popup(self, screen):
+        width, height = screen.get_size()
+        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 175))
+        screen.blit(overlay, (0, 0))
+
+        popup_w = min(520, max(360, int(width * 0.58)))
+        popup_h = 210
+        popup_x = (width - popup_w) // 2
+        popup_y = (height - popup_h) // 2
+        popup_rect = pygame.Rect(popup_x, popup_y, popup_w, popup_h)
+
+        pygame.draw.rect(screen, (22, 22, 28), popup_rect)
+        pygame.draw.rect(screen, (235, 235, 235), popup_rect, 2)
+
+        temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32).convert_alpha()
+        title, _ = self.draw_text(
+            text="Support LinSoTracker",
+            font_name=self.font_data["path"],
+            color=self.font_data["color_normal"],
+            font_size=self.font_data["title_size"] * 0.75,
+            surface=temp_surface,
+            position=(0, 0),
+            outline=1)
+        body_lines = [
+            "If LinSoTracker helps you,",
+            "you can support the project with a small donation."
+        ]
+        screen.blit(title, (popup_x + (popup_w - title.get_width()) // 2, popup_y + 22))
+
+        y = popup_y + 75
+        for line in body_lines:
+            text_surface, _ = self.draw_text(
+                text=line,
+                font_name=self.font_data["path"],
+                color=self.font_data["color_normal"],
+                font_size=self.font_data["size"],
+                surface=temp_surface,
+                position=(0, 0),
+                outline=1)
+            screen.blit(text_surface, (popup_x + (popup_w - text_surface.get_width()) // 2, y))
+            y += text_surface.get_height() + 4
+
+        button_w = 150
+        button_h = 38
+        gap = 16
+        buttons_y = popup_y + popup_h - button_h - 22
+        self.donation_paypal_rect = pygame.Rect(
+            popup_x + (popup_w // 2) - button_w - (gap // 2), buttons_y, button_w, button_h)
+        self.donation_close_rect = pygame.Rect(
+            popup_x + (popup_w // 2) + (gap // 2), buttons_y, button_w, button_h)
+
+        self.draw_donation_button(screen, self.donation_paypal_rect, "PayPal", (56, 150, 110))
+        self.draw_donation_button(screen, self.donation_close_rect, "Close", (70, 70, 80))
+
+    def draw_donation_button(self, screen, rect, label, color):
+        pygame.draw.rect(screen, color, rect)
+        pygame.draw.rect(screen, (235, 235, 235), rect, 2)
+        temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32).convert_alpha()
+        text_surface, _ = self.draw_text(
+            text=label,
+            font_name=self.font_data["path"],
+            color=self.font_data["color_normal"],
+            font_size=self.font_data["size"],
+            surface=temp_surface,
+            position=(0, 0),
+            outline=1)
+        screen.blit(text_surface, (
+            rect.x + (rect.w - text_surface.get_width()) // 2,
+            rect.y + (rect.h - text_surface.get_height()) // 2
+        ))
+
+    def donation_popup_click(self, mouse_position, button):
+        if not self.show_donation_popup:
+            return False
+        if button != 1:
+            return True
+        if self.donation_paypal_rect and self.donation_paypal_rect.collidepoint(mouse_position):
+            Menu.open_paypal()
+            self.show_donation_popup = False
+            return True
+        if self.donation_close_rect and self.donation_close_rect.collidepoint(mouse_position):
+            self.show_donation_popup = False
+            return True
+        return True
+
+    def draw_home(self, screen):
+        screen.blit(self.background_image, (0, 0))
+        l_arrow, r_arrow = self.arrow_left.copy(), self.arrow_right.copy()
+        x_left_arrow, y_left_arrow = 285, 530
+        x_right_arrow, y_right_arrow = x_left_arrow + self.content.get_rect().w, y_left_arrow
+        self.left_arrow_positions, self.right_arrow_positions = (x_left_arrow, y_left_arrow), (
+            x_right_arrow, y_right_arrow)
+
+        if self.current_page == 1:
+            self.core_service.convert_to_gs(l_arrow)
+            l_arrow = self.core_service.set_image_transparent(image=l_arrow, opacity_disable=0.6)
+
+        if self.current_page == self.max_pages:
+            self.core_service.convert_to_gs(r_arrow)
+            r_arrow = self.core_service.set_image_transparent(image=r_arrow, opacity_disable=0.6)
+
+        index_templates = 0 + (self.max_icon_per_page * (self.current_page - 1))
+        self.menu_content = []
+
+        for i in range(self.max_row):
+            for j in range(self.max_column):
+                if index_templates < len(self.template_list):
+                    content_rect = self.content.get_rect()
+                    content_x = (content_rect.w * (j + 1) + content_rect.w) + self.x_offset + (
+                            self.space_offset * j)
+                    content_y = (content_rect.h * (i + 1) + content_rect.h) + self.y_offset + (
+                            self.space_offset * i)
+                    icon_x, icon_y = content_x + 10, content_y + 5
+                    current_template = self.template_list[index_templates]
+                    outdated, valid = "outdated" in current_template and current_template["outdated"], \
+                        current_template["valid"]
+
+                    if valid:
+                        if outdated:
+                            content_image = self.content_update
+                        else:
+                            if "official" in current_template:
+                                content_image = self.content_official
+                            elif "is_dev_template" in current_template:
+                                content_image = self.content_indev
+                            else:
+                                content_image = self.content
+                    else:
+                        content_image = self.content_error
+
+                    screen.blit(content_image, (content_x, content_y))
+                    screen.blit(current_template["icon"], (icon_x, icon_y))
+
+                    if outdated:
+                        screen.blit(self.icon_update, (content_x, content_y))
+
+                    if "official" in current_template and not outdated:
+                        screen.blit(self.icon_official, (content_x, content_y))
+
+                    elif "is_dev_template" in current_template and not outdated:
+                        screen.blit(self.icon_indev, (content_x, content_y))
+
+                    self.menu_content.append({"positions": (content_x, content_y),
+                                              "dimensions": (content_rect.w, content_rect.h),
+                                              "template": current_template})
+
+                    index_templates += 1
+
+        screen.blit(l_arrow, self.left_arrow_positions)
+        screen.blit(r_arrow, self.right_arrow_positions)
+
+        temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32).convert_alpha()
+        pages, pos_pages = self.draw_text(text="{}/{}".format(self.current_page, self.max_pages),
+                                          font_name=self.font_data["path"],
+                                          color=self.font_data["color_normal"],
+                                          font_size=self.font_data["page_size"],
+                                          surface=temp_surface,
+                                          position=(0, 0),
+                                          outline=1)
+
+        space_between_arrow = x_right_arrow - x_left_arrow
+        x_pages = (space_between_arrow / 2 - pages.get_rect().w / 2) + x_left_arrow + (l_arrow.get_rect().w / 2)
+        y_pages = (l_arrow.get_rect().h / 2) - (pages.get_rect().h / 2) + y_left_arrow
+
+        screen.blit(pages, (x_pages, y_pages))
+        pos_dev_y = self.draw_info_text(screen)
+
+        if self.moved_tracker:
+            self.draw_fade_effect(screen, pos_dev_y)
+
+    def draw_loading_screen(self, progress, label):
+        screen = pygame.display.get_surface()
+        if not screen:
+            return
+
+        self.loading_active = True
+        self.loading_progress = progress
+        self.loading_label = label
+
+        width, height = screen.get_size()
+        screen.fill((10, 10, 14))
+        self.draw_loading_overlay(screen, progress, label)
+
+        pygame.display.update()
+        pygame.event.pump()
+
+    def draw_loading_overlay(self, screen, progress, label):
+        width, height = screen.get_size()
+
+        bar_w = max(240, min(520, int(width * 0.58)))
+        bar_h = 24
+        bar_x = (width - bar_w) // 2
+        bar_y = (height - bar_h) // 2
+        progress = max(0, min(1, progress))
+        fill_w = int(bar_w * progress)
+
+        temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32).convert_alpha()
+        title, _ = self.draw_text(
+            text=label,
+            font_name=self.font_data["path"],
+            color=self.font_data["color_normal"],
+            font_size=self.font_data["size"] + 4,
+            surface=temp_surface,
+            position=(0, 0),
+            outline=1)
+        percent, _ = self.draw_text(
+            text=f"{int(progress * 100)}%",
+            font_name=self.font_data["path"],
+            color=self.font_data["color_normal"],
+            font_size=self.font_data["size"],
+            surface=temp_surface,
+            position=(0, 0),
+            outline=1)
+
+        title_x = (width - title.get_rect().w) // 2
+        title_y = max(16, bar_y - title.get_rect().h - 18)
+        percent_x = (width - percent.get_rect().w) // 2
+        percent_y = bar_y + bar_h + 10
+
+        pygame.draw.rect(screen, (22, 22, 28), (bar_x, bar_y, bar_w, bar_h))
+        pygame.draw.rect(screen, (230, 230, 230), (bar_x - 2, bar_y - 2, bar_w + 4, bar_h + 4), 2)
+        if fill_w:
+            pygame.draw.rect(screen, (72, 180, 132), (bar_x, bar_y, fill_w, bar_h))
+        screen.blit(title, (title_x, title_y))
+        screen.blit(percent, (percent_x, percent_y))
 
     def draw_info_text(self, screen):
         surf_title, pos_title = self.draw_text(
@@ -540,6 +695,9 @@ class MainMenu:
             self.loaded_tracker.click_down(mouse_position, button)
 
     def click(self, mouse_position, button):
+        if self.donation_popup_click(mouse_position, button):
+            return
+
         if not self.loaded_tracker:
             if button == 1:
                 if self.core_service.is_on_element(mouse_positions=mouse_position,
@@ -621,7 +779,13 @@ class MainMenu:
             self.loaded_tracker.mouse_move(mouse_position)
 
     def set_tracker(self, tracker_name, is_dev_template=False):
-        self.loaded_tracker = Tracker(tracker_name, self, is_dev_template)
+        self.draw_loading_screen(0, "Starting template")
+        self.loaded_tracker = Tracker(tracker_name, self, is_dev_template, progress_callback=self.draw_loading_screen)
+        screen = pygame.display.get_surface()
+        if screen:
+            self.loading_active = False
+            self.loaded_tracker.draw(screen, 0)
+            pygame.display.update()
 
     def reset_tracker(self):
         del self.loaded_tracker

@@ -85,11 +85,13 @@ def main():
                     mouse_position = pygame.mouse.get_pos()
                     main_menu.mouse_move(mouse_position)
                 elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_position = event.pos
                     if event.button == 1:
                         is_mouse_down = True
                         start_time = pygame.time.get_ticks()
                         button_event = event.button
                 elif event.type == pygame.MOUSEBUTTONUP:
+                    mouse_position = event.pos
                     if event.button == 1:
                         is_mouse_down = False
                         main_menu.click(mouse_position, event.button)

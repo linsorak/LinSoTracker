@@ -23,7 +23,6 @@ class BlockChecks(SimpleCheck):
 
     def add_check(self, check):
         self.list_checks.append(check)
-        self.update()
 
     def get_checks(self):
         return self.list_checks

@@ -35,6 +35,7 @@ class CheckListItem(Sprite):
         self.focused = False
 
         if type(self.conditions) == str:
+            self.conditions = self.conditions.strip()
             self.conditions = self.conditions.replace("have(", "self.tracker.have(")
             self.conditions = self.conditions.replace("do(", "self.tracker.do(")
             self.conditions = self.conditions.replace("rules(", "self.tracker.rules(")
@@ -42,14 +43,22 @@ class CheckListItem(Sprite):
             self.conditions = self.conditions.replace("haveAlternateValue(", "self.tracker.haveAlternateValue(")
             self.conditions = self.conditions.replace("isChecked(", "self.tracker.isChecked(")
             self.conditions = self.conditions.replace("isVisible(", "self.tracker.isVisible(")
+            self.compiled_conditions = compile(self.conditions, "<check-list-condition>", "eval")
+        else:
+            self.compiled_conditions = None
 
         self.update()
+
+    def evaluate_conditions(self):
+        if self.compiled_conditions:
+            return eval(self.compiled_conditions)
+        return bool(self.conditions)
 
     def update(self):
         self.color = None
         font = self.tracker.core_service.get_font("mapFont")
         font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), font["Name"])
-        if eval(self.conditions):
+        if self.evaluate_conditions():
             self.state = ConditionsType.LOGIC
             self.color = self.tracker.core_service.get_color_from_font(font, "Logic")
         else:

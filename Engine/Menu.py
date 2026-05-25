@@ -84,8 +84,17 @@ class Menu:
 
     def change_zoom(self, value: Tuple[Any, int], zoom_level: float) -> None:
         selected, index = value
-        self.tracker.change_zoom(value=zoom_level)
+        main_menu = self.tracker.main_menu
+        tracker_ready = hasattr(self.tracker, "is_moving")
+        progress_callback = main_menu.draw_loading_screen if tracker_ready else getattr(self.tracker, "progress_callback", None)
+        if progress_callback:
+            main_menu.draw_loading_screen(0, "Changing zoom")
+        self.tracker.change_zoom(value=zoom_level, progress_callback=progress_callback)
         self.core_service.save_configuration("defaultZoom", index)
+        screen = pygame.display.get_surface()
+        if tracker_ready and screen:
+            self.tracker.draw(screen, 0)
+            pygame.display.update()
 
     def resize(self, w, h):
         self.menu.resize(w, h)
@@ -148,10 +157,21 @@ class Menu:
                 pass
 
     def back_menu(self):
-        self.tracker.change_zoom(value=1)
-        self.tracker.back_main_menu()
-        self.tracker.bank.unloadImages()
+        tracker = self.tracker
+        main_menu = tracker.main_menu
+
         self.menu.disable()
+        main_menu.draw_loading_screen(0, "Back to main menu")
+        tracker.change_zoom(value=1, progress_callback=main_menu.draw_loading_screen)
+        main_menu.draw_loading_screen(0.70, "Closing tracker")
+        tracker.back_main_menu()
+        main_menu.draw_loading_screen(0.90, "Loading main menu")
+        tracker.bank.unloadImages()
+        screen = pygame.display.get_surface()
+        if screen:
+            main_menu.loading_active = False
+            main_menu.draw_home(screen)
+            pygame.display.update()
 
     def set_tracker(self, tracker):
         self.tracker = tracker
