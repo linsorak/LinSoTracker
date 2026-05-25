@@ -225,6 +225,7 @@ class PopupWindow:
 
     def left_click(self, mouse_position, button=None):
         click_found = False
+        clicked_item = None
         try:
             get_check = self.list_items.get_checks()
         except AttributeError:
@@ -238,18 +239,22 @@ class PopupWindow:
                 if button:
                     if button == 1:
                         click_found = True
+                        clicked_item = check
                         check.left_click()
                         self.update()
                     elif button == 2:
                         click_found = True
+                        clicked_item = check
                         check.wheel_click()
                         self.update()
                     elif button == 3:
                         click_found = True
+                        clicked_item = check
                         check.right_click()
                         self.update()
                 else:
                     click_found = True
+                    clicked_item = check
                     check.left_click()
                     self.update()
             # self.right_arrow_click()
@@ -271,7 +276,8 @@ class PopupWindow:
             self.right_arrow_click()
             click_found = True
 
-        if self.tracker.current_map:
+        is_rules_option = clicked_item is not None and hasattr(clicked_item, "actions") and hasattr(clicked_item, "hide_checks")
+        if self.tracker.current_map and not is_rules_option:
             self.tracker.current_map.update()
 
         if not click_found:

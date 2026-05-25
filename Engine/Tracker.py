@@ -92,13 +92,17 @@ class Tracker:
         self._compiled_actions = {}
         self._items_by_name = {}
         self._items_by_base_name = {}
+        self._missing_item_lookups = set()
         self._simple_checks_by_name = {}
         self._block_checks_by_name = {}
         self._check_dependencies_by_item = {}
         self._parent_block_by_check = {}
+        self._rules_by_name = {}
         self._item_action_batch_depth = 0
         self._item_action_batch_before_states = None
         self._item_action_batch_dirty = False
+        self._visibility_changed_checks = set()
+        self._visibility_changed_blocks = set()
 
         self._report_loading(0.05, "Preparing template")
         self.extract_data()
@@ -117,6 +121,7 @@ class Tracker:
         self._report_loading(0.60, "Loading maps")
         self.init_maps_datas()
         self.rebuild_check_indexes()
+        self.rebuild_rule_indexes()
         self._report_loading(0.80, "Applying settings")
         self.menu.set_zoom_index(self.core_service.zoom_index)
         self.menu.set_sound_check(self.core_service.sound_active)
@@ -288,7 +293,8 @@ class Tracker:
                                     hide_checks=rule.get("HideChecks"),
                                     actions=rule.get("Actions"),
                                     active_on_start=rule.get("Active", False),
-                                    can_be_clickable=rule.get("CanBeClickable", True)
+                                    can_be_clickable=rule.get("CanBeClickable", True),
+                                    exclusive_group=rule.get("ExclusiveGroup")
                                 )
                                 if temp_rule.active_on_start:
                                     temp_rule.left_click(force_click=True)
@@ -577,9 +583,11 @@ class Tracker:
                                       visibility=item.show_item)
         self.rebuild_item_indexes()
 
-    def rebuild_item_indexes(self):
+    def rebuild_item_indexes(self, clear_missing=True):
         self._items_by_name = {}
         self._items_by_base_name = {}
+        if clear_missing:
+            self._missing_item_lookups = set()
 
         def register(item):
             self._items_by_name.setdefault(item.name, item)
@@ -628,6 +636,15 @@ class Tracker:
             dependencies.update(self._collect_condition_item_dependencies(action_code, seen_actions))
 
         return dependencies
+
+    def rebuild_rule_indexes(self):
+        self._rules_by_name = {}
+        for rules_window_data in self.rules_windows_data:
+            for rule_option in rules_window_data.get("Rules", []):
+                self._rules_by_name.setdefault(rule_option.name, rule_option)
+
+    def find_rule(self, rule_name):
+        return self._rules_by_name.get(rule_name)
 
     def add_sub_special_item(self, item, item_list, data_items_name, items_list_name, visibility=False):
         item_data = getattr(item, data_items_name)
@@ -760,12 +777,13 @@ class Tracker:
         for check in affected_checks:
             parent_block = self._parent_block_by_check.get(check)
             if parent_block:
+                check.update()
                 affected_blocks.add(parent_block)
             else:
                 check.update()
 
         for block in affected_blocks:
-            block.update()
+            block.update(update_children=False)
 
         self.update_cpt()
         if self.current_map and self.current_map.check_window.is_open():
@@ -773,6 +791,13 @@ class Tracker:
             if current_block in affected_blocks or any(self._parent_block_by_check.get(check) is current_block
                                                        for check in affected_checks):
                 self.current_map.check_window.update()
+
+    def mark_check_visibility_changed(self, check):
+        parent_block = self._parent_block_by_check.get(check)
+        if parent_block:
+            self._visibility_changed_blocks.add(parent_block)
+        else:
+            self._visibility_changed_checks.add(check)
 
     def begin_item_action_batch(self):
         if self._item_action_batch_depth == 0:
@@ -794,12 +819,27 @@ class Tracker:
 
         before_states = self._item_action_batch_before_states
         dirty = self._item_action_batch_dirty
+        visibility_changed_checks = self._visibility_changed_checks
+        visibility_changed_blocks = self._visibility_changed_blocks
         self._item_action_batch_before_states = None
         self._item_action_batch_dirty = False
+        self._visibility_changed_checks = set()
+        self._visibility_changed_blocks = set()
 
         if dirty and before_states is not None:
             self.rebuild_item_indexes()
             self.update_checks_for_changed_items(self._get_changed_item_names(before_states))
+
+        if visibility_changed_checks or visibility_changed_blocks:
+            for check in visibility_changed_checks:
+                check.update()
+            for block in visibility_changed_blocks:
+                block.update(update_children=False)
+            self.update_cpt()
+            if self.current_map and self.current_map.check_window.is_open():
+                current_block = self.current_map.current_block_checks
+                if current_block in visibility_changed_blocks:
+                    self.current_map.check_window.update()
 
     def items_mouse_down(self, mouse_position, button, item_list):
         for item in item_list:
@@ -1136,6 +1176,7 @@ class Tracker:
         self.menu.get_menu().resize(width=w, height=h)
         self.load_data(datas)
         self.rebuild_check_indexes()
+        self.rebuild_rule_indexes()
         if progress_callback:
             progress_callback(0.60, "Restoring state")
         self.update()
@@ -1273,10 +1314,19 @@ class Tracker:
         if item:
             return item
 
+        missing_key = (is_base_name, item_name)
+        if missing_key in self._missing_item_lookups:
+            return None
+
         # Fallback for any dynamic item created after the last index rebuild.
-        self.rebuild_item_indexes()
+        self.rebuild_item_indexes(clear_missing=False)
         lookup = self._items_by_base_name if is_base_name else self._items_by_name
-        return lookup.get(item_name)
+        item = lookup.get(item_name)
+        if item:
+            return item
+
+        self._missing_item_lookups.add(missing_key)
+        return None
 
     def find_object_with_key(self, obj, key):
         if isinstance(obj, dict):
@@ -1356,13 +1406,8 @@ class Tracker:
         """
         Check if a rule is active in the list of rule options.
         """
-        for rules_window_data in self.rules_windows_data:
-            popup = rules_window_data["PopupWindow"]
-            if popup.list_items:
-                for rule_option in popup.list_items:
-                    if rule_option.name == rule:
-                        return rule_option.is_active()
-        return False
+        rule_option = self.find_rule(rule)
+        return rule_option.is_active() if rule_option else False
 
     def check_sub_check(self, check, check_name):
         """

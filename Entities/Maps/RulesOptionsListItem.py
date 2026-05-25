@@ -8,13 +8,15 @@ from Entities.Maps.CheckListItem import CheckListItem
 
 class RulesOptionsListItem(CheckListItem):
     def __init__(self, ident, name, position, tracker, checked, hide_checks, actions, active_on_start=False,
-                 can_be_clickable=True):
+                 can_be_clickable=True, exclusive_group=None):
         super().__init__(ident, name, position, None, tracker)
         self.checked = checked
+        self.base_checked = checked
         self.hide_checks = hide_checks
         self.actions = actions
         self.active_on_start = active_on_start
         self.can_be_clickable = can_be_clickable
+        self.exclusive_group = exclusive_group
         self.update()
         self.set_hidden_checks()
 
@@ -42,6 +44,57 @@ class RulesOptionsListItem(CheckListItem):
     def is_active(self):
         return not self.checked
 
+    def is_exclusive_preset(self):
+        return bool(self.actions and self.exclusive_group)
+
+    def iter_exclusive_group_rules(self):
+        for rule_item in self.tracker._rules_by_name.values():
+            if rule_item is not self and rule_item.exclusive_group == self.exclusive_group:
+                yield rule_item
+
+    @staticmethod
+    def get_action_targets(actions):
+        targets = {"rules": set(), "items": set()}
+        for action_dict in actions or []:
+            if "SetRule" in action_dict:
+                targets["rules"].add(action_dict["SetRule"]["RuleName"])
+            elif any(action in action_dict for action in ("SetLeftClick", "SetWheelClick", "SetRightClick", "ResetItem")):
+                action_data = action_dict[list(action_dict.keys())[0]]
+                targets["items"].add(action_data["Item"])
+        return targets
+
+    def deactivate_exclusive_group_rules(self):
+        for rule_item in self.iter_exclusive_group_rules():
+            if rule_item.is_active():
+                rule_item.checked = True
+                rule_item.update()
+
+    def reset_exclusive_group_targets(self):
+        reset_rules = set()
+        reset_items = set()
+        presets_to_reset = [self, *self.iter_exclusive_group_rules()]
+
+        for ruleset in presets_to_reset:
+            targets = self.get_action_targets(ruleset.actions)
+            reset_rules.update(targets["rules"])
+            reset_items.update(targets["items"])
+
+        for rule_name in reset_rules:
+            rule = self.tracker.find_rule(rule_name)
+            if rule:
+                rule.checked = rule.base_checked
+                rule.update()
+                rule.set_hidden_checks()
+
+        for item_name in reset_items:
+            item = self.tracker.find_item(item_name, True)
+            if item:
+                item.reset()
+                item.update()
+                self.tracker.mark_item_action_batch_dirty()
+
+        self.deactivate_exclusive_group_rules()
+
     def set_hidden_checks(self):
         if self.hide_checks:
             for hidden_check in self.hide_checks:
@@ -50,7 +103,9 @@ class RulesOptionsListItem(CheckListItem):
                     for check_name, checks in self.tracker._simple_checks_by_name.items():
                         if check_name.lower() in hidden_names:
                             for check in checks:
-                                check.hide = self.checked
+                                if check.hide != self.checked:
+                                    check.hide = self.checked
+                                    self.tracker.mark_check_visibility_changed(check)
                 elif hidden_check["Kind"] == "Block":
                     block_name = hidden_check["Name"].lower()
                     hidden_names = {name.lower() for name in hidden_check["Checks"]}
@@ -59,7 +114,9 @@ class RulesOptionsListItem(CheckListItem):
                             for block in blocks:
                                 for check_item in block.list_checks:
                                     if check_item.name.lower() in hidden_names:
-                                        check_item.hide = self.checked
+                                        if check_item.hide != self.checked:
+                                            check_item.hide = self.checked
+                                            self.tracker.mark_check_visibility_changed(check_item)
 
     def do_actions(self):
         if self.actions:
@@ -73,10 +130,7 @@ class RulesOptionsListItem(CheckListItem):
                     if not self.checked:
                         rule_active = rule_action.get("Active", False)
 
-                    for rules_window in self.tracker.rules_windows_data:
-                        for rule_item in rules_window["Rules"]:
-                            if rule_item.name == rule_name:
-                                matching_rule = rule_item
+                    matching_rule = self.tracker.find_rule(rule_name)
 
                     if matching_rule:
                         matching_rule.checked = not rule_active
@@ -116,9 +170,17 @@ class RulesOptionsListItem(CheckListItem):
 
     def left_click(self, force_click=False):
         if self.can_be_clickable or force_click:
+            if self.is_active() and self.is_exclusive_preset():
+                self.checked = True
+                self.update()
+                return
+
             self.tracker.begin_item_action_batch()
             try:
                 super().left_click()
+                if self.is_active() and self.is_exclusive_preset():
+                    self.reset_exclusive_group_targets()
+                    self.deactivate_exclusive_group_rules()
                 self.set_hidden_checks()
                 self.do_actions()
             finally:

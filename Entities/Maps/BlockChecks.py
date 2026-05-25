@@ -27,7 +27,7 @@ class BlockChecks(SimpleCheck):
     def get_checks(self):
         return self.list_checks
 
-    def update(self):
+    def update(self, update_children=True):
         self.logic_cpt = 0
         self.all_logic = True
         self.checked = True
@@ -35,7 +35,8 @@ class BlockChecks(SimpleCheck):
         self.has_attached_item_on_child = False
 
         for check in self.list_checks:
-            check.update()
+            if update_children:
+                check.update()
             if not check.hide and not check.checked:
                 if not check.checked:
                     self.checked = False
