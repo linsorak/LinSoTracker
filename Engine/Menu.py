@@ -1,7 +1,8 @@
 import json
 import os
+import tkinter
 import webbrowser
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 from typing import Tuple, Any
 
 import pygame
@@ -42,6 +43,7 @@ class Menu:
         self.menu.add.button('Save as default', self.save_default)
         self.menu.add.button('Load tracker state', self.load)
         self.menu.add.button('Load default save', self.load_default)
+        self.menu.add.button('Add seed', self.add_seed)
         self.sound_check = self.menu.add.toggle_switch('Sound effect', False, onchange=self.onchange_sound)
         self.esc_menu_check = self.menu.add.toggle_switch('ESC Label', True, onchange=self.onchange_esc)
         self.show_hint_menu_check = self.menu.add.toggle_switch('Show Hint', True, onchange=self.onchange_show_hint)
@@ -134,6 +136,27 @@ class Menu:
 
     def load_default(self):
         self.tracker.check_is_default_save()
+        self.menu.disable()
+
+    def add_seed(self):
+        parent = tkinter.Toplevel()
+        parent.withdraw()
+        try:
+            seed = simpledialog.askstring('Add seed', 'Paste seed:', parent=parent)
+        finally:
+            try:
+                parent.destroy()
+            except Exception:
+                pass
+        if seed:
+            seed = seed.strip()
+            if seed:
+                self.tracker.seed = seed
+                if hasattr(self.tracker, 'apply_seed'):
+                    try:
+                        self.tracker.apply_seed(seed)
+                    except Exception as e:
+                        messagebox.showerror('Error', 'Failed to apply seed: {}'.format(e))
         self.menu.disable()
 
     def load(self):

@@ -1,6 +1,8 @@
+import importlib.util
 import json
 import os
 import re
+import sys
 from tkinter import messagebox
 from zipfile import ZipFile
 
@@ -312,11 +314,22 @@ class Tracker:
         self.update()
 
     def update_popup(self, popup, popup_datas, title, title_font, background_image, items_list):
+        zoom = self.core_service.zoom
+        screen = pygame.display.get_surface()
+        offset_x = 0
+        offset_y = 0
+        if screen is not None:
+            screen_w, screen_h = screen.get_size()
+            bg_rect = background_image.get_rect()
+            offset_x = (screen_w - bg_rect.w) // 2
+            offset_y = (screen_h - bg_rect.h) // 2
+        popup.index_positions = (offset_x / zoom, offset_y / zoom)
+
         box_rect = pygame.Rect(
-            (popup_datas["DrawBoxRect"]["x"] * self.core_service.zoom) + background_image.get_rect().x,
-            (popup_datas["DrawBoxRect"]["y"] * self.core_service.zoom) + background_image.get_rect().y,
-            popup_datas["DrawBoxRect"]["w"] * self.core_service.zoom,
-            popup_datas["DrawBoxRect"]["h"] * self.core_service.zoom
+            (popup_datas["DrawBoxRect"]["x"] * zoom) + background_image.get_rect().x + offset_x,
+            (popup_datas["DrawBoxRect"]["y"] * zoom) + background_image.get_rect().y + offset_y,
+            popup_datas["DrawBoxRect"]["w"] * zoom,
+            popup_datas["DrawBoxRect"]["h"] * zoom
         )
         popup.set_background_image_path(popup_datas["SubMenuBackground"])
         popup.set_arrow_left_image_path(popup_datas["LeftArrow"]["Image"])
@@ -1429,6 +1442,85 @@ class Tracker:
         if sub is not None:
             return sub.checked
         return None
+
+    def _load_seed_module(self):
+        seed_path = os.path.join(self.resources_path, "seed.py")
+        if not os.path.isfile(seed_path):
+            return None
+        module_name = "tracker_seed_{}".format(self.template_name)
+        spec = importlib.util.spec_from_file_location(module_name, seed_path)
+        if spec is None or spec.loader is None:
+            return None
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        try:
+            spec.loader.exec_module(module)
+        except Exception as e:
+            messagebox.showerror('Seed error', 'Failed to load seed.py: {}'.format(e))
+            return None
+        return module
+
+    def apply_seed(self, seed):
+        import inspect
+        module = self._load_seed_module()
+        if module is None:
+            messagebox.showerror('Seed', 'This template has no seed.py decoder.')
+            return False
+        if not hasattr(module, "decode"):
+            messagebox.showerror('Seed', 'seed.py missing decode(seed) function.')
+            return False
+
+        try:
+            sig = inspect.signature(module.decode)
+            takes_tracker = len(sig.parameters) >= 2
+        except (TypeError, ValueError):
+            takes_tracker = False
+
+        self.begin_item_action_batch()
+        try:
+            try:
+                if takes_tracker:
+                    result = module.decode(seed, self)
+                else:
+                    result = module.decode(seed)
+            except Exception as e:
+                messagebox.showerror('Seed error', 'Decode failed: {}'.format(e))
+                return False
+
+            if isinstance(result, dict):
+                for rule_name, active in (result.get("rules") or {}).items():
+                    rule = self.find_rule(rule_name)
+                    if rule is None:
+                        continue
+                    if bool(rule.is_active()) != bool(active):
+                        rule.left_click(force_click=True)
+                from Entities.AlternateCountItem import AlternateCountItem
+                from Entities.AlternateEvolutionItem import AlternateEvolutionItem
+                from Entities.DraggableEvolutionItem import DraggableEvolutionItem
+                from Entities.EvolutionItem import EvolutionItem
+                from Entities.IncrementalItem import IncrementalItem
+                progressive_types = (EvolutionItem, AlternateEvolutionItem, DraggableEvolutionItem,
+                                     IncrementalItem, AlternateCountItem)
+                for item_name, state in (result.get("items") or {}).items():
+                    item = self.find_item(item_name) or self.find_item(item_name, is_base_name=True)
+                    if item is None:
+                        continue
+                    clicks = int(state) if not isinstance(state, bool) else (1 if state else 0)
+                    clicks = max(0, clicks)
+                    if isinstance(item, progressive_types):
+                        for _ in range(clicks):
+                            item.left_click()
+                    else:
+                        target_enable = clicks > 0
+                        if getattr(item, "enable", None) != target_enable:
+                            item.left_click()
+            self.mark_item_action_batch_dirty()
+        finally:
+            self.end_item_action_batch()
+
+        if self.current_map:
+            self.current_map.update()
+        return True
 
     def have_check(self, check_name, block_name=None):
         if block_name is not None:
