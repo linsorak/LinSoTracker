@@ -55,6 +55,26 @@ def main():
         os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
         pygame.init()
         pygame.mixer.init()
+        try:
+            pygame.joystick.quit()
+        except Exception:
+            pass
+        joystick_event_names = (
+            "JOYAXISMOTION", "JOYBALLMOTION", "JOYHATMOTION",
+            "JOYBUTTONDOWN", "JOYBUTTONUP",
+            "JOYDEVICEADDED", "JOYDEVICEREMOVED",
+            "CONTROLLERAXISMOTION", "CONTROLLERBUTTONDOWN", "CONTROLLERBUTTONUP",
+            "CONTROLLERDEVICEADDED", "CONTROLLERDEVICEREMOVED", "CONTROLLERDEVICEREMAPPED",
+            "CONTROLLERTOUCHPADDOWN", "CONTROLLERTOUCHPADMOTION", "CONTROLLERTOUCHPADUP",
+            "CONTROLLERSENSORUPDATE",
+        )
+        for name in joystick_event_names:
+            ev = getattr(pygame, name, None)
+            if ev is not None:
+                try:
+                    pygame.event.set_blocked(ev)
+                except Exception:
+                    pass
         main_menu = MainMenu()
         dimension = main_menu.get_dimension()
         screen = pygame.display.set_mode(dimension)
@@ -69,6 +89,9 @@ def main():
         is_mouse_down = False
         start_time = 0
         button_event = None
+        resize_pending = None
+        resize_pending_time = 0
+        RESIZE_DEBOUNCE_MS = 250
 
         while loop:
             background_color = core_service.get_background_color()
@@ -99,6 +122,28 @@ def main():
                         main_menu.click(mouse_position, event.button)
                 elif event.type == pygame.KEYUP:
                     main_menu.keyup(event.key, screen)
+                elif event.type == pygame.VIDEORESIZE:
+                    tracker = getattr(main_menu, "loaded_tracker", None)
+                    if tracker is not None and getattr(tracker, "tracker_json_data", None):
+                        dims = tracker.tracker_json_data[1]["Datas"]["Dimensions"]
+                        base_w = dims["width"]
+                        base_h = dims["height"]
+                        new_w = max(1, event.w)
+                        new_h = int(new_w * base_h / base_w)
+                        new_zoom = new_w / base_w
+                        new_zoom = max(0.5, min(3.0, new_zoom))
+                        screen = pygame.display.set_mode((new_w, new_h), pygame.RESIZABLE)
+                        resize_pending = new_zoom
+                        resize_pending_time = pygame.time.get_ticks()
+
+            if resize_pending is not None and pygame.time.get_ticks() - resize_pending_time > RESIZE_DEBOUNCE_MS:
+                tracker = getattr(main_menu, "loaded_tracker", None)
+                if tracker is not None:
+                    tracker.change_zoom(value=resize_pending)
+                    surf = pygame.display.get_surface()
+                    if surf is not None:
+                        screen = surf
+                resize_pending = None
 
             if is_mouse_down and button_event == 1:
                 current_time = pygame.time.get_ticks()

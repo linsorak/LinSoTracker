@@ -47,6 +47,13 @@ class SimpleCheck:
         else:
             self.compiled_conditions = None
 
+        try:
+            self.state = ConditionsType.LOGIC if self.evaluate_conditions() else ConditionsType.NOT_LOGIC
+            if self.checked:
+                self.state = ConditionsType.DONE
+        except Exception:
+            self.state = ConditionsType.NOT_LOGIC
+
     def update(self):
         font = self.map.tracker.core_service.get_font("mapFont")
         core_service = self.map.tracker.core_service

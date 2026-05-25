@@ -96,7 +96,10 @@ class PopupWindow:
         base_x = self.index_positions[0] * self.tracker.core_service.zoom
         base_x = base_x + (self.background_image.get_rect().w / 2)
         base_x = base_x - (self.surface_label.get_rect().w / 2)
-        self.position_draw = (base_x / self.tracker.core_service.zoom, self.position_draw[1])
+        self.position_draw = (
+            base_x / self.tracker.core_service.zoom,
+            self.position_draw[1] + self.index_positions[1],
+        )
 
         if self.subtitle:
             font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), self.subtitle_font["Name"])
@@ -115,7 +118,7 @@ class PopupWindow:
             base_y = self.position_subtitle[1] + (self.surface_label.get_rect().h / self.tracker.core_service.zoom)
             # self.position_subtitle = (base_x / self.tracker.core_service.zoom, self.position_subtitle[1] - (self.surface_subtitle.get_rect().h / 3))
             self.position_subtitle = (base_x / self.tracker.core_service.zoom,
-                                      base_y - (self.surface_subtitle.get_rect().h / 4))
+                                      base_y - (self.surface_subtitle.get_rect().h / 4) + self.index_positions[1])
         else:
             self.surface_subtitle, self.position_subtitle = (None, None)
 

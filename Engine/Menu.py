@@ -93,6 +93,7 @@ class Menu:
             main_menu.draw_loading_screen(0, "Changing zoom")
         self.tracker.change_zoom(value=zoom_level, progress_callback=progress_callback)
         self.core_service.save_configuration("defaultZoom", index)
+        main_menu.loading_active = False
         screen = pygame.display.get_surface()
         if tracker_ready and screen:
             self.tracker.draw(screen, 0)

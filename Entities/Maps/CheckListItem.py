@@ -48,17 +48,16 @@ class CheckListItem(Sprite):
         else:
             self.compiled_conditions = None
 
-        self.update()
+        self.update(render=False)
 
     def evaluate_conditions(self):
         if self.compiled_conditions:
             return eval(self.compiled_conditions)
         return bool(self.conditions)
 
-    def update(self):
+    def update(self, render=True):
         self.color = None
         font = self.tracker.core_service.get_font("mapFont")
-        font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), font["Name"])
         if self.evaluate_conditions():
             self.state = ConditionsType.LOGIC
             self.color = self.tracker.core_service.get_color_from_font(font, "Logic")
@@ -71,6 +70,10 @@ class CheckListItem(Sprite):
             self.color = self.tracker.core_service.get_color_from_font(font, "Done")
             self.focused = False
 
+        if not render:
+            return
+
+        font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), font["Name"])
         outline_color = (0, 0, 0)
         if self.focused:
             outline_color = self.tracker.core_service.get_color_from_font(font, "Focused")

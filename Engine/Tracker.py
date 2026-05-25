@@ -213,7 +213,7 @@ class Tracker:
             zoom = self.core_service.zoom
             w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * zoom
             h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * zoom
-            pygame.display.set_mode((w, h))
+            pygame.display.set_mode((w, h), pygame.RESIZABLE)
             self._report_loading(0.32, "Resizing window")
             self.core_service.setgamewindowcenter(w, h)
             self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
@@ -390,6 +390,8 @@ class Tracker:
                     rules_window_data["ButtonRectData"]["w"] * zoom,
                     rules_window_data["ButtonRectData"]["h"] * zoom
                 )
+                rules_window_data["Background"] = self.bank.addZoomImage(
+                    os.path.join(self.resources_path, rules_window_data["SubMenuBackground"]))
 
                 self.update_popup(popup=rules_window_data["PopupWindow"],
                                   popup_datas=rules_window_data,
@@ -1087,7 +1089,7 @@ class Tracker:
                 font_size=font_data["Size"] * self.core_service.zoom,
                 surface=temp_surface,
                 position=(0, 0),
-                outline=1 * self.core_service.zoom
+                outline=1
             )
             x = item.get_position()[0] - ((surf.get_rect().w / 2) - (item.get_rect().w / 2))
             y = item.get_position()[1] - surf.get_rect().h if top else item.get_position()[
@@ -1186,7 +1188,7 @@ class Tracker:
             progress_callback(0.25, "Resetting zoom")
         w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
         h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
-        pygame.display.set_mode((w, h))
+        pygame.display.set_mode((w, h), pygame.RESIZABLE)
         if progress_callback:
             progress_callback(0.35, "Resizing window")
         self.init_items()

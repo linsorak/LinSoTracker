@@ -10,7 +10,9 @@ class MapNameListItem(CheckListItem):
     def __init__(self, ident, name, position, tracker):
         super().__init__(ident, name, position, None, tracker)
 
-    def update(self):
+    def update(self, render=True):
+        if not render:
+            return
         font = self.tracker.core_service.get_font("mapFont")
         font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), font["Name"])
 

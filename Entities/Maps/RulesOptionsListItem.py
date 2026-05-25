@@ -20,7 +20,9 @@ class RulesOptionsListItem(CheckListItem):
         self.update()
         self.set_hidden_checks()
 
-    def update(self):
+    def update(self, render=True):
+        if not render:
+            return
         self.color = None
         font = self.tracker.core_service.get_font("mapFont")
         font_path = os.path.join(self.tracker.core_service.get_tracker_temp_path(), font["Name"])
@@ -170,11 +172,6 @@ class RulesOptionsListItem(CheckListItem):
 
     def left_click(self, force_click=False):
         if self.can_be_clickable or force_click:
-            if self.is_active() and self.is_exclusive_preset():
-                self.checked = True
-                self.update()
-                return
-
             self.tracker.begin_item_action_batch()
             try:
                 super().left_click()
