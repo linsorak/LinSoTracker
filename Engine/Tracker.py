@@ -103,6 +103,9 @@ class Tracker:
         self._item_action_batch_dirty = False
         self._visibility_changed_checks = set()
         self._visibility_changed_blocks = set()
+        self._dim_overlay = None
+        self._dim_overlay_size = None
+        self._editable_boxes_cache = []
 
         self._report_loading(0.05, "Preparing template")
         self.extract_data()
@@ -593,11 +596,15 @@ class Tracker:
             self._items_by_name.setdefault(item.name, item)
             self._items_by_base_name.setdefault(item.base_name, item)
 
+        editable_boxes = []
         for item in self.items:
             register(item)
+            if isinstance(item, EditableBox):
+                editable_boxes.append(item)
             if isinstance(item, SubMenuItem):
                 for sub_item in item.items:
                     register(sub_item)
+        self._editable_boxes_cache = editable_boxes
 
     def rebuild_check_indexes(self):
         self._simple_checks_by_name = {}
@@ -1212,10 +1219,12 @@ class Tracker:
             screen.blit(self.surface_label_checks_cpt, self.position_draw_label_checks_cpt)
             for rules_window_data in self.rules_windows_data:
                 if self.maps_list_window.is_open() or rules_window_data["PopupWindow"].is_open():
-                    info_object = pygame.display.Info()
-                    s = pygame.Surface((info_object.current_w, info_object.current_h), pygame.SRCALPHA)
-                    s.fill((0, 0, 0, 209))
-                    screen.blit(s, (0, 0))
+                    screen_size = screen.get_size()
+                    if self._dim_overlay is None or self._dim_overlay_size != screen_size:
+                        self._dim_overlay = pygame.Surface(screen_size, pygame.SRCALPHA)
+                        self._dim_overlay.fill((0, 0, 0, 209))
+                        self._dim_overlay_size = screen_size
+                    screen.blit(self._dim_overlay, (0, 0))
                     if self.maps_list_window.is_open():
                         self.maps_list_window.draw(screen)
                     if rules_window_data["PopupWindow"].is_open():
@@ -1276,8 +1285,7 @@ class Tracker:
                                     self.surface_check_hint.get_rect().w, self.surface_check_hint.get_rect().h)
             pygame.draw.rect(screen, (0, 0, 0), temp_rect)
             screen.blit(self.surface_check_hint, self.position_check_hint)
-        boxes = [item for item in self.items if isinstance(item, EditableBox)]
-        for box in boxes:
+        for box in self._editable_boxes_cache:
             box.update_box(time_delta)
 
 
@@ -1287,7 +1295,10 @@ class Tracker:
                 self.menu.active(screen)
 
     def handle_event_boxes(self, item_list, events):
-        boxes = [item for item in item_list if isinstance(item, EditableBox)]
+        if item_list is self.items:
+            boxes = self._editable_boxes_cache
+        else:
+            boxes = [item for item in item_list if isinstance(item, EditableBox)]
         for box in boxes:
             box.handle_event(events)
 

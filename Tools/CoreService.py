@@ -322,6 +322,13 @@ class CoreService(metaclass=Singleton):
 
     @staticmethod
     def convert_to_gs(surf):
+        try:
+            gs = pygame.transform.grayscale(surf)
+            surf.fill((0, 0, 0, 0))
+            surf.blit(gs, (0, 0))
+            return
+        except (AttributeError, pygame.error):
+            pass
         width, height = surf.get_size()
         for x in range(width):
             for y in range(height):

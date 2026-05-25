@@ -46,6 +46,7 @@ class Item(pygame.sprite.Sprite):
                                 self.image.get_rect().height)
         self.base_rect = self.rect
         self.base_save = self.get_data()
+        self._grey_alpha_image = None
 
         self.can_drag = True
         self.is_dragging = False
@@ -61,7 +62,10 @@ class Item(pygame.sprite.Sprite):
         return self.rect
 
     def alpha_image(self, image):
-        return self.core_service.set_image_transparent(image=image, opacity_disable=self.opacity_disable)
+        if self._grey_alpha_image is None or self._grey_alpha_image.get_size() != image.get_size():
+            self._grey_alpha_image = self.core_service.set_image_transparent(
+                image=image, opacity_disable=self.opacity_disable)
+        return self._grey_alpha_image
 
     def update(self):
         if self.show_item:
@@ -81,7 +85,9 @@ class Item(pygame.sprite.Sprite):
                 self.rect.center = pygame.mouse.get_pos()
         else:
             self.image = pygame.Surface((0, 0))
-            # self.set_child_visibilty("inactive_items", False)
+            self.set_child_visibilty("active_items", False)
+            self.set_child_visibilty("inactive_items", False)
+            self.set_child_visibilty("hint_items", False)
 
     def update_hint(self, image):
         # self.update()
@@ -155,9 +161,6 @@ class Item(pygame.sprite.Sprite):
         temp_surface = pygame.Surface((400, 400)).convert_alpha()
         tsurf, tpos = ptext.draw(str(text), (0, 0), fontname=font_name, antialias=True,
                                  owidth=o_width, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=temp_surface)
-
-        ptext.MEMORY_REDUCTION_FACTOR = 0
-        ptext.AUTO_CLEAN = True
         return tsurf, tpos
 
     def get_name(self):

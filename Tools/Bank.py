@@ -16,6 +16,7 @@ class Bank(metaclass=Singleton):
     def __init__(self):
         self.core_service = CoreService()
         self.bank = {}
+        self.zoom_bank = {}
 
     def addImage(self, path):
         if path in self.bank:
@@ -26,12 +27,20 @@ class Bank(metaclass=Singleton):
             return imageTemp
 
     def addZoomImage(self, path):
+        zoom = self.core_service.zoom
+        key = (path, zoom)
+        cached = self.zoom_bank.get(key)
+        if cached is not None:
+            return cached
         if path in self.bank:
-            return self.core_service.zoom_image(self.bank[path])
+            base = self.bank[path]
         else:
-            imageTemp = self.core_service.zoom_image(pygame.image.load(path).convert_alpha())
-            self.bank[path] = imageTemp
-            return imageTemp
+            base = pygame.image.load(path).convert_alpha()
+            self.bank[path] = base
+        zoomed = self.core_service.zoom_image(base)
+        self.zoom_bank[key] = zoomed
+        return zoomed
 
     def unloadImages(self):
         self.bank.clear()
+        self.zoom_bank.clear()

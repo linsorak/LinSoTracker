@@ -684,8 +684,6 @@ class MainMenu:
             tsurf, tpos = ptext.draw(str(text), position, fontname=font_name, antialias=True,
                                      owidth=outline_temp, ocolor=color_outline, color=color, fontsize=font_size,
                                      surf=surface)
-            ptext.MEMORY_REDUCTION_FACTOR = 0
-            ptext.AUTO_CLEAN = True
             return tsurf, tpos
         except Exception as e:
             print(e)

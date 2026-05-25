@@ -75,9 +75,8 @@ class EditableBox(Item):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.edit_box.rect.collidepoint(event.pos):
                 self.edit_box.focus()
-                if len(self.edit_box.get_text()) == 0:
-                    self.suggestion_list.set_item_list(self.lines)
-                    self.suggestion_list.show()
+                self.suggestion_list.set_item_list(self.lines)
+                self.suggestion_list.show()
             else:
                 if not self.suggestion_list.rect.collidepoint(event.pos):
                     self.suggestion_list.hide()

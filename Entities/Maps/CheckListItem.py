@@ -33,6 +33,7 @@ class CheckListItem(Sprite):
         self.hide = hide
         self.group = group
         self.focused = False
+        self._dragged_scaled_cache_key = None
 
         if type(self.conditions) == str:
             self.conditions = self.conditions.strip()
@@ -106,6 +107,7 @@ class CheckListItem(Sprite):
             self.dragged_item_basename = None
             self.dragged_item_index = None
             self.dragged_icon_item_image = None
+            self._dragged_scaled_cache_key = None
 
     def wheel_click(self):
         self.focused = not self.focused
@@ -136,16 +138,27 @@ class CheckListItem(Sprite):
     def update_dragged_image(self):
         if self.dragged_item_name:
             item = self.tracker.find_item(self.dragged_item_name, self.dragged_item_name == self.dragged_item_basename)
+            source_image = None
             if item:
                 if hasattr(item, "next_item_index"):
                     if self.dragged_item_index > -1:
-                        self.dragged_icon_item_image = item.next_items[self.dragged_item_index]["Image"]
+                        source_image = item.next_items[self.dragged_item_index]["Image"]
                     else:
-                        self.dragged_icon_item_image = item.colored_image
+                        source_image = item.colored_image
                 else:
-                    self.dragged_icon_item_image = item.colored_image
+                    source_image = item.colored_image
+            else:
+                source_image = self.dragged_icon_item_image
 
-            self.dragged_icon_item_image = pygame.transform.smoothscale(self.dragged_icon_item_image, (26 * self.tracker.core_service.zoom, 26 * self.tracker.core_service.zoom))
+            if source_image is None:
+                return
+
+            zoom = self.tracker.core_service.zoom
+            cache_key = (id(source_image), zoom)
+            if cache_key != self._dragged_scaled_cache_key:
+                self.dragged_icon_item_image = pygame.transform.smoothscale(
+                    source_image, (26 * zoom, 26 * zoom))
+                self._dragged_scaled_cache_key = cache_key
 
 
     def draw(self, screen):
