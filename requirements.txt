@@ -1,7 +1,12 @@
 cryptography>=48.0.0
 pygame-ce>=2.5.7
-pygame-menu>=4.5.2
 pygame_gui>=0.6.14
+python-i18n>=0.3.9
+pyperclip>=1.11.0
+typing-extensions>=4.15.0
+
+# pygame-menu is installed by install-requirements.ps1 with --no-deps.
+# Its metadata depends on pygame, but this project uses pygame-ce for the pygame module.
 
 # Build tools for build-nuitka-onefile.bat
 nuitka>=4.1.1

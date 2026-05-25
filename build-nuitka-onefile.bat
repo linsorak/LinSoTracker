@@ -10,9 +10,9 @@ set "APP_VERSION="
 
 if not exist "%PYTHON%" (
     echo Python virtual environment not found: %PYTHON%
-    echo Create it first, or edit PYTHON in this script.
-    pause
-    exit /b 1
+    echo Creating it with the first python found on PATH...
+    python -m venv .venv
+    if %ERRORLEVEL% NEQ 0 goto error
 )
 
 if exist "%OUT_DIR%" rmdir /s /q "%OUT_DIR%"
@@ -21,7 +21,9 @@ if exist "%APP_NAME%.dist" rmdir /s /q "%APP_NAME%.dist"
 if exist "%APP_NAME%.onefile-build" rmdir /s /q "%APP_NAME%.onefile-build"
 
 echo Installing/updating Nuitka build dependencies...
-"%PYTHON%" -m pip install --upgrade nuitka ordered-set zstandard
+powershell -NoProfile -ExecutionPolicy Bypass -File install-requirements.ps1 -Python "%PYTHON%"
+if %ERRORLEVEL% NEQ 0 goto error
+"%PYTHON%" -m pip install --upgrade --force-reinstall "https://github.com/Nuitka/Nuitka/archive/develop.zip"
 if %ERRORLEVEL% NEQ 0 goto error
 
 echo Synchronizing version from CoreService.py...
