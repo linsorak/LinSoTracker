@@ -213,7 +213,7 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
         name_x = x + 122
 
         action_text = entry["action"].upper()
-        action_color = (135, 230, 160) if action_text == "GET" or action_text.startswith("+") else (240, 120, 120)
+        action_color = (135, 230, 160) if action_text in ("GET", "CHECK") or action_text.startswith("+") else (240, 120, 120)
         action = font_small.render(action_text, True, action_color)
         screen.blit(action, (action_column.centerx - action.get_width() // 2,
                              action_column.centery - action.get_height() // 2))
@@ -458,6 +458,8 @@ class TimerWindow:
 
             if self.is_count_item(item):
                 action = self.get_count_action(before_sig, after_sig)
+            elif item.__class__.__name__ == "CheckItem":
+                action = self.get_check_item_action(before_sig, after_sig)
             else:
                 action = self.get_action(before_sig, after_sig)
             if action is None:
@@ -501,7 +503,7 @@ class TimerWindow:
 
     @staticmethod
     def is_loggable_item(item):
-        ignored = {"SubMenuItem", "EditableBox", "ImageItem", "OpenLinkItem"}
+        ignored = {"SubMenuItem", "EditableBox", "ImageItem", "OpenLinkItem", "TimerItem"}
         return item.__class__.__name__ not in ignored and getattr(item, "show_item", True)
 
     @staticmethod
@@ -527,6 +529,7 @@ class TimerWindow:
             getattr(item, "increments_position", None),
             getattr(item, "next_item_index", None),
             getattr(item, "label_count", None),
+            TimerWindow.get_label_item_value(item),
         )
 
     @staticmethod
@@ -552,6 +555,19 @@ class TimerWindow:
         return "Get" if after_enabled else None
 
     @staticmethod
+    def get_check_item_action(before_sig, after_sig):
+        before_enabled = bool(before_sig[2])
+        after_enabled = bool(after_sig[2])
+        before_checked = bool(before_sig[3])
+        after_checked = bool(after_sig[3])
+
+        if after_enabled != before_enabled:
+            return "Get" if after_enabled else "Remove"
+        if after_checked != before_checked:
+            return "Check" if after_checked else "Uncheck"
+        return "Get" if after_enabled else None
+
+    @staticmethod
     def get_count_action(before_sig, after_sig):
         before_value = before_sig[4]
         after_value = after_sig[4]
@@ -565,11 +581,29 @@ class TimerWindow:
 
     @staticmethod
     def get_display_name(item, after_sig, before_sig):
+        if item.__class__.__name__ == "LabelItem":
+            label = after_sig[8] if after_sig[8] is not None else before_sig[8]
+            base_name = after_sig[0] or before_sig[0] or item.base_name
+            if label:
+                return "{} : {}".format(base_name, label)
         if after_sig[0]:
             return after_sig[0]
         if before_sig[0]:
             return before_sig[0]
         return item.base_name
+
+    @staticmethod
+    def get_label_item_value(item):
+        if item.__class__.__name__ != "LabelItem":
+            return None
+        label_list = getattr(item, "label_list", None)
+        label_count = getattr(item, "label_count", None)
+        if label_list is None or label_count is None:
+            return None
+        try:
+            return label_list[label_count]
+        except (IndexError, TypeError):
+            return None
 
     @staticmethod
     def get_associated_checks(before_sig, after_sig, check_names_by_item):

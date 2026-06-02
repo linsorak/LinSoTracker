@@ -30,6 +30,7 @@ from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
 from Entities.OpenLinkItem import OpenLinkItem
 from Entities.SubMenuItem import SubMenuItem
+from Entities.TimerItem import TimerItem
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
 from Tools.ImageSheet import ImageSheet
@@ -521,6 +522,7 @@ class Tracker:
                 "EditableBox": EditableBox,
                 "DraggableEvolutionItem": DraggableEvolutionItem,
                 "ImageItem": ImageItem,
+                "TimerItem": TimerItem,
                 "Item": Item
             }
             if item["Kind"] in item_classes:
@@ -571,6 +573,13 @@ class Tracker:
                                              link=item["Link"])
                 elif item["Kind"] == "ImageItem":
                     _item = create_base_item(item, item_class)
+                elif item["Kind"] == "TimerItem":
+                    _item = create_base_item(item, item_class,
+                                             timer_config=item.get("Timer", {}),
+                                             buttons_config=item.get("Buttons", {}),
+                                             group=item.get("Group"),
+                                             group_controls=item.get("GroupControls", {}),
+                                             tracker=self)
                 elif item["Kind"] in ("EvolutionItem", "DraggableEvolutionItem", "AlternateEvolutionItem"):
                     _item = create_evo_item(item, item_class)
                 elif item["Kind"] == "IncrementalItem":
@@ -715,9 +724,8 @@ class Tracker:
                         self.sound_cancel.play()
 
     def items_click(self, item_list, mouse_position, button):
-        for item in item_list:
-            if isinstance(item, EditableBox) and item.check_click(mouse_position):
-                return True
+        if self.is_editable_box_click(mouse_position):
+            return True
 
         for item in item_list:
             if item.check_click(mouse_position) and self.is_moving is None and item.show_item and not isinstance(item,
@@ -933,6 +941,8 @@ class Tracker:
             return
         if self.menu.is_seed_overlay_open():
             return
+        if self.is_editable_box_click(mouse_position):
+            return
 
         can_click = not any(submenu.show for submenu in self.submenus)
         if self.maps_list_window.is_open() or any(r["PopupWindow"].is_open() for r in self.rules_windows_data):
@@ -967,37 +977,77 @@ class Tracker:
             index=next_index
         )
 
+    def _drop_moving_item_on_editable_box(self, mouse_position):
+        for box in self._editable_boxes_cache:
+            if box.show_item and box.enable and box.rect.collidepoint(mouse_position):
+                box._set_text(self.is_moving.name)
+                box.focused = False
+                box.suggestions_visible = False
+                return True
+        return False
+
+    def _is_valid_moving_drop_target(self, mouse_position):
+        for item in self.selected_items_list or []:
+            if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
+                return True
+
+        if self.current_map and not self.current_map.check_window.is_open():
+            return bool(self.current_map.find_check_at_position(mouse_position, include_blocks=False))
+
+        if self.current_map and self.current_map.check_window.is_open():
+            block = self.current_map.current_block_checks
+            if block:
+                for inner_check in block.list_checks:
+                    if not inner_check.show or inner_check.hide:
+                        continue
+                    if self.core_service.is_on_element(
+                            mouse_positions=mouse_position,
+                            element_positons=inner_check.get_position_draw(),
+                            element_dimension=inner_check.get_dimensions()
+                    ):
+                        return True
+        return False
+
+    def is_editable_box_click(self, mouse_position):
+        for box in self._editable_boxes_cache:
+            if box.show_item and box.enable and box.check_click(mouse_position):
+                return True
+        return False
+
     def _handle_moving_click(self, mouse_position):
         drop_found = False
-        for item in self.selected_items_list:
-            if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
-                self._update_target_image(item)
-                drop_found = True
-                break
-
+        if self._drop_moving_item_on_editable_box(mouse_position):
+            drop_found = True
         else:
-            if self.current_map and not self.current_map.check_window.is_open():
-                check = self.current_map.find_check_at_position(mouse_position, include_blocks=False)
-                if check:
-                    self._update_target_image(check)
+            for item in self.selected_items_list:
+                if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
+                    self._update_target_image(item)
                     drop_found = True
+                    break
 
-            elif self.current_map and self.current_map.check_window.is_open():
-                block = self.current_map.current_block_checks
-                if block:
-                    for inner_check in block.list_checks:
-                        if not inner_check.show or inner_check.hide:
-                            continue
-                        pos = inner_check.get_position_draw()
-                        dim = inner_check.get_dimensions()
-                        if self.core_service.is_on_element(
-                                mouse_positions=mouse_position,
-                                element_positons=pos,
-                                element_dimension=dim
-                        ):
-                            self._update_target_image(inner_check)
-                            drop_found = True
-                            break
+            else:
+                if self.current_map and not self.current_map.check_window.is_open():
+                    check = self.current_map.find_check_at_position(mouse_position, include_blocks=False)
+                    if check:
+                        self._update_target_image(check)
+                        drop_found = True
+
+                elif self.current_map and self.current_map.check_window.is_open():
+                    block = self.current_map.current_block_checks
+                    if block:
+                        for inner_check in block.list_checks:
+                            if not inner_check.show or inner_check.hide:
+                                continue
+                            pos = inner_check.get_position_draw()
+                            dim = inner_check.get_dimensions()
+                            if self.core_service.is_on_element(
+                                    mouse_positions=mouse_position,
+                                    element_positons=pos,
+                                    element_dimension=dim
+                            ):
+                                self._update_target_image(inner_check)
+                                drop_found = True
+                                break
 
         self.is_moving.is_dragging = False
         self.is_moving.reset_position()
@@ -1008,6 +1058,9 @@ class Tracker:
         self.selected_items_list = None
 
     def _handle_regular_click(self, mouse_position, button):
+        if self.is_editable_box_click(mouse_position):
+            return
+
         if self.current_map:
             before_check_states = self._snapshot_check_states() if self.timer_window else None
             self.current_map.click(mouse_position, button)
@@ -1053,6 +1106,9 @@ class Tracker:
                 self.items_click(self.items, mouse_position, button)
 
     def _handle_submenu_click(self, mouse_position, button):
+        if self.is_editable_box_click(mouse_position):
+            return
+
         for submenu in self.submenus:
             if submenu.show:
                 submenu.submenu_click(mouse_position, button)
@@ -1072,21 +1128,12 @@ class Tracker:
             submenu_found = True
 
         if self.is_moving:
+            if self._is_valid_moving_drop_target(mouse_position):
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+            else:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
             self.current_item_on_mouse = None
-            if self.current_map and self.current_map.checks_list and not submenu_found:
-                hovered_check = self.current_map.find_check_at_position(mouse_position)
-                self.mouse_check_found = hovered_check
-
-                if hovered_check:
-                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-                    if (isinstance(hovered_check, BlockChecks) and
-                            self.current_map.current_block_checks is not hovered_check):
-                        hovered_check.left_click(mouse_position)
-                        if not self.current_map.check_window.is_open():
-                            self.current_map.check_window.open_window()
-                else:
-                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-                    self.reset_hint()
+            self.reset_hint()
             return
 
         if self.current_map and self.current_map.checks_list and not submenu_found:
@@ -1315,6 +1362,8 @@ class Tracker:
         if self.current_map:
             self.current_map.draw_background(screen)
             for item in self.items:
+                if isinstance(item, TimerItem):
+                    item.update()
                 if item != self.is_moving:
                     screen.blit(item.image, item.rect)
                 if isinstance(item, GoModeItem) and item.enable:
@@ -1374,9 +1423,10 @@ class Tracker:
                         attached_position = (horizontal, vertical)
                         screen.blit(self.surface_check_attached_item, attached_position)
 
-            if self.is_moving in self.items:
-                screen.blit(self.is_moving.image, self.is_moving.rect)
         else:
+            for item in self.items:
+                if isinstance(item, TimerItem):
+                    item.update()
             self.items.draw(screen)
             for item in self.items:
                 if isinstance(item, GoModeItem) and item.enable and self.is_moving != item:
@@ -1393,6 +1443,8 @@ class Tracker:
         for box in self._editable_boxes_cache:
             box.update_box(time_delta)
             box.draw_box(screen)
+        if self.is_moving:
+            screen.blit(self.is_moving.image, self.is_moving.rect)
         self.menu.draw_seed_overlay(screen)
 
 

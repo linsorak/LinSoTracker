@@ -301,6 +301,8 @@ class TemplateChecker:
                     pass
                 elif item["Kind"] == "OpenLinkItem":
                     pass
+                elif item["Kind"] == "TimerItem":
+                    pass
                 else:
                     self.errors.append("Kind of Item '{} | ID = {} doesn't exist'".format(item["Kind"], i))
 
