@@ -27,6 +27,7 @@ class Menu:
         self.seed_overlay_consumed_click = False
         self.seed_font = font
         self.seed_title_font = pygame.font.Font(self.core_service.get_menu_font(), 26)
+        self.syncing_timer_check = False
         theme = Theme(background_color=(20, 20, 20, 50),  # transparent background
                       title_font=font,  # pygame_menu.font.FONT_NEVIS,
                       title_font_color=(255, 255, 255),
@@ -55,6 +56,7 @@ class Menu:
         self.sound_check = self.menu.add.toggle_switch('Sound effect', False, onchange=self.onchange_sound)
         self.esc_menu_check = self.menu.add.toggle_switch('ESC Label', True, onchange=self.onchange_esc)
         self.show_hint_menu_check = self.menu.add.toggle_switch('Show Hint', True, onchange=self.onchange_show_hint)
+        self.show_timer_menu_check = self.menu.add.toggle_switch('Show Timer', True, onchange=self.onchange_show_timer)
         self.menu.add.button('Back to main menu', self.back_menu)
         self.menu.add.button('Discord', self.open_discord)
         self.menu.add.button('Pay me a coffee ? :)', self.open_paypal)
@@ -74,6 +76,11 @@ class Menu:
         self.core_service.save_configuration("showHint", current_state_value)
         self.core_service.show_hint_on_item = current_state_value
 
+    def onchange_show_timer(self, current_state_value, **kwargs):
+        if self.syncing_timer_check:
+            return
+        self.tracker.set_timer_visible(current_state_value)
+
     def set_zoom_index(self, zoom_index):
         self.zoom_selector.set_value(zoom_index)
         value, index = self.zoom_selector.get_value()
@@ -87,6 +94,13 @@ class Menu:
 
     def set_show_hint_check(self, value):
         self.show_hint_menu_check.set_value(value)
+
+    def set_show_timer_check(self, value):
+        self.syncing_timer_check = True
+        try:
+            self.show_timer_menu_check.set_value(value)
+        finally:
+            self.syncing_timer_check = False
 
     def active(self, screen):
         self.menu.resize(width=screen.get_rect().w, height=screen.get_rect().h)

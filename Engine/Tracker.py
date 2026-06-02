@@ -11,6 +11,7 @@ import pygame
 from Engine import MainMenu
 from Engine.Menu import Menu
 from Engine.PopupWindow import PopupWindow
+from Engine.TimerWindow import TimerWindow
 from Entities.ImageItem import ImageItem
 from Entities.AlternateCountItem import AlternateCountItem
 from Entities.AlternateEvolutionItem import AlternateEvolutionItem
@@ -88,6 +89,7 @@ class Tracker:
         self.resources_base_path = os.path.join(self.core_service.get_temp_path(), "tracker")
         self.menu = []
         self.bank = Bank()
+        self.timer_window = None
 
         self._font_cache = {}
         self._compiled_actions = {}
@@ -107,6 +109,7 @@ class Tracker:
         self._dim_overlay = None
         self._dim_overlay_size = None
         self._editable_boxes_cache = []
+        self._pending_timer_data = None
 
         self._report_loading(0.05, "Preparing template")
         self.extract_data()
@@ -142,6 +145,11 @@ class Tracker:
         self.end_delay = None
         self.selected_items_list = None
         self.current_editablebox = None
+        self.timer_window = TimerWindow(self.template_name, self.resources_base_path)
+        if self._pending_timer_data is not None:
+            self.timer_window.set_data(self._pending_timer_data)
+            self._pending_timer_data = None
+        self.menu.set_show_timer_check(self.timer_window.is_visible())
         self.loaded = True
         # self.update_draggable_items()
         self._report_loading(0.96, "Finalizing")
@@ -727,6 +735,12 @@ class Tracker:
                     item.wheel_down()
                 self.rebuild_item_indexes()
                 changed_item_names = self._get_changed_item_names(before_states)
+                if self.timer_window:
+                    self.timer_window.record_item_changes(
+                        before_states,
+                        self._iter_unique_items(),
+                        self._get_check_names_by_item()
+                    )
                 self.current_item_on_mouse = None
                 if self.current_map:
                     self.update_checks_for_changed_items(changed_item_names)
@@ -771,7 +785,8 @@ class Tracker:
             id(item): {
                 "name": item.name,
                 "base_name": item.base_name,
-                "state": self._item_state_signature(item)
+                "state": self._item_state_signature(item),
+                "timer_state": TimerWindow.item_signature(item)
             }
             for item in self._iter_unique_items()
         }
@@ -786,6 +801,39 @@ class Tracker:
                 if before:
                     changed_names.update((before["name"], before["base_name"]))
         return {name for name in changed_names if name}
+
+    def _iter_unique_checks(self):
+        seen = set()
+        for map_item in self.maps_list:
+            for check in map_item.simple_checks:
+                if id(check) not in seen:
+                    seen.add(id(check))
+                    yield check
+            for block in map_item.block_checks:
+                for check in block.list_checks:
+                    if id(check) not in seen:
+                        seen.add(id(check))
+                        yield check
+
+    def _snapshot_check_states(self):
+        return {
+            id(check): TimerWindow.check_signature(check)
+            for check in self._iter_unique_checks()
+        }
+
+    def _get_check_names_by_item(self):
+        check_names_by_item = {}
+        for check in self._iter_unique_checks():
+            if getattr(check, "hide", False):
+                continue
+
+            item_names = {
+                getattr(check, "dragged_item_name", None),
+                getattr(check, "dragged_item_basename", None),
+            }
+            for item_name in {name for name in item_names if name}:
+                check_names_by_item.setdefault(item_name, []).append(check.name)
+        return check_names_by_item
 
     def update_checks_for_changed_items(self, changed_item_names):
         if not changed_item_names:
@@ -853,6 +901,12 @@ class Tracker:
 
         if dirty and before_states is not None:
             self.rebuild_item_indexes()
+            if self.timer_window:
+                self.timer_window.record_item_changes(
+                    before_states,
+                    self._iter_unique_items(),
+                    self._get_check_names_by_item()
+                )
             self.update_checks_for_changed_items(self._get_changed_item_names(before_states))
 
         if visibility_changed_checks or visibility_changed_blocks:
@@ -955,7 +1009,10 @@ class Tracker:
 
     def _handle_regular_click(self, mouse_position, button):
         if self.current_map:
+            before_check_states = self._snapshot_check_states() if self.timer_window else None
             self.current_map.click(mouse_position, button)
+            if self.timer_window and before_check_states is not None:
+                self.timer_window.record_check_changes(before_check_states, self._iter_unique_checks())
             rules_win_open = next((r for r in self.rules_windows_data if r["PopupWindow"].is_open()), None)
             if not self.maps_list_window.is_open() and not rules_win_open:
                 self.items_click(self.items, mouse_position, button)
@@ -1149,6 +1206,8 @@ class Tracker:
         datas = [{"template_name": self.template_name}]
         datas_items = [item.get_data() for item in self.items]
         datas.append({"items": datas_items})
+        if getattr(self, "timer_window", None):
+            datas.append({"timer": self.timer_window.get_data()})
         if self.maps_list:
             maps_datas = [map_data.get_data() for map_data in self.maps_list]
             datas.append({"maps": maps_datas})
@@ -1169,8 +1228,17 @@ class Tracker:
                 if item:
                     item.set_data(data)
             self.rebuild_item_indexes()
-        if len(datas) > 2 and "maps" in datas[2]:
-            maps = datas[2].get("maps")
+        timer_data = self.find_object_with_key(datas, "timer")
+        if timer_data:
+            if getattr(self, "timer_window", None):
+                self.timer_window.set_data(timer_data["timer"])
+                self.menu.set_show_timer_check(self.timer_window.is_visible())
+            else:
+                self._pending_timer_data = timer_data["timer"]
+
+        maps_data = self.find_object_with_key(datas, "maps")
+        if maps_data:
+            maps = maps_data.get("maps")
             if maps:
                 for map_data in self.maps_list:
                     map_name = map_data.get_name()
@@ -1234,6 +1302,11 @@ class Tracker:
         self.position_check_attached_item = None
 
     def draw(self, screen, time_delta):
+        if self.timer_window:
+            self.timer_window.update(time_delta)
+            self.timer_window.draw()
+            self.menu.set_show_timer_check(self.timer_window.is_visible())
+
         screen.blit(self.background_image, (0, 0))
         if self.menu.get_menu().is_enabled():
             self.menu.get_menu().mainloop(screen)
@@ -1341,16 +1414,25 @@ class Tracker:
     def events(self, events, time_delta):
         self.menu.events(events)
         if self.menu.is_seed_overlay_open():
-            return
+            return False
         self.handle_event_boxes(self.items, events)
         if self.is_moving:
             self.is_moving.update()
         for submenu in self.submenus:
             if submenu.show:
                 self.handle_event_boxes(submenu.items, events)
+        return False
 
     def back_main_menu(self):
+        if self.timer_window:
+            self.timer_window.close()
         self.main_menu.reset_tracker()
+
+    def set_timer_visible(self, visible):
+        if not self.timer_window:
+            return
+        self.timer_window.set_visible(visible)
+        self.menu.set_show_timer_check(self.timer_window.is_visible())
 
     def find_item(self, item_name, is_base_name=False):
         lookup = self._items_by_base_name if is_base_name else self._items_by_name

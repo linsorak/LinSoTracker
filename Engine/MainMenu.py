@@ -798,4 +798,5 @@ class MainMenu:
 
     def events(self, events, time_delta):
         if self.loaded_tracker:
-            self.loaded_tracker.events(events, time_delta)
+            return self.loaded_tracker.events(events, time_delta)
+        return False

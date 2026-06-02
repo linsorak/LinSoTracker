@@ -101,7 +101,8 @@ def main():
             time_delta = clock.tick(core_service.fps_max) / 1000.0
 
             for event in events:
-                main_menu.events(event, time_delta)
+                if main_menu.events(event, time_delta):
+                    continue
                 if event.type == pygame.QUIT:
                     loop = False
                     break
