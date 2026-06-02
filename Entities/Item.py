@@ -47,6 +47,7 @@ class Item(pygame.sprite.Sprite):
         self.base_rect = self.rect
         self.base_save = self.get_data()
         self._grey_alpha_image = None
+        self._grey_alpha_image_cache_key = None
 
         self.can_drag = True
         self.is_dragging = False
@@ -62,9 +63,11 @@ class Item(pygame.sprite.Sprite):
         return self.rect
 
     def alpha_image(self, image):
-        if self._grey_alpha_image is None or self._grey_alpha_image.get_size() != image.get_size():
+        cache_key = (id(image), image.get_size())
+        if self._grey_alpha_image is None or self._grey_alpha_image_cache_key != cache_key:
             self._grey_alpha_image = self.core_service.set_image_transparent(
                 image=image, opacity_disable=self.opacity_disable)
+            self._grey_alpha_image_cache_key = cache_key
         return self._grey_alpha_image
 
     def update(self):

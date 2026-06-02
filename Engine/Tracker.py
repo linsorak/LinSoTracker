@@ -7,7 +7,6 @@ from tkinter import messagebox
 from zipfile import ZipFile
 
 import pygame
-import pygame_gui
 
 from Engine import MainMenu
 from Engine.Menu import Menu
@@ -115,7 +114,7 @@ class Tracker:
         self.init_tracker()
         self._report_loading(0.40, "Building interface")
 
-        self.manager = pygame_gui.UIManager(pygame.display.get_surface().get_size())
+        self.manager = None
 
         self.core_service.set_json_data(self.tracker_json_data)
         self.core_service.set_tracker_temp_path(self.resources_path)
@@ -709,6 +708,10 @@ class Tracker:
 
     def items_click(self, item_list, mouse_position, button):
         for item in item_list:
+            if isinstance(item, EditableBox) and item.check_click(mouse_position):
+                return True
+
+        for item in item_list:
             if item.check_click(mouse_position) and self.is_moving is None and item.show_item and not isinstance(item,
                                                                                                                  ImageItem):
                 before_states = self._snapshot_item_states()
@@ -872,6 +875,11 @@ class Tracker:
                 item.start_drag_time = pygame.time.get_ticks()
 
     def click_down(self, mouse_position, button):
+        if self.menu.consume_seed_overlay_click():
+            return
+        if self.menu.is_seed_overlay_open():
+            return
+
         can_click = not any(submenu.show for submenu in self.submenus)
         if self.maps_list_window.is_open() or any(r["PopupWindow"].is_open() for r in self.rules_windows_data):
             return
@@ -883,6 +891,11 @@ class Tracker:
                     self.items_mouse_down(mouse_position, button, submenu.items)
 
     def click(self, mouse_position, button):
+        if self.menu.consume_seed_overlay_click():
+            return
+        if self.menu.is_seed_overlay_open():
+            return
+
         if self.is_moving:
             self._handle_moving_click(mouse_position)
             return
@@ -991,6 +1004,12 @@ class Tracker:
                         item.update()
 
     def mouse_move(self, mouse_position):
+        if self.menu.is_seed_overlay_open():
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+            self.reset_hint()
+            self.current_item_on_mouse = None
+            return
+
         submenu_found = any(submenu.show for submenu in self.submenus)
         if self.current_map and self.current_map.check_window.is_open() or any(r["PopupWindow"].is_open() for r in self.rules_windows_data):
             submenu_found = True
@@ -1290,8 +1309,6 @@ class Tracker:
                 if isinstance(item, GoModeItem) and item.enable and self.is_moving != item:
                     item.draw()
                     break
-            self.manager.update(time_delta)
-            self.manager.draw_ui(screen)
         for submenu in self.submenus:
             submenu.draw_submenu(screen, time_delta)
         if (not self.is_moving and self.current_item_on_mouse and self.core_service.show_hint_on_item and
@@ -1302,9 +1319,13 @@ class Tracker:
             screen.blit(self.surface_check_hint, self.position_check_hint)
         for box in self._editable_boxes_cache:
             box.update_box(time_delta)
+            box.draw_box(screen)
+        self.menu.draw_seed_overlay(screen)
 
 
     def keyup(self, button, screen):
+        if self.menu.is_seed_overlay_open():
+            return
         if button == pygame.K_ESCAPE:
             if not self.menu.get_menu().is_enabled():
                 self.menu.active(screen)
@@ -1319,17 +1340,14 @@ class Tracker:
 
     def events(self, events, time_delta):
         self.menu.events(events)
-        self.manager.process_events(events)
+        if self.menu.is_seed_overlay_open():
+            return
         self.handle_event_boxes(self.items, events)
         if self.is_moving:
             self.is_moving.update()
         for submenu in self.submenus:
             if submenu.show:
                 self.handle_event_boxes(submenu.items, events)
-                try:
-                    submenu.manager.process_events(events)
-                except IndexError:
-                    pass
 
     def back_main_menu(self):
         self.main_menu.reset_tracker()
@@ -1490,12 +1508,6 @@ class Tracker:
                 return False
 
             if isinstance(result, dict):
-                for rule_name, active in (result.get("rules") or {}).items():
-                    rule = self.find_rule(rule_name)
-                    if rule is None:
-                        continue
-                    if bool(rule.is_active()) != bool(active):
-                        rule.left_click(force_click=True)
                 from Entities.AlternateCountItem import AlternateCountItem
                 from Entities.AlternateEvolutionItem import AlternateEvolutionItem
                 from Entities.DraggableEvolutionItem import DraggableEvolutionItem
@@ -1503,7 +1515,31 @@ class Tracker:
                 from Entities.IncrementalItem import IncrementalItem
                 progressive_types = (EvolutionItem, AlternateEvolutionItem, DraggableEvolutionItem,
                                      IncrementalItem, AlternateCountItem)
-                for item_name, state in (result.get("items") or {}).items():
+
+                items_dict = result.get("items") or {}
+                rules_dict = result.get("rules") or {}
+                checks_dict = result.get("checks") or {}
+                blocks_dict = result.get("blocks") or {}
+
+                # Reset to base only items present in seed mapping (avoid touching unrelated items).
+                for item_name in items_dict.keys():
+                    item = self.find_item(item_name) or self.find_item(item_name, is_base_name=True)
+                    if item is not None and hasattr(item, "reset"):
+                        try:
+                            item.reset()
+                        except Exception:
+                            pass
+
+                # Apply rules: toggle only if state differs from desired.
+                for rule_name, active in rules_dict.items():
+                    rule = self.find_rule(rule_name)
+                    if rule is None:
+                        continue
+                    if bool(rule.is_active()) != bool(active):
+                        rule.left_click(force_click=True)
+
+                # Apply items: N clicks from reset state.
+                for item_name, state in items_dict.items():
                     item = self.find_item(item_name) or self.find_item(item_name, is_base_name=True)
                     if item is None:
                         continue
@@ -1516,6 +1552,25 @@ class Tracker:
                         target_enable = clicks > 0
                         if getattr(item, "enable", None) != target_enable:
                             item.left_click()
+
+                # Apply simple checks by name. A name may be present on several maps.
+                for check_name, checked in checks_dict.items():
+                    for check in self._simple_checks_by_name.get(check_name, []):
+                        check.checked = bool(checked)
+                        check.focused = False
+
+                # Block state is derived from children; set children explicitly or all at once.
+                for block_name, seeded_checks in blocks_dict.items():
+                    for block in self._block_checks_by_name.get(block_name, []):
+                        if isinstance(seeded_checks, dict):
+                            for check in block.list_checks:
+                                if check.name in seeded_checks:
+                                    check.checked = bool(seeded_checks[check.name])
+                                    check.focused = False
+                        else:
+                            for check in block.list_checks:
+                                check.checked = bool(seeded_checks)
+                                check.focused = False
             self.mark_item_action_batch_dirty()
         finally:
             self.end_item_action_batch()

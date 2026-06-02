@@ -78,6 +78,7 @@ def main():
         main_menu = MainMenu()
         dimension = main_menu.get_dimension()
         screen = pygame.display.set_mode(dimension)
+        pygame.key.set_repeat(350, 35)
         pygame.display.set_caption(core_service.get_window_title())
         main_menu.initialization()
         pygame.display.set_icon(main_menu.get_icon())
@@ -176,6 +177,5 @@ if __name__ == '__main__':
         if "LinSoTracker" in path:
             core_service.delete_directory(path)
     root = tkinter.Tk()
-    root.overrideredirect(1)
     root.withdraw()
     main()

@@ -1,7 +1,6 @@
 import os
 
 import pygame
-import pygame_gui
 
 from Entities.CheckItem import CheckItem
 from Entities.Item import Item
@@ -20,7 +19,7 @@ class SubMenuItem(Item):
         self.show_numbers_checked_items = show_numbers_checked_items
         self.show = False
         self.items = pygame.sprite.Group()
-        self.manager = pygame_gui.UIManager((pygame.display.get_surface().get_size()))
+        self.manager = None
         self.bank = Bank()
         self.tracker = tracker
         self.items_list = items_list
@@ -71,9 +70,10 @@ class SubMenuItem(Item):
 
             screen.blit(self.background_image, (0, 0))
             self.items.draw(screen)
-
-            self.manager.update(time_delta)
-            self.manager.draw_ui(screen)
+            for item in self.items:
+                if hasattr(item, "draw_box"):
+                    item.update_box(time_delta)
+                    item.draw_box(screen)
 
     def init_items(self):
         for item in self.items_list:

@@ -131,7 +131,6 @@ class EvolutionItem(Item):
 
     def set_data(self, datas):
         self.next_item_index = datas.get("next_item_index", -1)
-        Item.set_data(self, datas)
         if self.next_item_index != -1:
             next_item = self.next_items[self.next_item_index]
             self.name = next_item["Name"]
@@ -139,6 +138,7 @@ class EvolutionItem(Item):
         else:
             self.name = self.base_name
             self.label = self.base_label
+        Item.set_data(self, datas)
 
     def get_colored_image(self):
         if not self.enable:
