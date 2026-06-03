@@ -29,16 +29,55 @@ class TemplateMakerConstants:
         },
         "TimerItem": {
             "Timer": {
-                "Rect": {"x": 0, "y": 0, "w": 180, "h": 42},
+                "StartValue": 0,
+                "AutoStart": False,
                 "ShowCentiseconds": True,
                 "FixedWidthDigits": True,
+                "Rect": {"x": 0, "y": 0, "w": 230, "h": 42},
+                "Background": {
+                    "Color": {"r": 18, "g": 18, "b": 26, "a": 210},
+                    "BorderColor": {"r": 80, "g": 90, "b": 110, "a": 255},
+                    "BorderSize": 2,
+                    "Radius": 8,
+                },
+                "Font": {"Name": "visitor1.ttf", "Size": 32, "Color": {"r": 150, "g": 255, "b": 160}},
             },
             "Buttons": {
-                "StartPause": {"Enable": True, "Rect": {"x": 0, "y": 48, "w": 86, "h": 30}},
-                "Reset": {"Enable": True, "Rect": {"x": 94, "y": 48, "w": 86, "h": 30}},
+                "StartPause": {
+                    "Enable": True,
+                    "Rect": {"x": 0, "y": 50, "w": 108, "h": 28},
+                    "Labels": {"Start": "Start", "Pause": "Pause"},
+                    "Font": {"Name": "visitor1.ttf", "Size": 17, "Color": {"r": 255, "g": 255, "b": 255}},
+                    "Colors": {
+                        "Start": {"r": 35, "g": 130, "b": 85},
+                        "Pause": {"r": 165, "g": 100, "b": 35},
+                        "Border": {"r": 235, "g": 235, "b": 235},
+                    },
+                    "BorderSize": 2, "Radius": 6,
+                },
+                "Reset": {
+                    "Enable": True,
+                    "Rect": {"x": 122, "y": 50, "w": 108, "h": 28},
+                    "Label": "Reset",
+                    "Font": {"Name": "visitor1.ttf", "Size": 17, "Color": {"r": 255, "g": 255, "b": 255}},
+                    "Color": {"r": 110, "g": 65, "b": 135},
+                    "BorderColor": {"r": 235, "g": 235, "b": 235},
+                    "BorderSize": 2, "Radius": 6,
+                },
+                "GroupToggle": {
+                    "Enable": False,
+                    "Rect": {"x": 0, "y": 86, "w": 230, "h": 26},
+                    "Labels": {"Start": "Start group", "Pause": "Pause group"},
+                    "Font": {"Name": "visitor1.ttf", "Size": 16, "Color": {"r": 255, "g": 255, "b": 255}},
+                    "Colors": {
+                        "Start": {"r": 40, "g": 90, "b": 150},
+                        "Pause": {"r": 150, "g": 80, "b": 40},
+                        "Border": {"r": 235, "g": 235, "b": 235},
+                    },
+                    "BorderSize": 2, "Radius": 6,
+                },
             },
             "Group": None,
-            "GroupControls": {},
         },
         "EditableBox": {"Lines": [], "Style": {}, "PlaceHolder": "",
                         "Sizes": {"w": 120, "h": 32}},
@@ -46,7 +85,7 @@ class TemplateMakerConstants:
 
     EVOLUTION_KINDS = ("EvolutionItem", "DraggableEvolutionItem", "AlternateEvolutionItem")
 
-    # Per-kind editable fields. type: int/float/str/strnull/bool/list/sprite/json/jsonnull/rect/color
+    # Per-kind editable fields. type: int/float/str/strnull/bool/list/sprite/json/jsonnull/rect/color/item_refs
     KIND_FIELDS = {
         "CountItem": [
             {"key": "valueMin", "type": "int", "label": "Value min", "default": 0},
@@ -60,16 +99,18 @@ class TemplateMakerConstants:
             {"key": "customFont", "type": "strnull", "label": "Custom font", "default": None},
         ],
         "IncrementalItem": [
-            {"key": "Increment", "type": "list_editor", "label": "Increments", "default": []},
-            {"key": "StartIncrementIndex", "type": "int", "label": "Start index", "default": 0},
+            {"key": "Increment", "type": "list_editor", "label": "Increments", "default": ["1"]},
+            {"key": "StartIncrementIndex", "type": "int", "label": "Start index", "default": 0, "omit_default": True},
         ],
         "SubMenuItem": [
-            {"key": "Background", "type": "str", "label": "Background img", "default": "background.png"},
-            {"key": "ItemsList", "type": "json", "label": "ItemsList JSON", "default": []},
             {"key": "ShowNumbersOfItemsActive", "type": "bool", "label": "Show active count", "default": False},
             {"key": "ShowNumberOfCheckedItems", "type": "bool", "label": "Show checked count", "default": False},
         ],
         "TimerItem": [
+            {"key": "Timer.StartValue", "type": "int", "label": "Start value (s)", "default": 0},
+            {"key": "Timer.AutoStart", "type": "bool", "label": "Auto start", "default": False},
+            {"key": "Group", "type": "strnull", "label": "Group name", "default": None},
+            {"key": "Buttons.GroupToggle.Enable", "type": "bool", "label": "Group controller", "default": False},
             {"key": "Timer.Rect", "type": "rect", "label": "Timer rect",
              "default": KIND_REQUIRED["TimerItem"]["Timer"]["Rect"]},
             {"key": "Timer.Background.Color", "type": "color", "label": "Timer bg", "default": None},
@@ -85,10 +126,9 @@ class TemplateMakerConstants:
             {"key": "Buttons.StartPause.Colors.Start", "type": "color", "label": "Start color", "default": {"r": 35, "g": 130, "b": 85}},
             {"key": "Buttons.StartPause.Colors.Pause", "type": "color", "label": "Pause color", "default": {"r": 165, "g": 100, "b": 35}},
             {"key": "Buttons.Reset.Color", "type": "color", "label": "Reset color", "default": {"r": 110, "g": 65, "b": 135}},
-            {"key": "Timer", "type": "json", "label": "Timer JSON", "default": KIND_REQUIRED["TimerItem"]["Timer"]},
-            {"key": "Buttons", "type": "json", "label": "Buttons JSON", "default": KIND_REQUIRED["TimerItem"]["Buttons"]},
-            {"key": "Group", "type": "strnull", "label": "Group", "default": None},
-            {"key": "GroupControls", "type": "json", "label": "Group controls JSON", "default": {}},
+            {"key": "Timer", "type": "json", "label": "Timer config (raw)", "default": KIND_REQUIRED["TimerItem"]["Timer"]},
+            {"key": "Buttons", "type": "json", "label": "Buttons config (raw)", "default": KIND_REQUIRED["TimerItem"]["Buttons"]},
+            {"key": "GroupControls", "type": "jsonnull", "label": "Group controls", "default": None},
         ],
         "EditableBox": [
             {"key": "Sizes", "type": "rect", "label": "Size", "default": {"w": 120, "h": 32}},
@@ -100,11 +140,11 @@ class TemplateMakerConstants:
             {"key": "Style.SelectedTextColor", "type": "color", "label": "Selected text", "default": {"r": 255, "g": 255, "b": 255}},
             {"key": "Style.HoveredBackgroundColor", "type": "color", "label": "Hovered bg", "default": {"r": 70, "g": 70, "b": 70}},
             {"key": "Style.HoveredTextColor", "type": "color", "label": "Hovered text", "default": {"r": 255, "g": 255, "b": 255}},
-            {"key": "Style", "type": "json", "label": "Style JSON", "default": {}},
+            {"key": "Style", "type": "json", "label": "Style config", "default": {}},
         ],
         "LabelItem": [
             {"key": "LabelList", "type": "list", "label": "Labels", "default": [""]},
-            {"key": "OffsetLabel", "type": "int", "label": "Offset label", "default": 0},
+            {"key": "OffsetLabel", "type": "int", "label": "Offset label", "default": 0, "omit_default": True},
         ],
         "EvolutionItem": [
             {"key": "Label", "type": "strnull", "label": "Label", "default": None},
@@ -126,7 +166,7 @@ class TemplateMakerConstants:
             {"key": "check", "type": "sprite", "label": "Check sprite", "default": None},
         ],
         "GoModeItem": [
-            {"key": "BackgroundGlow", "type": "str", "label": "Glow image", "default": "background.png"},
+            {"key": "BackgroundGlow", "type": "image", "label": "Glow image", "default": "background.png"},
         ],
         "OpenLinkItem": [
             {"key": "Link", "type": "str", "label": "Link URL", "default": ""},
@@ -135,10 +175,11 @@ class TemplateMakerConstants:
 
     # Common optional field offered on every kind
     COMMON_FIELDS = [
+        {"key": "visible", "json": "Visible", "type": "bool", "label": "Visible", "default": True},
         {"key": "AlwaysEnable", "type": "bool", "label": "Always enable", "default": False},
-        {"key": "HintItems", "type": "jsonnull", "label": "Hint items JSON", "default": None},
-        {"key": "ActiveItems", "type": "jsonnull", "label": "Active items JSON", "default": None},
-        {"key": "InactiveItems", "type": "jsonnull", "label": "Inactive items JSON", "default": None},
+        {"key": "HintItems", "type": "item_refs", "label": "Hint items", "default": None},
+        {"key": "ActiveItems", "type": "item_refs", "label": "Active items", "default": None},
+        {"key": "InactiveItems", "type": "item_refs", "label": "Inactive items", "default": None},
     ]
 
     FONT_SLOTS = [

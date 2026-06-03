@@ -45,6 +45,7 @@ class CoreService(metaclass=Singleton):
         self.zoom_index = 0
         self.sound_active = False
         self.draw_esc_menu_label = True
+        self.show_timer = True
         self.current_tracker = None
         self.current_tracker_name = None
         self.app_path = self.resolve_app_path()
@@ -169,6 +170,7 @@ class CoreService(metaclass=Singleton):
             self.sound_active = data["soundWhenItemActive"]
             self.draw_esc_menu_label = data["showESCLabel"]
             self.show_hint_on_item = data["showHint"]
+            self.show_timer = True
         else:
             with open(user_configuration) as f:
                 data = json.load(f)
@@ -192,6 +194,11 @@ class CoreService(metaclass=Singleton):
                     self.show_hint_on_item = data["showHint"]
                 else:
                     self.show_hint_on_item = True
+
+                if "showTimer" in data:
+                    self.show_timer = data["showTimer"]
+                else:
+                    self.show_timer = True
 
     def read_checker(self):
         url = "https://linsotracker.com/tracker/update.json"

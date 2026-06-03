@@ -17,6 +17,23 @@ from Engine.MainMenu import MainMenu
 from Tools.CoreService import CoreService
 
 
+PRINT_SCREEN_KEYS = {k for k in (
+    getattr(pygame, "K_PRINTSCREEN", None),
+    getattr(pygame, "K_PRINT", None),
+    getattr(pygame, "K_SYSREQ", None),
+) if k is not None}
+
+
+def save_screenshot(surface, base_dir):
+    try:
+        folder = os.path.join(base_dir, "Screenshots")
+        os.makedirs(folder, exist_ok=True)
+        name = "screenshot-{}.png".format(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        pygame.image.save(surface, os.path.join(folder, name))
+    except Exception:
+        pass
+
+
 def setup_logger():
     log_dir = "logs"
     os.makedirs(log_dir, exist_ok=True)
@@ -93,6 +110,7 @@ def main():
         resize_pending = None
         resize_pending_time = 0
         RESIZE_DEBOUNCE_MS = 250
+        screenshot_pending = False
 
         while loop:
             background_color = core_service.get_background_color()
@@ -101,6 +119,9 @@ def main():
             time_delta = clock.tick(core_service.fps_max) / 1000.0
 
             for event in events:
+                if event.type in (pygame.KEYUP, pygame.KEYDOWN) and event.key in PRINT_SCREEN_KEYS:
+                    screenshot_pending = True
+                    continue
                 if main_menu.events(event, time_delta):
                     continue
                 if event.type == pygame.QUIT:
@@ -158,6 +179,10 @@ def main():
 
             main_menu.draw(screen, time_delta)
             pygame.display.update()
+
+            if screenshot_pending:
+                save_screenshot(pygame.display.get_surface() or screen, core_service.temp_path_fixe)
+                screenshot_pending = False
 
         del main_menu
         gc.collect()

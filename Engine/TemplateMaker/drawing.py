@@ -33,6 +33,27 @@ class DrawingMixin:
             rect.y + (rect.h - text_surface.get_height()) // 2
         ))
 
+    def _truncate_text_to_width(self, text, max_width, size=None):
+        text = str(text)
+        if max_width <= 0 or not text:
+            return ""
+        temp = pygame.Surface((1, 1), pygame.SRCALPHA)
+        rendered, _ = self._text(temp, text, (0, 0), size, self.font_color)
+        if rendered.get_width() <= max_width:
+            return text
+        ellipsis = "..."
+        low = 0
+        high = len(text)
+        while low < high:
+            mid = (low + high + 1) // 2
+            candidate = text[:mid] + ellipsis
+            rendered, _ = self._text(temp, candidate, (0, 0), size, self.font_color)
+            if rendered.get_width() <= max_width:
+                low = mid
+            else:
+                high = mid - 1
+        return text[:low] + ellipsis
+
     def _draw_card(self, screen, rect, color, border_color=None, radius=0):
         pygame.draw.rect(screen, color, rect)
         pygame.draw.rect(screen, border_color or self.COLORS["line"], rect, 1)
@@ -98,15 +119,71 @@ class DrawingMixin:
         screen.blit(overlay, (0, 0))
 
     def _get_template_rect(self, container):
-        tw, th = self.template_size
+        tw, th = self._canvas_size()
         scale = min(container.w / tw, container.h / th)
         w = int(tw * scale)
         h = int(th * scale)
         return pygame.Rect(container.x + (container.w - w) // 2, container.y + (container.h - h) // 2, w, h)
 
+    def _canvas_size(self):
+        if getattr(self, "canvas_context", "main") == "submenu":
+            background = self._submenu_background_surface()
+            if background:
+                return background.get_size()
+        return self.template_size
+
+    def _canvas_background_surface(self):
+        if getattr(self, "canvas_context", "main") == "submenu":
+            return self._submenu_background_surface()
+        return self.background
+
+    def _canvas_background_color(self):
+        if getattr(self, "canvas_context", "main") == "submenu":
+            return {"r": 0, "g": 0, "b": 0}
+        return self.background_color or {"r": 0, "g": 0, "b": 0}
+
+    def _canvas_background_position(self):
+        if getattr(self, "canvas_context", "main") == "submenu":
+            return {"x": 0, "y": 0}
+        return self.background_position or {"x": 0, "y": 0}
+
+    def _submenu_background_surface(self, item=None):
+        item = item or getattr(self, "submenu_parent", None)
+        if not item:
+            return None
+        if item.get("_submenu_background_surface"):
+            return item["_submenu_background_surface"]
+        name = item.get("Background")
+        if not name:
+            return None
+        candidates = []
+        if getattr(self, "project_dir", None):
+            candidates.append(os.path.join(self.project_dir, name))
+        if getattr(self, "background_path", None):
+            candidates.append(os.path.join(os.path.dirname(self.background_path), name))
+        for path in candidates:
+            if os.path.exists(path):
+                try:
+                    surface = pygame.image.load(path).convert_alpha()
+                    item["_submenu_background_surface"] = surface
+                    item["_submenu_background_path"] = path
+                    return surface
+                except Exception:
+                    return None
+        return None
+
     def _draw_status(self, screen):
         rect = pygame.Rect(20, screen.get_height() - 42, screen.get_width() - 40, 28)
-        pygame.draw.rect(screen, (10, 12, 18), rect)
-        pygame.draw.rect(screen, (56, 62, 76), rect, 1)
+        flashing = pygame.time.get_ticks() < getattr(self, "status_flash_until", 0)
+        if flashing:
+            pygame.draw.rect(screen, (36, 124, 87), rect)
+            pygame.draw.rect(screen, self.COLORS["green"], rect, 1)
+        else:
+            pygame.draw.rect(screen, (10, 12, 18), rect)
+            pygame.draw.rect(screen, (56, 62, 76), rect, 1)
         self._text(screen, self.message, (rect.x + 12, rect.y + 5), self.font_size, self.COLORS["muted"])
+
+    def _flash_status(self, message, duration_ms=2500):
+        self.message = message
+        self.status_flash_until = pygame.time.get_ticks() + duration_ms
 

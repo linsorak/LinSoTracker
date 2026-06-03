@@ -108,6 +108,8 @@ class TemplateChecker:
             self.errors.append(self.ERROR_MISSING_SECTION_IN.format("Hint", "Item ID = {}".format(index)))
 
         self.__check_element_is_in_section_and_valid("OpacityDisable", section, "Item ID = {}".format(index), float)
+        if "Visible" in section:
+            self.__check_element_is_in_section_and_valid("Visible", section, "Item ID = {}".format(index), bool)
 
     def __check_incremental_item(self, section, index):
         if len(section.keys()) >= 9:
@@ -270,6 +272,7 @@ class TemplateChecker:
 
         for i in range(0, len(items)):
             item = items[i]
+            self.__check_no_nested_submenus(item, "Items[{}]".format(i), False)
 
             if "Kind" in item.keys():
                 # if len(item.keys()) >= 8:
@@ -310,3 +313,16 @@ class TemplateChecker:
 
             else:
                 self.errors.append(self.ERROR_MISSING_SECTION_IN.format("Kind", "Items"))
+
+    def __check_no_nested_submenus(self, item, path, inside_submenu):
+        if not isinstance(item, dict):
+            return
+        kind = item.get("Kind")
+        if inside_submenu and kind == "SubMenuItem":
+            self.errors.append("SubMenuItem is not allowed inside another SubMenuItem at {}".format(path))
+            return
+        if kind == "SubMenuItem":
+            items_list = item.get("ItemsList", [])
+            if isinstance(items_list, list):
+                for index, child in enumerate(items_list):
+                    self.__check_no_nested_submenus(child, "{}.ItemsList[{}]".format(path, index), True)

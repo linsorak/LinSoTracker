@@ -146,7 +146,9 @@ class Tracker:
         self.end_delay = None
         self.selected_items_list = None
         self.current_editablebox = None
-        self.timer_window = TimerWindow(self.template_name, self.resources_base_path)
+        # Honour the persisted "Show Timer" preference (stays hidden until re-enabled)
+        self.timer_window = TimerWindow(self.template_name, self.resources_base_path,
+                                        visible=self.core_service.show_timer)
         if self._pending_timer_data is not None:
             self.timer_window.set_data(self._pending_timer_data)
             self._pending_timer_data = None
@@ -476,15 +478,19 @@ class Tracker:
                 return (item["Sizes"]["w"] * self.core_service.zoom, item["Sizes"]["h"] * self.core_service.zoom)
 
             def create_base_item(item, item_class, **additional_args):
-                return item_class(name=item["Name"],
-                                  image=item_image,
-                                  position=get_position(item),
-                                  enable=item["isActive"],
-                                  hint=item["Hint"],
-                                  opacity_disable=item["OpacityDisable"],
-                                  id=item["Id"],
-                                  always_enable=item.get("AlwaysEnable", False),
-                                  **additional_args)
+                new_item = item_class(name=item["Name"],
+                                      image=item_image,
+                                      position=get_position(item),
+                                      enable=item["isActive"],
+                                      hint=item["Hint"],
+                                      opacity_disable=item["OpacityDisable"],
+                                      id=item["Id"],
+                                      always_enable=item.get("AlwaysEnable", False),
+                                      **additional_args)
+                # show_item only exists as a constructor arg on the base Item; set it
+                # afterwards so every kind (Evolution, Count, ...) honours "Visible".
+                new_item.show_item = item.get("Visible", True)
+                return new_item
 
             def create_evo_item(item, item_class):
                 next_items_list = []

@@ -324,7 +324,7 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
 class TimerWindow:
     DEBOUNCE_SECONDS = 3.0
 
-    def __init__(self, title, resources_path=None):
+    def __init__(self, title, resources_path=None, visible=True):
         self.title = title
         self.closed = True
         self.command_queue = None
@@ -336,9 +336,10 @@ class TimerWindow:
             "running": False,
             "scroll": 0,
             "entries": [],
-            "visible": True,
+            "visible": bool(visible),
         }
-        self.show()
+        if visible:
+            self.show()
 
     def show(self):
         if self.is_visible():

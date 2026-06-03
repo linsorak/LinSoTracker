@@ -92,6 +92,84 @@ class SheetsMixin:
 
         ask_width()
 
+    def _new_blank_sheet(self):
+        """Create an empty (transparent) spritesheet grid to fill cell by cell."""
+        def ask_w(_=None):
+            self._open_text_prompt("New sheet - cell width", 32, ask_h, kind="int",
+                                   allow_empty=False, label="Cell width (px):", minvalue=1)
+
+        def ask_h(cw):
+            if not cw:
+                return
+            self._open_text_prompt("New sheet - cell height", 32, lambda ch: ask_cols(cw, ch), kind="int",
+                                   allow_empty=False, label="Cell height (px):", minvalue=1)
+
+        def ask_cols(cw, ch):
+            if not ch:
+                return
+            self._open_text_prompt("New sheet - columns", 8, lambda c: ask_rows(cw, ch, c), kind="int",
+                                   allow_empty=False, label="Number of columns:", minvalue=1)
+
+        def ask_rows(cw, ch, cols):
+            if not cols:
+                return
+            self._open_text_prompt("New sheet - rows", 8, lambda r: ask_name(cw, ch, cols, r), kind="int",
+                                   allow_empty=False, label="Number of rows:", minvalue=1)
+
+        def ask_name(cw, ch, cols, rows):
+            if not rows:
+                return
+            suggested = "Normal" if not self.sheets else "SubItems"
+            self._open_text_prompt("New sheet name", suggested,
+                                   lambda nm: finalize(cw, ch, cols, rows, nm),
+                                   allow_empty=False, label="Sheet name:")
+
+        def finalize(cw, ch, cols, rows, name):
+            if not name:
+                return
+            surface = pygame.Surface((cw * cols, ch * rows), pygame.SRCALPHA)
+            surface.fill((0, 0, 0, 0))
+            name = self._unique_sheet_name(name.strip())
+            self.sheets.append({
+                "name": name, "surface": surface, "path": None,
+                "cell_w": cw, "cell_h": ch,
+            })
+            self.active_sheet_index = len(self.sheets) - 1
+            self.sheet_scroll = 0
+            self.message = f"Created blank sheet '{name}' ({cols}x{rows} cells). Select a tile and Set image."
+
+        ask_w()
+
+    def _import_tile_image(self):
+        sheet = self.active_sheet
+        if not sheet:
+            self.message = "No active sheet."
+            return
+        if not (self.selected_cell and self.selected_cell[0] == sheet["name"]):
+            self.message = "Select a tile in the active sheet first."
+            return
+        _, row, column = self.selected_cell
+        path = filedialog.askopenfilename(
+            title="Image for this tile",
+            filetypes=[("Images", "*.png *.jpg *.jpeg *.webp"), ("All files", "*.*")]
+        )
+        if not path:
+            return
+        try:
+            img = pygame.image.load(path).convert_alpha()
+        except Exception as exc:
+            self.message = f"Could not load image: {exc}"
+            return
+        cw, ch = sheet["cell_w"], sheet["cell_h"]
+        cell = pygame.transform.smoothscale(img, (cw, ch))
+        surface = sheet["surface"]
+        x = (column - 1) * cw
+        y = (row - 1) * ch
+        # clear cell then blit (replace, keep transparency)
+        surface.fill((0, 0, 0, 0), pygame.Rect(x, y, cw, ch))
+        surface.blit(cell, (x, y))
+        self.message = f"Tile r{row} c{column} set from {os.path.basename(path)}."
+
     def _remove_active_sheet(self):
         if not self.active_sheet:
             self.message = "No sheet to remove."
@@ -175,10 +253,14 @@ class SheetsMixin:
         bg_rect = self.last_bg_rect
         if not bg_rect.collidepoint(mouse_position):
             return
-        scale = self.template_size[0] / bg_rect.w
+        scale = self._canvas_size()[0] / bg_rect.w
         x = int((mouse_position[0] - bg_rect.x) * scale)
         y = int((mouse_position[1] - bg_rect.y) * scale)
         kind = self.placement_kind or "Item"
+        if getattr(self, "canvas_context", "main") == "submenu" and kind == "SubMenuItem":
+            self.placement_kind = None
+            self.message = "Submenus cannot contain other submenus."
+            return
         if kind in self.SPRITE_OPTIONAL_KINDS and not self.selected_cell:
             sheet_name, row, column = (None, 1, 1)
             if kind == "TimerItem":
@@ -199,12 +281,21 @@ class SheetsMixin:
             "opacity": 0.5,
             "hint": None,
             "children": [],
+            "uid": self._new_uid(),
         }
         self._ensure_kind_defaults(item)
         self.placed_items.append(item)
         self.selected_item_index = len(self.placed_items) - 1
+        self.selected_cell = None
         self.placement_kind = None
         self.message = f"{kind} placed. Double-click it to edit. Delete key removes it."
+
+    def _add_item_kind_at(self, kind, mouse_position):
+        if kind not in self._available_item_kinds():
+            self.message = "Submenus cannot contain other submenus."
+            return
+        self.placement_kind = kind
+        self._place_item(mouse_position)
 
     def _remove_last_item(self):
         if self.placed_items:

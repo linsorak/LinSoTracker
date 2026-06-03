@@ -57,6 +57,7 @@ class PreviewMixin:
             item.get("valueStart"), item.get("maxValue"), item.get("maxValueAlternate"),
             item.get("Background"), item.get("ShowNumbersOfItemsActive"),
             item.get("ShowNumberOfCheckedItems"),
+            item.get("BackgroundGlow"),
             json.dumps(item.get("ItemsList") or [], sort_keys=True, default=str),
         )
 
@@ -134,6 +135,9 @@ class PreviewMixin:
             return
         if item.get("kind") == "SubMenuItem":
             self._draw_submenu_item_preview(screen, rect, item)
+            return
+        if item.get("kind") == "GoModeItem":
+            self._draw_gomode_item_preview(screen, rect, item)
             return
         comp = self._preview_component(item)
         if comp is not None:
@@ -286,27 +290,57 @@ class PreviewMixin:
             if not item.get("isActive", False):
                 scaled = scaled.copy()
                 scaled.set_alpha(int(max(0.0, min(1.0, item.get("opacity", 0.5))) * 255))
-            screen.blit(scaled, (rect.centerx - 36, rect.centery - 36))
+        else:
+            scaled = None
 
+        counter_text = None
         if item.get("ShowNumbersOfItemsActive"):
             items = item.get("ItemsList") or []
             active = sum(1 for subitem in items if subitem.get("isActive", False))
             if item.get("ShowNumberOfCheckedItems"):
                 checked = sum(1 for subitem in items
                               if subitem.get("Kind") == "CheckItem" and subitem.get("isActive", False))
-                text = f"{checked}/{active}"
+                counter_text = f"{checked}/{active}"
             else:
-                text = f"{active}/{len(items)}"
-            path = self._resolve_font_path((self.fonts.get("subMenuItemFont", {}) or {}).get("Name"))
-            try:
-                ptext.draw(text, midright=(rect.right - 12, rect.centery), fontname=path,
-                           antialias=True, owidth=1.2, ocolor=(0, 0, 0),
-                           color=self._font_color("subMenuItemFont"), fontsize=22, surf=screen)
-            except Exception:
-                self._text(screen, text, (rect.right - 56, rect.centery - 10), 18,
-                           self._font_color("subMenuItemFont"))
+                counter_text = f"{active}/{len(items)}"
+
+        if scaled:
+            composed = self._compose_submenu_icon_counter(scaled, counter_text)
+            visible = composed.get_bounding_rect()
+            if visible.w > 0 and visible.h > 0:
+                cropped = composed.subsurface(visible).copy()
+                prev_clip = screen.get_clip()
+                screen.set_clip(rect)
+                screen.blit(cropped, (rect.centerx - cropped.get_width() // 2,
+                                      rect.centery - cropped.get_height() // 2))
+                screen.set_clip(prev_clip)
 
         self._text(screen, "click to open", (rect.x + 8, rect.bottom - 18), 11, self.COLORS["muted"])
+
+    def _compose_submenu_icon_counter(self, icon, text):
+        if not text:
+            return icon
+        path = self._resolve_font_path((self.fonts.get("subMenuItemFont", {}) or {}).get("Name"))
+        text_surface = None
+        try:
+            temp = pygame.Surface((240, 120), pygame.SRCALPHA)
+            text_surface, _ = ptext.draw(str(text), (0, 0), fontname=path,
+                                         antialias=True, owidth=1.2, ocolor=(0, 0, 0),
+                                         color=self._font_color("subMenuItemFont"), fontsize=22, surf=temp)
+        except Exception:
+            font = pygame.font.Font(None, 22)
+            text_surface = font.render(str(text), True, self._font_color("subMenuItemFont"))
+
+        base_w, base_h = icon.get_size()
+        text_w, text_h = text_surface.get_size()
+        x = base_w - text_w
+        y = base_h - text_h + (text_h / 4)
+        width = max(1, int(base_w + text_w / 1.5))
+        height = max(1, int(base_h + text_h / 1.5))
+        surface = pygame.Surface((width, height), pygame.SRCALPHA)
+        surface.blit(icon, (0, 0))
+        surface.blit(text_surface, (int(x), int(y)))
+        return surface
 
     def _draw_submenu_open_preview(self, screen, rect, item):
         bg = self._load_submenu_background(item.get("Background"))
@@ -366,6 +400,73 @@ class PreviewMixin:
                 except Exception:
                     return None
         return None
+
+    def _load_item_image_asset(self, item, key):
+        assets = item.get("_image_assets") or {}
+        asset = assets.get(key) or {}
+        if asset.get("surface"):
+            return asset["surface"]
+        name = item.get(key)
+        if not name:
+            return None
+        candidates = []
+        if asset.get("path"):
+            candidates.append(asset["path"])
+        if self.project_dir:
+            candidates.append(os.path.join(self.project_dir, name))
+        if self.background_path:
+            candidates.append(os.path.join(os.path.dirname(self.background_path), name))
+        for path in candidates:
+            if os.path.exists(path):
+                try:
+                    surface = pygame.image.load(path).convert_alpha()
+                    item.setdefault("_image_assets", {})[key] = {
+                        "path": path,
+                        "surface": surface,
+                        "file": name,
+                    }
+                    return surface
+                except Exception:
+                    return None
+        return None
+
+    def _draw_gomode_item_preview(self, screen, rect, item):
+        icon = self._get_icon_surface(item["row"], item["column"], item.get("sheet"))
+        glow = self._load_item_image_asset(item, "BackgroundGlow")
+        if not icon:
+            return
+
+        source = pygame.Surface((max(icon.get_width(), 72), max(icon.get_height(), 72)), pygame.SRCALPHA)
+        source_rect = source.get_rect()
+        if glow:
+            side_w = max(glow.get_width(), icon.get_width())
+            side_h = max(glow.get_height(), icon.get_height())
+            source = pygame.Surface((side_w, side_h), pygame.SRCALPHA)
+            source_rect = source.get_rect()
+            angle = (pygame.time.get_ticks() / 12) % 360
+            rotated = pygame.transform.rotozoom(glow, angle, 1)
+            rotated_rect = rotated.get_rect(center=source_rect.center)
+            source.blit(rotated, rotated_rect)
+        else:
+            pygame.draw.rect(source, self.COLORS["green"], source_rect.inflate(-8, -8), 3)
+
+        icon_rect = icon.get_rect(center=source_rect.center)
+        source.blit(icon, icon_rect)
+        visible = source.get_bounding_rect()
+        if visible.w <= 0 or visible.h <= 0:
+            return
+        cropped = source.subsurface(visible).copy()
+        scale = min((rect.w - 16) / cropped.get_width(), (rect.h - 16) / cropped.get_height(), 4.0)
+        scaled = pygame.transform.smoothscale(
+            cropped,
+            (max(1, int(cropped.get_width() * scale)), max(1, int(cropped.get_height() * scale)))
+        )
+        prev_clip = screen.get_clip()
+        screen.set_clip(rect)
+        screen.blit(scaled, (rect.centerx - scaled.get_width() // 2, rect.centery - scaled.get_height() // 2))
+        screen.set_clip(prev_clip)
+        if not glow:
+            self._text(screen, "missing glow", (rect.x + 8, rect.bottom - 18), 11, self.COLORS["muted"])
 
     def _advance_preview(self, item):
         self._preview_action(item, "left")

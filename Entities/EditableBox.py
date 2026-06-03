@@ -57,6 +57,11 @@ class EditableBox(Item):
             return default
         return data.get("r", default[0]), data.get("g", default[1]), data.get("b", default[2])
 
+    def get_position(self):
+        # The visible box lives at box_position, not the base (0,0) sprite position,
+        # so hover detection and dev labels anchor on the actual box.
+        return self.box_position
+
     @staticmethod
     def search_items_by_case_insensitive(text, item_list):
         search_lower = text.lower()

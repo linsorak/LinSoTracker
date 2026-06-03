@@ -1,4 +1,5 @@
 import copy
+import io
 import json
 import os
 import re
@@ -9,6 +10,7 @@ from zipfile import ZipFile
 import pygame
 
 from Tools import ptext
+from Tools.TemplateChecker import TemplateChecker
 
 
 class ProjectIOMixin:
@@ -30,6 +32,10 @@ class ProjectIOMixin:
     def _ensure_kind_defaults(self, item):
         kind = item.get("kind", "Item")
         for spec in self._kind_fields(kind):
+            # Dotted keys (Timer.Rect, Style.X) are nested; their default is handled by
+            # _get_field_value, so don't create a flat literal key for them.
+            if "." in spec["key"]:
+                continue
             if spec["key"] not in item:
                 default = spec["default"]
                 item[spec["key"]] = copy.deepcopy(default)
@@ -96,10 +102,17 @@ class ProjectIOMixin:
             self.background = pygame.image.load(self.background_path).convert_alpha()
             icon_file = os.path.join(folder, "icon.png")
             self.project_icon = pygame.image.load(icon_file).convert_alpha() if os.path.exists(icon_file) else None
+            illu_file = os.path.join(folder, "illustration.png")
+            self.illustration = pygame.image.load(illu_file).convert_alpha() if os.path.exists(illu_file) else None
+            self.illustration_path = illu_file if os.path.exists(illu_file) else None
             self.selected_cell = None
             self.selected_item_index = None
             self.item_modal_open = False
             self.placed_items = self._items_from_tracker_json(data[3].get("Items", []))
+            self.main_items = self.placed_items
+            self.canvas_context = "main"
+            self.submenu_parent = None
+            self.submenu_parent_index = None
             self.mode = "editor"
             self.message = f"Opened {self.project_name}."
         except Exception as exc:
@@ -121,6 +134,7 @@ class ProjectIOMixin:
                 "column": sheet_info.get("column", 1),
                 "sheet": sheet_info.get("SpriteSheet", default_sheet),
                 "isActive": item.get("isActive", False),
+                "visible": item.get("Visible", True),
                 "opacity": item.get("OpacityDisable", 0.5),
                 "hint": item.get("Hint"),
                 "children": [
@@ -152,12 +166,16 @@ class ProjectIOMixin:
                 else:
                     json_key = spec.get("json", key)
                     if json_key in item:
-                        entry[key] = item[json_key]
+                        if spec["type"] == "item_refs":
+                            entry[key] = self._items_from_tracker_json(item.get(json_key) or [])
+                        else:
+                            entry[key] = item[json_key]
             # Capture structural fields (ItemsList, Timer configs...) before seeding defaults
             for key in self.KIND_REQUIRED.get(kind, {}):
                 if key in item:
                     entry[key] = item[key]
             self._ensure_kind_defaults(entry)
+            entry["uid"] = self._new_uid()
             # Preserve the raw json so complex/unsupported kinds (SubMenuItem, TimerItem,
             # EditableBox...) keep their extra fields on save.
             entry["_raw"] = dict(item)
@@ -165,6 +183,9 @@ class ProjectIOMixin:
         return result
 
     def _action_background(self):
+        if getattr(self, "canvas_context", "main") == "submenu":
+            self._import_submenu_background()
+            return
         path = filedialog.askopenfilename(
             title="Select template background",
             filetypes=[("Images", "*.png *.jpg *.jpeg *.webp"), ("All files", "*.*")]
@@ -178,16 +199,159 @@ class ProjectIOMixin:
         except Exception as exc:
             self.message = f"Could not load background: {exc}"
 
+    def _enter_submenu_canvas(self, item):
+        if self.canvas_context != "main":
+            return
+        if not isinstance(item, dict) or item.get("kind") != "SubMenuItem":
+            return
+        self.main_items = self.placed_items
+        self.submenu_parent = item
+        self.submenu_parent_index = None
+        if "_submenu_items" not in item:
+            item["_submenu_items"] = self._items_from_tracker_json(item.get("ItemsList") or [])
+        self.placed_items = item["_submenu_items"]
+        self.canvas_context = "submenu"
+        self.selected_item_index = None
+        self.dragging_item_index = None
+        self.last_click_item = None
+        self.message = f"Editing submenu: {item.get('name', 'SubMenuItem')}."
+
+    def _sync_submenu_canvas(self):
+        if self.canvas_context != "submenu" or not self.submenu_parent:
+            return
+        self.placed_items = [item for item in self.placed_items if item.get("kind") != "SubMenuItem"]
+        for index, item in enumerate(self.placed_items, start=1):
+            item["id"] = index
+        self.submenu_parent["_submenu_items"] = self.placed_items
+        self.submenu_parent["ItemsList"] = [self._build_item_json(item) for item in self.placed_items]
+
+    def _exit_submenu_canvas(self):
+        if self.canvas_context != "submenu":
+            return
+        name = self.submenu_parent.get("name", "SubMenuItem") if self.submenu_parent else "SubMenuItem"
+        self._sync_submenu_canvas()
+        self.placed_items = self.main_items
+        self.canvas_context = "main"
+        self.submenu_parent = None
+        self.submenu_parent_index = None
+        self.selected_item_index = None
+        self.dragging_item_index = None
+        self.last_click_item = None
+        self.message = f"Saved submenu items for {name}."
+
+    def _import_submenu_background(self, item=None):
+        item = item or self.submenu_parent
+        if not item or item.get("kind") != "SubMenuItem":
+            self.message = "Select a SubMenuItem first."
+            return
+        path = filedialog.askopenfilename(
+            title="Select submenu background",
+            filetypes=[("Images", "*.png *.jpg *.jpeg *.webp"), ("All files", "*.*")]
+        )
+        if not path:
+            return
+        try:
+            surface = pygame.image.load(path).convert_alpha()
+            ext = os.path.splitext(path)[1].lower() or ".png"
+            name = self._slugify(os.path.splitext(os.path.basename(path))[0]) or self._slugify(item.get("name", "submenu"))
+            file_name = f"{name}{ext}"
+            item["Background"] = file_name
+            item["_submenu_background_path"] = path
+            item["_submenu_background_surface"] = surface
+            self.message = f"Submenu background imported: {file_name}."
+        except Exception as exc:
+            self.message = f"Could not import submenu background: {exc}"
+
+    def _illustration_base_surface(self):
+        """The reference illustration (illustration_base.png) from tracker.data."""
+        rp = getattr(self.main_menu, "resources_path", None)
+        if rp:
+            p = os.path.join(rp, "illustration_base.png")
+            if os.path.exists(p):
+                try:
+                    return pygame.image.load(p).convert_alpha()
+                except Exception:
+                    pass
+        try:
+            data = os.path.join(self.core_service.get_app_path(), "tracker.data")
+            with ZipFile(data) as z:
+                return pygame.image.load(io.BytesIO(z.read("illustration_base.png"))).convert_alpha()
+        except Exception:
+            return None
+
+    def _import_illustration(self):
+        path = filedialog.askopenfilename(
+            title="Select template illustration",
+            filetypes=[("Images", "*.png *.jpg *.jpeg *.webp"), ("All files", "*.*")]
+        )
+        if not path:
+            return
+        try:
+            surface = pygame.image.load(path).convert_alpha()
+            base = self._illustration_base_surface()
+            base_size = base.get_size() if base else (1280, 720)
+            if surface.get_size() != base_size:
+                surface = pygame.transform.smoothscale(surface, base_size)
+                self.message = f"Illustration imported (scaled to {base_size[0]}x{base_size[1]})."
+            else:
+                self.message = "Illustration imported."
+            self.illustration = surface
+            self.illustration_path = path
+        except Exception as exc:
+            self.message = f"Could not import illustration: {exc}"
+
+    def _import_icon(self):
+        path = filedialog.askopenfilename(
+            title="Select template icon",
+            filetypes=[("Images", "*.png *.jpg *.jpeg *.webp"), ("All files", "*.*")]
+        )
+        if not path:
+            return
+        try:
+            self.project_icon = pygame.image.load(path).convert_alpha()
+            self.message = f"Icon imported: {os.path.basename(path)}."
+        except Exception as exc:
+            self.message = f"Could not import icon: {exc}"
+
     def _action_save(self):
+        if self.canvas_context == "submenu":
+            self._sync_submenu_canvas()
+        # Already-saved / opened project: save directly without re-asking the name
+        if self.project_dir and self.project_name:
+            self._do_save(self.project_name)
+            return
         self._open_text_prompt("Save devtemplate", self.project_name or "My Template",
                                self._do_save, allow_empty=False, label="Template name:")
 
+    def _action_saveas(self):
+        if self.canvas_context == "submenu":
+            self._sync_submenu_canvas()
+        self._open_text_prompt("Save as new devtemplate", self.project_name or "My Template",
+                               self._do_save, allow_empty=False, label="New template name:")
+
     def _do_save(self, name):
+        if self.canvas_context == "submenu":
+            self._sync_submenu_canvas()
         if not name:
             return
         slug = self._slugify(name)
         if not slug:
             self.message = "Invalid template name."
+            return
+
+        # Validate the whole template before writing anything
+        sheet_files_preview = {}
+        if self.sheets:
+            for sheet in self.sheets:
+                sheet_files_preview[sheet["name"]] = f"{self._slugify(sheet['name']) or 'sheet'}.png"
+        else:
+            sheet_files_preview["Normal"] = "items.png"
+        preview_json = self._build_tracker_json(name, "background.png", sheet_files_preview)
+        checker = TemplateChecker(preview_json)
+        if not checker.is_valid():
+            errs = checker.errors
+            extra = f" (+{len(errs) - 2} more)" if len(errs) > 2 else ""
+            self.message = "Save blocked - " + " | ".join(str(e) for e in errs[:2]) + extra
             return
 
         template_dir = os.path.join(self.main_menu.dev_template_directory, slug)
@@ -221,10 +385,18 @@ class ProjectIOMixin:
             pygame.image.save(surface, os.path.join(template_dir, file_name))
             sheet_files["Normal"] = file_name
 
-        if self.background:
-            pygame.image.save(self.background, os.path.join(template_dir, illustration_name))
+        illustration_path = os.path.join(template_dir, illustration_name)
+        base = self._illustration_base_surface()
+        base_size = base.get_size() if base else (1280, 720)
+        if self.illustration is not None:
+            illu = self.illustration
+            if illu.get_size() != base_size:
+                illu = pygame.transform.smoothscale(illu, base_size)
+            pygame.image.save(illu, illustration_path)
+        elif base is not None:
+            pygame.image.save(base, illustration_path)
         else:
-            shutil.copyfile(os.path.join(template_dir, background_name), os.path.join(template_dir, illustration_name))
+            shutil.copyfile(os.path.join(template_dir, background_name), illustration_path)
 
         icon = self.project_icon
         if icon is None and self.selected_cell:
@@ -240,6 +412,8 @@ class ProjectIOMixin:
             pygame.image.save(pygame.Surface((32, 32)), os.path.join(template_dir, icon_name))
 
         self._save_fonts(template_dir, source_dir)
+        self._save_submenu_backgrounds(template_dir, source_dir)
+        self._save_item_image_assets(template_dir, source_dir)
 
         tracker_json = self._build_tracker_json(name, background_name, sheet_files)
         with open(os.path.join(template_dir, "tracker.json"), "w", encoding="utf-8") as file:
@@ -247,7 +421,7 @@ class ProjectIOMixin:
 
         self.main_menu.process_templates_list()
         self._scan_projects()
-        self.message = f"Saved devtemplate: {template_dir}"
+        self._flash_status(f"Saved '{name}'  -  {template_dir}")
 
     def _save_fonts(self, template_dir, source_dir=None):
         names = {font.get("Name") for font in (self.fonts or {}).values() if font.get("Name")}
@@ -268,8 +442,81 @@ class ProjectIOMixin:
                 except Exception:
                     pass
 
+    def _iter_all_items(self, items):
+        for item in items:
+            yield item
+            nested = item.get("_submenu_items")
+            if nested is None:
+                nested = self._items_from_tracker_json(item.get("ItemsList") or []) if item.get("kind") == "SubMenuItem" else []
+            for child in self._iter_all_items(nested):
+                yield child
+
+    def _save_submenu_backgrounds(self, template_dir, source_dir=None):
+        for item in self._iter_all_items(self.main_items):
+            if item.get("kind") != "SubMenuItem":
+                continue
+            name = item.get("Background")
+            if not name:
+                continue
+            dest = os.path.join(template_dir, name)
+            surface = item.get("_submenu_background_surface")
+            if surface:
+                try:
+                    pygame.image.save(surface, dest)
+                    continue
+                except Exception:
+                    pass
+            sources = []
+            if item.get("_submenu_background_path"):
+                sources.append(item["_submenu_background_path"])
+            if source_dir:
+                sources.append(os.path.join(source_dir, name))
+            if self.project_dir:
+                sources.append(os.path.join(self.project_dir, name))
+            for source in sources:
+                if source and os.path.exists(source) and os.path.abspath(source) != os.path.abspath(dest):
+                    try:
+                        shutil.copyfile(source, dest)
+                        break
+                    except Exception:
+                        pass
+
+    def _save_item_image_assets(self, template_dir, source_dir=None):
+        for item in self._iter_all_items(self.main_items):
+            for spec in self._kind_fields(item.get("kind", "Item")):
+                if spec.get("type") != "image":
+                    continue
+                name = item.get(spec["key"])
+                if not name:
+                    continue
+                dest = os.path.join(template_dir, name)
+                asset = (item.get("_image_assets") or {}).get(spec["key"], {})
+                surface = asset.get("surface")
+                if surface:
+                    try:
+                        pygame.image.save(surface, dest)
+                        continue
+                    except Exception:
+                        pass
+                sources = []
+                if asset.get("path"):
+                    sources.append(asset["path"])
+                if source_dir:
+                    sources.append(os.path.join(source_dir, name))
+                if self.project_dir:
+                    sources.append(os.path.join(self.project_dir, name))
+                for source in sources:
+                    if source and os.path.exists(source) and os.path.abspath(source) != os.path.abspath(dest):
+                        try:
+                            shutil.copyfile(source, dest)
+                            break
+                        except Exception:
+                            pass
+
     def _build_tracker_json(self, name, background_name, sheet_files):
         fonts = self.fonts or self._default_fonts()
+        self._ref_identity_cache = None
+        self._save_id_counter = 0
         items_sheets = {}
         for sheet in self.sheets:
             items_sheets[sheet["name"]] = {
@@ -306,18 +553,60 @@ class ProjectIOMixin:
             {
                 "Items": [
                     self._build_item_json(item)
-                    for item in self.placed_items
+                    for item in self.main_items
+                    if self._item_ref_identity(item) not in self._referenced_item_identities(self.main_items)
                 ]
             }
         ]
 
+    def _referenced_item_identities(self, items):
+        """Identities of items embedded as Hint/Active/Inactive refs of another item.
+        Those must not also appear as top-level items (the tracker spawns them from
+        the parent), otherwise they are rendered twice."""
+        if getattr(self, "_ref_identity_cache", None) is not None:
+            return self._ref_identity_cache
+        referenced = set()
+
+        def walk(item):
+            for field in ("HintItems", "ActiveItems", "InactiveItems"):
+                for ref in item.get(field) or []:
+                    referenced.add(self._item_ref_identity(ref))
+                    walk(ref)
+            for child in item.get("children") or []:
+                walk(child)
+            for sub in item.get("_submenu_items") or []:
+                walk(sub)
+        for it in items:
+            walk(it)
+        self._ref_identity_cache = referenced
+        return referenced
+
     def _build_item_json(self, item):
         kind = item.get("kind", "Item")
         sheet_name = item.get("sheet", "Normal")
+        # Assign a fresh unique Id across the whole template (top-level + linked refs)
+        if getattr(self, "_save_id_counter", None) is None:
+            self._save_id_counter = 0
+        assigned_id = self._save_id_counter
+        self._save_id_counter += 1
+
+        # EditableBox is sprite-less and has no enable/hint/opacity/sheet fields
+        if kind == "EditableBox":
+            return {
+                "Id": assigned_id,
+                "Kind": "EditableBox",
+                "Name": item["name"],
+                "Positions": {"x": item["x"], "y": item["y"]},
+                "Sizes": item.get("Sizes", {"w": 120, "h": 32}),
+                "PlaceHolder": item.get("PlaceHolder", ""),
+                "Style": item.get("Style", {}),
+                "Lines": item.get("Lines", []),
+            }
+
         # Start from the raw json (if any) to keep fields of unsupported kinds intact
         data = dict(item.get("_raw", {}))
         data.update({
-            "Id": item["id"],
+            "Id": assigned_id,
             "Kind": kind,
             "Name": item["name"],
             "Positions": {"x": item["x"], "y": item["y"]},
@@ -336,7 +625,11 @@ class ProjectIOMixin:
             key = spec["key"]
             if "." in key:
                 continue
+            output_key = spec.get("json", key)
             value = item.get(key, spec["default"])
+            if spec.get("omit_default") and value == spec["default"]:
+                data.pop(output_key, None)
+                continue
             if spec["type"] == "sprite":
                 if value:
                     data["CheckImageSheetInformation"] = {
@@ -349,21 +642,44 @@ class ProjectIOMixin:
                         "row": item["row"], "column": item["column"], "SpriteSheet": sheet_name
                     }
             elif spec["type"] == "bool":
-                if value:  # only emit when enabled
-                    data[key] = True
+                # Common optional bools (Visible, AlwaysEnable) are omitted when at default
+                # to respect strict key counts (CountItem==12, CheckItem==9, GoMode==9).
+                # Kind-specific bools (e.g. LabelCenter) are always emitted (mandatory).
+                common_bool_keys = {f["key"] for f in self.COMMON_FIELDS if f["type"] == "bool"}
+                if spec["key"] in common_bool_keys:
+                    if bool(value) == bool(spec["default"]):
+                        data.pop(output_key, None)
+                    else:
+                        data[output_key] = bool(value)
                 else:
-                    data.pop(key, None)
+                    data[output_key] = bool(value)
+            elif spec["type"] == "item_refs":
+                if value in (None, "", [], {}):
+                    data.pop(output_key, None)
+                else:
+                    data[output_key] = [self._build_item_json(ref_item) for ref_item in value]
             elif spec["type"] == "jsonnull":
                 if value in (None, "", [], {}):
-                    data.pop(key, None)
+                    data.pop(output_key, None)
                 else:
-                    data[key] = value
+                    data[output_key] = value
+            elif spec["type"] == "strnull":
+                # Optional labels are omitted when empty; "Label" stays (checker needs it)
+                if value in (None, "") and output_key != "Label":
+                    data.pop(output_key, None)
+                else:
+                    data[output_key] = value
             else:
-                data[key] = value
+                data[output_key] = value
 
         # Structural fields for complex kinds (SubMenu/Timer/EditableBox)
         for key, default in self.KIND_REQUIRED.get(kind, {}).items():
             data[key] = item.get(key, copy.deepcopy(default))
+
+        if kind == "SubMenuItem":
+            submenu_items = item.get("_submenu_items")
+            if submenu_items is not None:
+                data["ItemsList"] = [self._build_item_json(subitem) for subitem in submenu_items]
 
         # Evolution children -> NextItems
         if kind in self.EVOLUTION_KINDS:

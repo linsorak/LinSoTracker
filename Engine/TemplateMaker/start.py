@@ -44,19 +44,28 @@ class StartMixin:
 
         self.project_cards = {}
         self.project_delete_buttons = {}
+        self.project_list_rect = list_rect
         if not self.projects:
             self._text_center(screen, "No projects yet — create a new one to get started.", list_rect, 17, self.COLORS["muted"])
         else:
             card_h = 64
             gap = 8
+            step = card_h + gap
             inner_x = list_rect.x + 12
             inner_w = list_rect.w - 24
-            y = list_rect.y + 12
-            max_y = list_rect.bottom - 12
+            view_top = list_rect.y + 12
+            view_h = list_rect.h - 24
+            content_h = len(self.projects) * step - gap
+            max_scroll = max(0, content_h - view_h)
+            self.project_scroll = max(0, min(self.project_scroll, max_scroll))
+
+            prev_clip = screen.get_clip()
+            screen.set_clip(list_rect)
             for index, project in enumerate(self.projects):
-                if y + card_h > max_y:
-                    break
-                card = pygame.Rect(inner_x, y, inner_w, card_h)
+                cy = view_top + index * step - self.project_scroll
+                if cy + card_h < list_rect.y or cy > list_rect.bottom:
+                    continue  # off-screen, skip draw + clickable registration
+                card = pygame.Rect(inner_x, cy, inner_w, card_h)
                 self.project_cards[index] = card
                 hovered = self.hover_start_key == f"project_{index}"
                 bg = self.COLORS["panel_alt"] if hovered else (20, 24, 34)
@@ -76,7 +85,14 @@ class StartMixin:
                 self.project_delete_buttons[index] = del_rect
                 self._draw_button(screen, del_rect, "X", self.COLORS["red"], hover=(self.hover_start_key == f"del_{index}"))
                 self._text(screen, "Open", (card.right - 108, card.centery - 9), 16, self.COLORS["green"])
-                y += card_h + gap
+            screen.set_clip(prev_clip)
+
+            if max_scroll > 0:
+                track = pygame.Rect(list_rect.right - 8, list_rect.y + 4, 4, list_rect.h - 8)
+                pygame.draw.rect(screen, (40, 46, 62), track)
+                th = max(24, int(track.h * view_h / content_h))
+                ty = track.y + int((track.h - th) * self.project_scroll / max_scroll)
+                pygame.draw.rect(screen, self.COLORS["gold"], (track.x, ty, track.w, th))
 
         # Back button
         back_rect = pygame.Rect(panel.x + pad, panel.bottom - 60, 150, 42)
@@ -128,6 +144,8 @@ class StartMixin:
         self.font_files = {}
         self.background_path = None
         self.background = None
+        self.illustration = None
+        self.illustration_path = None
         self.background_color = {"r": 0, "g": 0, "b": 0}
         self.background_position = {"x": 0, "y": 0}
         self.sheets = []
@@ -136,6 +154,10 @@ class StartMixin:
         self.selected_cell = None
         self.project_icon = None
         self.placed_items = []
+        self.main_items = self.placed_items
+        self.canvas_context = "main"
+        self.submenu_parent = None
+        self.submenu_parent_index = None
         self.selected_item_index = None
         self.item_modal_open = False
         self.template_size = (800, 600)
@@ -170,6 +192,9 @@ class StartMixin:
             self.main_menu.process_templates_list()
 
     def _action_back(self):
+        if getattr(self, "canvas_context", "main") == "submenu":
+            self._exit_submenu_canvas()
+            return
         self._set_cursor_safe(pygame.SYSTEM_CURSOR_ARROW)
         if hasattr(self.main_menu, "close_template_maker"):
             self.main_menu.close_template_maker()

@@ -79,6 +79,8 @@ class Menu:
     def onchange_show_timer(self, current_state_value, **kwargs):
         if self.syncing_timer_check:
             return
+        self.core_service.show_timer = current_state_value
+        self.core_service.save_configuration("showTimer", current_state_value)
         self.tracker.set_timer_visible(current_state_value)
 
     def set_zoom_index(self, zoom_index):
