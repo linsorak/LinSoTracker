@@ -10,7 +10,6 @@ build
 dist
 __pycache__
 data.json
-website
 Updator/output
 LinSoTracker.spec
 **/.DS_Store

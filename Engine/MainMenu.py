@@ -11,6 +11,7 @@ from pygame.rect import Rect
 
 from Engine.FadeAnimation import FadeAnimation, FadeMode
 from Engine.Menu import Menu
+from Engine.TemplateMaker import TemplateMaker
 from Engine.Tracker import Tracker
 from Tools import ptext
 from Tools.Bank import Bank
@@ -69,6 +70,8 @@ class MainMenu:
         self.loading_active = False
         self.loading_progress = 0
         self.loading_label = ""
+        self.template_maker = None
+        self.template_maker_button = None
         self.bank = Bank()
         self.template_directory = os.path.join(self.core_service.get_app_path(), "templates")
         self.dev_template_directory = os.path.join(self.core_service.get_app_path(), "devtemplates")
@@ -169,11 +172,31 @@ class MainMenu:
         dimension = self.menu_json_data[0]["Dimensions"]
         return dimension["width"], dimension["height"]
 
+    def open_template_maker(self):
+        surface = pygame.display.get_surface()
+        self.previous_window_size = surface.get_size() if surface else self.get_dimension()
+        info = pygame.display.Info()
+        width = max(1280, info.current_w - 40)
+        height = max(768, info.current_h - 90)
+        pygame.display.set_mode((width, height), pygame.RESIZABLE)
+        self.core_service.setgamewindowcenter(width, height)
+        self.template_maker = TemplateMaker(self)
+        self.moved_tracker = None
+        self.illustration = None
+
+    def close_template_maker(self):
+        self.template_maker = None
+        width, height = getattr(self, "previous_window_size", self.get_dimension())
+        pygame.display.set_mode((width, height))
+        self.core_service.setgamewindowcenter(width, height)
+
     def get_icon(self):
         return self.icon
 
     def draw(self, screen, time_delta):
-        if not self.loaded_tracker:
+        if self.template_maker:
+            self.template_maker.draw(screen, time_delta)
+        elif not self.loaded_tracker:
             self.draw_home(screen)
         else:
             self.loaded_tracker.draw(screen, time_delta)
@@ -352,6 +375,32 @@ class MainMenu:
 
         if self.moved_tracker:
             self.draw_fade_effect(screen, pos_dev_y)
+
+        self.draw_template_maker_button(screen)
+
+    def draw_template_maker_button(self, screen):
+        button_w = 180
+        button_h = 36
+        x = screen.get_width() - button_w - 16
+        y = 16
+        self.template_maker_button = Rect(x, y, button_w, button_h)
+        button_surface = pygame.Surface((button_w, button_h), pygame.SRCALPHA)
+        pygame.draw.rect(button_surface, (140, 140, 140, 90), button_surface.get_rect(), border_radius=5)
+        pygame.draw.rect(button_surface, (210, 210, 210, 120), button_surface.get_rect(), 1, border_radius=5)
+        screen.blit(button_surface, (x, y))
+        temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32).convert_alpha()
+        label, _ = self.draw_text(
+            text="Template Maker",
+            font_name=self.font_data["path"],
+            color=self.font_data["color_normal"],
+            font_size=self.font_data["size"],
+            surface=temp_surface,
+            position=(0, 0),
+            outline=1)
+        screen.blit(label, (
+            x + (button_w - label.get_width()) // 2,
+            y + (button_h - label.get_height()) // 2
+        ))
 
     def draw_loading_screen(self, progress, label):
         screen = pygame.display.get_surface()
@@ -689,6 +738,9 @@ class MainMenu:
             print(e)
 
     def click_down(self, mouse_position, button):
+        if self.template_maker:
+            self.template_maker.click_down(mouse_position, button)
+            return
         if self.loaded_tracker:
             self.loaded_tracker.click_down(mouse_position, button)
 
@@ -696,8 +748,18 @@ class MainMenu:
         if self.donation_popup_click(mouse_position, button):
             return
 
+        if self.template_maker:
+            template_maker = self.template_maker
+            template_maker.click(mouse_position, button)
+            template_maker.mouse_up()
+            return
+
         if not self.loaded_tracker:
             if button == 1:
+                if self.template_maker_button and self.template_maker_button.collidepoint(mouse_position):
+                    self.open_template_maker()
+                    return
+
                 if self.core_service.is_on_element(mouse_positions=mouse_position,
                                                    element_positons=self.left_arrow_positions, element_dimension=(
                                 self.arrow_left.get_rect().w, self.arrow_left.get_rect().h)):
@@ -746,7 +808,9 @@ class MainMenu:
             self.loaded_tracker.click(mouse_position, button)
 
     def mouse_move(self, mouse_position):
-        if not self.loaded_tracker:
+        if self.template_maker:
+            self.template_maker.mouse_move(mouse_position)
+        elif not self.loaded_tracker:
             is_on_menu = False
             if self.menu_content:
                 for i in range(0, len(self.menu_content)):
@@ -793,10 +857,15 @@ class MainMenu:
         self.core_service.setgamewindowcenter(x=dimension[0], y=dimension[1])
 
     def keyup(self, button, screen):
+        if self.template_maker:
+            self.template_maker.keyup(button, screen)
+            return
         if self.loaded_tracker:
             self.loaded_tracker.keyup(button, screen)
 
     def events(self, events, time_delta):
+        if self.template_maker:
+            return self.template_maker.events(events, time_delta)
         if self.loaded_tracker:
             return self.loaded_tracker.events(events, time_delta)
         return False
