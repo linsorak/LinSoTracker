@@ -125,18 +125,10 @@ class FontsMixin:
                                        kind="int", allow_empty=False, label="Size (px):", minvalue=1)
             elif field in ("Normal", "Max"):
                 col = font.setdefault("Colors", {}).setdefault(field, {"r": 255, "g": 255, "b": 255})
-
-                def set_color(text, f=font, fld=field):
-                    if not text:
-                        return
-                    try:
-                        r, g, b = [max(0, min(255, int(p.strip()))) for p in text.split(",")[:3]]
-                        f.setdefault("Colors", {})[fld] = {"r": r, "g": g, "b": b}
-                    except Exception:
-                        self.message = "Invalid color, use r,g,b."
-                self._open_text_prompt(f"{slot} {field} color",
-                                       f"{col.get('r',255)},{col.get('g',255)},{col.get('b',255)}",
-                                       set_color, allow_empty=False, label="Color r,g,b:")
+                def set_color(color, f=font, fld=field, s=slot):
+                    f.setdefault("Colors", {})[fld] = color
+                    self.message = f"{s} {fld} color updated."
+                self._open_color_picker(f"{slot} {field}", col, set_color)
             return
         self.fonts_modal_open = False
 

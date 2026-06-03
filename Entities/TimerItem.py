@@ -50,11 +50,11 @@ class TimerItem(Item):
             self.draw_config_button("GroupReset", False)
 
     def draw_timer_text(self, rect):
-        font_cfg = self.timer_config.get("Font", {})
+        font_cfg = self.timer_config.get("Font") or self.default_font_config("timerItemFont", 32)
         font = self.load_font(font_cfg, 32)
         text = self.format_time()
         color = self.color(font_cfg.get("Color"), (150, 255, 160))
-        if font_cfg.get("FixedWidthDigits", True):
+        if self.timer_config.get("FixedWidthDigits", font_cfg.get("FixedWidthDigits", True)):
             surface = self.render_fixed_width(text, font, color)
         else:
             surface = font.render(text, True, color)
@@ -211,6 +211,7 @@ class TimerItem(Item):
         )
 
     def load_font(self, cfg, fallback_size):
+        cfg = cfg or {}
         size = int(cfg.get("Size", fallback_size) * self.zoom)
         font_name = cfg.get("Name")
         if font_name and self.tracker:
@@ -218,6 +219,20 @@ class TimerItem(Item):
             if os.path.isfile(font_path):
                 return pygame.font.Font(font_path, size)
         return pygame.font.Font(None, size)
+
+    def default_font_config(self, session, fallback_size):
+        if self.tracker:
+            try:
+                font_data = self.tracker.core_service.get_font(session)
+                if font_data:
+                    return {
+                        "Name": font_data.get("Name"),
+                        "Size": font_data.get("Size", fallback_size),
+                        "Color": (font_data.get("Colors", {}) or {}).get("Normal"),
+                    }
+            except Exception:
+                pass
+        return {"Size": fallback_size}
 
     @staticmethod
     def color(data, fallback):

@@ -126,7 +126,7 @@ def main():
                     main_menu.keyup(event.key, screen)
                 elif event.type == pygame.VIDEORESIZE:
                     if getattr(main_menu, "template_maker", None) is not None:
-                        screen = pygame.display.set_mode((max(1024, event.w), max(640, event.h)), pygame.RESIZABLE)
+                        screen = pygame.display.set_mode((max(1280, event.w), max(720, event.h)), pygame.RESIZABLE)
                     tracker = getattr(main_menu, "loaded_tracker", None)
                     if tracker is not None and getattr(tracker, "tracker_json_data", None):
                         dims = tracker.tracker_json_data[1]["Datas"]["Dimensions"]

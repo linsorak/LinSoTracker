@@ -128,6 +128,8 @@ class StartMixin:
         self.font_files = {}
         self.background_path = None
         self.background = None
+        self.background_color = {"r": 0, "g": 0, "b": 0}
+        self.background_position = {"x": 0, "y": 0}
         self.sheets = []
         self.active_sheet_index = 0
         self.sheet_scroll = 0
@@ -187,6 +189,59 @@ class StartMixin:
     def _edit_info_field(self, key):
         current = str((self.project_info or {}).get(key) or "")
         self._open_text_prompt(f"Edit {key}", current, lambda v: self._apply_info_field(key, v), label=f"{key}:")
+
+    def _edit_template_background_color(self):
+        def apply(color):
+            self.background_color = color
+            self.message = "Template background color updated."
+        self._open_color_picker("Template background", self.background_color, apply)
+
+    def _edit_template_dimensions(self):
+        width, height = self.template_size
+        data = {"Dimensions": {"w": width, "h": height}}
+
+        def apply():
+            dims = data["Dimensions"]
+            self.template_size = (
+                max(1, int(dims.get("w", width))),
+                max(1, int(dims.get("h", height))),
+            )
+            self.message = f"Template dimensions set to {self.template_size[0]} x {self.template_size[1]}."
+
+        self.field_editor_open = True
+        self.field_editor_spec = {
+            "key": "Dimensions",
+            "type": "rect",
+            "label": "Template dimensions",
+            "default": {"w": width, "h": height},
+            "keys": ["w", "h"],
+        }
+        self.field_editor_item = data
+        self.field_editor_callback = apply
+
+    def _edit_background_position(self):
+        pos = self.background_position or {"x": 0, "y": 0}
+        data = {"BackgroundPosition": {"x": pos.get("x", 0), "y": pos.get("y", 0)}}
+
+        def apply():
+            value = data["BackgroundPosition"]
+            self.background_position = {
+                "x": int(value.get("x", 0)),
+                "y": int(value.get("y", 0)),
+            }
+            self.message = f"Background position set to {self.background_position['x']}, {self.background_position['y']}."
+
+        self.field_editor_open = True
+        self.field_editor_spec = {
+            "key": "BackgroundPosition",
+            "type": "rect",
+            "label": "Background position",
+            "default": {"x": pos.get("x", 0), "y": pos.get("y", 0)},
+            "keys": ["x", "y"],
+            "min": {"x": None, "y": None},
+        }
+        self.field_editor_item = data
+        self.field_editor_callback = apply
 
     def _apply_info_field(self, key, value):
         if value is None:

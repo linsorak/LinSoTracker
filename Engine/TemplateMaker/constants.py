@@ -18,6 +18,8 @@ class TemplateMakerConstants:
         "CheckItem", "OpenLinkItem", "GoModeItem", "SubMenuItem", "TimerItem", "EditableBox",
     ]
 
+    SPRITE_OPTIONAL_KINDS = {"TimerItem", "EditableBox"}
+
     # Structural fields required by complex kinds, seeded as defaults and always serialized
     # (not all are editable in the UI, but they keep the item valid for the tracker).
     KIND_REQUIRED = {
@@ -25,14 +27,26 @@ class TemplateMakerConstants:
             "Background": "background.png", "ItemsList": [],
             "ShowNumbersOfItemsActive": False, "ShowNumberOfCheckedItems": False,
         },
-        "TimerItem": {"Timer": {}, "Buttons": {}, "Group": None, "GroupControls": {}},
-        "EditableBox": {"Lines": 1, "Style": "default", "PlaceHolder": "",
+        "TimerItem": {
+            "Timer": {
+                "Rect": {"x": 0, "y": 0, "w": 180, "h": 42},
+                "ShowCentiseconds": True,
+                "FixedWidthDigits": True,
+            },
+            "Buttons": {
+                "StartPause": {"Enable": True, "Rect": {"x": 0, "y": 48, "w": 86, "h": 30}},
+                "Reset": {"Enable": True, "Rect": {"x": 94, "y": 48, "w": 86, "h": 30}},
+            },
+            "Group": None,
+            "GroupControls": {},
+        },
+        "EditableBox": {"Lines": [], "Style": {}, "PlaceHolder": "",
                         "Sizes": {"w": 120, "h": 32}},
     }
 
     EVOLUTION_KINDS = ("EvolutionItem", "DraggableEvolutionItem", "AlternateEvolutionItem")
 
-    # Per-kind editable fields. type: int/float/str/strnull/bool/list/sprite
+    # Per-kind editable fields. type: int/float/str/strnull/bool/list/sprite/json/jsonnull/rect/color
     KIND_FIELDS = {
         "CountItem": [
             {"key": "valueMin", "type": "int", "label": "Value min", "default": 0},
@@ -46,13 +60,47 @@ class TemplateMakerConstants:
             {"key": "customFont", "type": "strnull", "label": "Custom font", "default": None},
         ],
         "IncrementalItem": [
-            {"key": "Increment", "type": "list", "label": "Increments", "default": []},
+            {"key": "Increment", "type": "list_editor", "label": "Increments", "default": []},
             {"key": "StartIncrementIndex", "type": "int", "label": "Start index", "default": 0},
         ],
         "SubMenuItem": [
             {"key": "Background", "type": "str", "label": "Background img", "default": "background.png"},
+            {"key": "ItemsList", "type": "json", "label": "ItemsList JSON", "default": []},
             {"key": "ShowNumbersOfItemsActive", "type": "bool", "label": "Show active count", "default": False},
             {"key": "ShowNumberOfCheckedItems", "type": "bool", "label": "Show checked count", "default": False},
+        ],
+        "TimerItem": [
+            {"key": "Timer.Rect", "type": "rect", "label": "Timer rect",
+             "default": KIND_REQUIRED["TimerItem"]["Timer"]["Rect"]},
+            {"key": "Timer.Background.Color", "type": "color", "label": "Timer bg", "default": None},
+            {"key": "Timer.Background.BorderColor", "type": "color", "label": "Timer border", "default": None},
+            {"key": "Timer.Font.Color", "type": "color", "label": "Timer text", "default": {"r": 150, "g": 255, "b": 160}},
+            {"key": "Timer.Font.Size", "type": "int", "label": "Timer font size", "default": 32},
+            {"key": "Timer.ShowCentiseconds", "type": "bool", "label": "Show centiseconds", "default": True},
+            {"key": "Timer.FixedWidthDigits", "type": "bool", "label": "Fixed digits", "default": True},
+            {"key": "Buttons.StartPause.Rect", "type": "rect", "label": "Start rect",
+             "default": KIND_REQUIRED["TimerItem"]["Buttons"]["StartPause"]["Rect"]},
+            {"key": "Buttons.Reset.Rect", "type": "rect", "label": "Reset rect",
+             "default": KIND_REQUIRED["TimerItem"]["Buttons"]["Reset"]["Rect"]},
+            {"key": "Buttons.StartPause.Colors.Start", "type": "color", "label": "Start color", "default": {"r": 35, "g": 130, "b": 85}},
+            {"key": "Buttons.StartPause.Colors.Pause", "type": "color", "label": "Pause color", "default": {"r": 165, "g": 100, "b": 35}},
+            {"key": "Buttons.Reset.Color", "type": "color", "label": "Reset color", "default": {"r": 110, "g": 65, "b": 135}},
+            {"key": "Timer", "type": "json", "label": "Timer JSON", "default": KIND_REQUIRED["TimerItem"]["Timer"]},
+            {"key": "Buttons", "type": "json", "label": "Buttons JSON", "default": KIND_REQUIRED["TimerItem"]["Buttons"]},
+            {"key": "Group", "type": "strnull", "label": "Group", "default": None},
+            {"key": "GroupControls", "type": "json", "label": "Group controls JSON", "default": {}},
+        ],
+        "EditableBox": [
+            {"key": "Sizes", "type": "rect", "label": "Size", "default": {"w": 120, "h": 32}},
+            {"key": "Lines", "type": "list_editor", "label": "Suggestions", "default": []},
+            {"key": "PlaceHolder", "type": "str", "label": "Placeholder", "default": ""},
+            {"key": "Style.BackgroundColor", "type": "color", "label": "Background", "default": {"r": 255, "g": 255, "b": 255}},
+            {"key": "Style.NormalTextColor", "type": "color", "label": "Text color", "default": {"r": 0, "g": 0, "b": 0}},
+            {"key": "Style.SelectedBackgroundColor", "type": "color", "label": "Selected bg", "default": {"r": 40, "g": 110, "b": 190}},
+            {"key": "Style.SelectedTextColor", "type": "color", "label": "Selected text", "default": {"r": 255, "g": 255, "b": 255}},
+            {"key": "Style.HoveredBackgroundColor", "type": "color", "label": "Hovered bg", "default": {"r": 70, "g": 70, "b": 70}},
+            {"key": "Style.HoveredTextColor", "type": "color", "label": "Hovered text", "default": {"r": 255, "g": 255, "b": 255}},
+            {"key": "Style", "type": "json", "label": "Style JSON", "default": {}},
         ],
         "LabelItem": [
             {"key": "LabelList", "type": "list", "label": "Labels", "default": [""]},
@@ -88,11 +136,15 @@ class TemplateMakerConstants:
     # Common optional field offered on every kind
     COMMON_FIELDS = [
         {"key": "AlwaysEnable", "type": "bool", "label": "Always enable", "default": False},
+        {"key": "HintItems", "type": "jsonnull", "label": "Hint items JSON", "default": None},
+        {"key": "ActiveItems", "type": "jsonnull", "label": "Active items JSON", "default": None},
+        {"key": "InactiveItems", "type": "jsonnull", "label": "Inactive items JSON", "default": None},
     ]
 
     FONT_SLOTS = [
         "incrementalItemFont", "evolutionItemFont", "countItemFont",
-        "labelItemFont", "hintFont",
+        "labelItemFont", "hintFont", "subMenuItemFont", "editableBoxFont",
+        "timerItemFont",
     ]
 
     COLORS = {

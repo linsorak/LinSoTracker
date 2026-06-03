@@ -246,10 +246,12 @@ class TemplateChecker:
     def __is_datas_valid(self):
         datas = self.template_json_data[1]["Datas"]
 
-        if len(datas.keys()) == 4:
+        if len(datas.keys()) >= 4:
             self.__dimension_check("Dimensions", datas, "Datas")
             self.__check_element_is_in_section_and_valid("Background", datas, "Datas", str)
             self.__color_check("BackgroundColor", datas, "Datas")
+            if "BackgroundPosition" in datas:
+                self.__positions_check("BackgroundPosition", datas, "Datas")
             # self.__dimension_check("ItemSheetDimensions", datas, "Datas")
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Datas"))

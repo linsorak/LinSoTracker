@@ -59,6 +59,12 @@ class InputMixin:
                 return True
 
         if button == 1:
+            if self.field_editor_open:
+                self._handle_field_editor_click(mouse_position)
+                return True
+            if self.color_picker_open:
+                self._handle_color_picker_click(mouse_position)
+                return True
             if self.sprite_picker_open:
                 self._handle_picker_click(mouse_position)
                 return True
@@ -109,6 +115,12 @@ class InputMixin:
                         self._rename_project()
                     elif key == "fonts":
                         self.fonts_modal_open = True
+                    elif key == "background_color":
+                        self._edit_template_background_color()
+                    elif key == "dimensions":
+                        self._edit_template_dimensions()
+                    elif key == "background_position":
+                        self._edit_background_position()
                     elif key.startswith("info_"):
                         self._edit_info_field(key[len("info_"):])
                     elif key == "set_icon":
@@ -141,7 +153,7 @@ class InputMixin:
                     self.message = f"Selected {item['name']}. Double-click to edit."
                 return True
 
-            if self.selected_cell and self.last_bg_rect.collidepoint(mouse_position):
+            if (self.selected_cell or self.placement_kind) and self.last_bg_rect.collidepoint(mouse_position):
                 self._place_item(mouse_position)
                 return True
 
@@ -201,7 +213,7 @@ class InputMixin:
                         or (self.prompt_cancel_rect and self.prompt_cancel_rect.collidepoint(mouse_position)))
             self._set_cursor_safe(pygame.SYSTEM_CURSOR_HAND if over_btn else pygame.SYSTEM_CURSOR_ARROW)
             return
-        if self.sprite_picker_open or self.fonts_modal_open or self.item_modal_open:
+        if self.sprite_picker_open or self.fonts_modal_open or self.item_modal_open or self.field_editor_open:
             if self.sprite_picker_open:
                 btns = self.picker_buttons
             elif self.fonts_modal_open:
@@ -232,6 +244,12 @@ class InputMixin:
                 self.hover_key = "set_icon"
             elif self.info_buttons.get("fonts") and self.info_buttons["fonts"].collidepoint(mouse_position):
                 self.hover_key = "fonts"
+            elif self.info_buttons.get("background_color") and self.info_buttons["background_color"].collidepoint(mouse_position):
+                self.hover_key = "background_color"
+            elif self.info_buttons.get("dimensions") and self.info_buttons["dimensions"].collidepoint(mouse_position):
+                self.hover_key = "dimensions"
+            elif self.info_buttons.get("background_position") and self.info_buttons["background_position"].collidepoint(mouse_position):
+                self.hover_key = "background_position"
             else:
                 for index, rect in self.sheet_list_rows.items():
                     if rect.collidepoint(mouse_position):
@@ -254,6 +272,10 @@ class InputMixin:
             self.sprite_picker_open = False
         elif key == pygame.K_ESCAPE and self.child_edit_index is not None:
             self.child_edit_index = None
+        elif key == pygame.K_ESCAPE and self.field_editor_open:
+            self._close_field_editor()
+        elif key == pygame.K_ESCAPE and self.color_picker_open:
+            self._close_color_picker()
         elif key == pygame.K_ESCAPE and self.kind_picker_open:
             self.kind_picker_open = False
         elif key == pygame.K_ESCAPE and self.item_modal_open:
@@ -268,6 +290,9 @@ class InputMixin:
             if event.type == pygame.KEYDOWN:
                 self._handle_text_prompt_event(event)
                 return True
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEMOTION, pygame.MOUSEBUTTONUP):
+                if self._handle_text_prompt_mouse_event(event):
+                    return True
             # let mouse events reach click() for the OK/Cancel buttons
             return False
         if event.type == pygame.MOUSEWHEEL:

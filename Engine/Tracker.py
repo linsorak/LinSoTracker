@@ -225,6 +225,11 @@ class Tracker:
             self._report_loading(0.32, "Resizing window")
             self.core_service.setgamewindowcenter(w, h)
             self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
+            bg_pos = self.tracker_json_data[1]["Datas"].get("BackgroundPosition", {"x": 0, "y": 0})
+            self.background_position = (
+                int(bg_pos.get("x", 0) * zoom),
+                int(bg_pos.get("y", 0) * zoom),
+            )
             items_sheets = self.tracker_json_data[1]["Datas"]["Items"]
             self.list_items_sheets = []
             total_sheets = len(items_sheets) or 1
@@ -1318,6 +1323,11 @@ class Tracker:
         self.submenus = pygame.sprite.Group()
         json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
+        bg_pos = self.tracker_json_data[1]["Datas"].get("BackgroundPosition", {"x": 0, "y": 0})
+        self.background_position = (
+            int(bg_pos.get("x", 0) * self.core_service.zoom),
+            int(bg_pos.get("y", 0) * self.core_service.zoom),
+        )
         if progress_callback:
             progress_callback(0.25, "Resetting zoom")
         w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
@@ -1354,7 +1364,8 @@ class Tracker:
             self.timer_window.draw()
             self.menu.set_show_timer_check(self.timer_window.is_visible())
 
-        screen.blit(self.background_image, (0, 0))
+        screen.fill(self.core_service.get_background_color())
+        screen.blit(self.background_image, getattr(self, "background_position", (0, 0)))
         if self.menu.get_menu().is_enabled():
             self.menu.get_menu().mainloop(screen)
         if self.core_service.draw_esc_menu_label:

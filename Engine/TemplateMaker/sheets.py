@@ -128,7 +128,48 @@ class SheetsMixin:
         row = int((mouse_position[1] - origin_y) // cell_py) + 1
         if 1 <= column <= cols and 1 <= row <= rows and self._get_icon_surface(row, column):
             self.selected_cell = (self.active_sheet["name"], row, column)
+            self.placement_kind = None
             self.message = f"Selected {self.active_sheet['name']} tile row {row}, col {column}."
+
+    def _ensure_placeholder_sheet(self):
+        sheet = self._sheet_by_name("Generated")
+        if sheet:
+            return sheet
+        surface = pygame.Surface((32, 32), pygame.SRCALPHA)
+        self.sheets.append({
+            "name": "Generated",
+            "surface": surface,
+            "path": None,
+            "cell_w": 32,
+            "cell_h": 32,
+        })
+        return self.sheets[-1]
+
+    def _default_sprite_reference(self):
+        if self.selected_cell:
+            return self.selected_cell
+        if self.active_sheet:
+            return self.active_sheet["name"], 1, 1
+        sheet = self._ensure_placeholder_sheet()
+        return sheet["name"], 1, 1
+
+    def _ensure_item_sprite(self, item):
+        if item.get("sheet") and self._get_icon_surface(item.get("row", 1), item.get("column", 1), item.get("sheet")):
+            return
+        sheet_name, row, column = self._default_sprite_reference()
+        item["sheet"] = sheet_name
+        item["row"] = row
+        item["column"] = column
+
+    def _action_box(self):
+        self.placement_kind = "EditableBox"
+        self.selected_cell = None
+        self.message = "Click the canvas to place an EditableBox."
+
+    def _action_timer(self):
+        self.placement_kind = "TimerItem"
+        self.selected_cell = None
+        self.message = "Click the canvas to place a TimerItem."
 
     def _place_item(self, mouse_position):
         bg_rect = self.last_bg_rect
@@ -137,11 +178,18 @@ class SheetsMixin:
         scale = self.template_size[0] / bg_rect.w
         x = int((mouse_position[0] - bg_rect.x) * scale)
         y = int((mouse_position[1] - bg_rect.y) * scale)
-        sheet_name, row, column = self.selected_cell
+        kind = self.placement_kind or "Item"
+        if kind in self.SPRITE_OPTIONAL_KINDS and not self.selected_cell:
+            sheet_name, row, column = (None, 1, 1)
+            if kind == "TimerItem":
+                sheet = self._ensure_placeholder_sheet()
+                sheet_name = sheet["name"]
+        else:
+            sheet_name, row, column = self._default_sprite_reference()
         item = {
             "id": len(self.placed_items) + 1,
-            "name": f"Item {len(self.placed_items) + 1}",
-            "kind": "Item",
+            "name": f"{kind} {len(self.placed_items) + 1}" if kind != "Item" else f"Item {len(self.placed_items) + 1}",
+            "kind": kind,
             "x": x,
             "y": y,
             "row": row,
@@ -155,7 +203,8 @@ class SheetsMixin:
         self._ensure_kind_defaults(item)
         self.placed_items.append(item)
         self.selected_item_index = len(self.placed_items) - 1
-        self.message = "Item placed. Double-click it to edit. Delete key removes it."
+        self.placement_kind = None
+        self.message = f"{kind} placed. Double-click it to edit. Delete key removes it."
 
     def _remove_last_item(self):
         if self.placed_items:

@@ -175,9 +175,13 @@ class MainMenu:
     def open_template_maker(self):
         surface = pygame.display.get_surface()
         self.previous_window_size = surface.get_size() if surface else self.get_dimension()
-        info = pygame.display.Info()
-        width = max(1280, info.current_w - 40)
-        height = max(768, info.current_h - 90)
+        try:
+            desktop_w, desktop_h = pygame.display.get_desktop_sizes()[0]
+        except (AttributeError, IndexError):
+            info = pygame.display.Info()
+            desktop_w, desktop_h = info.current_w, info.current_h
+        width = min(1600, max(1280, desktop_w - 80))
+        height = min(900, max(720, desktop_h - 120))
         pygame.display.set_mode((width, height), pygame.RESIZABLE)
         self.core_service.setgamewindowcenter(width, height)
         self.template_maker = TemplateMaker(self)

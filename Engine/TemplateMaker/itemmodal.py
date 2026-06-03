@@ -1,5 +1,7 @@
+import colorsys
 import copy
 import json
+import math
 import os
 import re
 import shutil
@@ -44,23 +46,29 @@ class ItemModalMixin:
         self.modal_buttons["save"] = save_rect
         self._draw_button(screen, save_rect, "Save", (36, 124, 87), hover=(self.hover_modal_key == "save"))
 
-        # --- Details card (icon + properties) ---
+        # --- Details card (preview + properties) ---
         det_rect = pygame.Rect(rect.x + pad, header_bottom + pad, rect.w - pad * 2, 234)
         self._draw_card(screen, det_rect, (12, 15, 22), border_color=(56, 62, 76))
 
         # Interactive live preview (click to simulate in-tracker behaviour)
-        icon_rect = pygame.Rect(det_rect.x + 16, det_rect.y + 16, 96, 96)
+        large_preview = item.get("kind") in ("EditableBox", "TimerItem", "SubMenuItem")
+        wide_preview = item.get("kind") in ("CountItem", "AlternateCountItem", "LabelItem")
+        preview_w = 238 if large_preview else (192 if wide_preview else 96)
+        preview_h = 178 if large_preview else 96
+        icon_rect = pygame.Rect(det_rect.x + 16, det_rect.y + 16, preview_w, preview_h)
         self._draw_card(screen, icon_rect, (8, 9, 13), border_color=(56, 62, 76))
         self.modal_buttons["preview"] = icon_rect
         self._draw_item_preview(screen, icon_rect, item)
-        self._text(screen, "L/R/wheel to test", (icon_rect.x - 2, icon_rect.bottom + 4), 11, self.COLORS["muted"])
+        preview_hint = "Actual size preview" if large_preview else "L/R/wheel to test"
+        self._text(screen, preview_hint, (icon_rect.x - 2, icon_rect.bottom + 4), 11, self.COLORS["muted"])
 
         details = [
             ("Id", item["id"]),
             ("Name", item["name"]),
             ("Type", item.get("kind", "Item")),
             ("Position", f"x {item['x']} / y {item['y']}"),
-            ("Sprite", f"row {item['row']} / column {item['column']}"),
+            ("Sprite", "optional" if item.get("kind") in self.SPRITE_OPTIONAL_KINDS and not item.get("sheet")
+             else f"row {item['row']} / column {item['column']}"),
             ("Active", item.get("isActive", False)),
             ("Opacity", item.get("opacity", 0.5)),
             ("Hint", item.get("hint") or "None"),
@@ -68,7 +76,7 @@ class ItemModalMixin:
         info_x = icon_rect.right + 28
         value_x = info_x + 110
         info_y = det_rect.y + 18
-        row_h = 26
+        row_h = 24 if large_preview else 26
         for label, value in details:
             self._text(screen, label, (info_x, info_y), 16, self.COLORS["muted"])
             display = str(value)
@@ -237,21 +245,263 @@ class ItemModalMixin:
                 self._text(screen, disp, (row.x + 10, row.y + 19), 14, self.COLORS["line_light"])
                 ry += 44
 
+        if self.field_editor_open and self.field_editor_spec:
+            self._draw_field_editor(screen, rect)
+
     def _format_field_value(self, item, spec):
-        value = item.get(spec["key"], spec["default"])
+        value = self._get_field_value(item, spec)
         if spec["type"] == "sprite":
             if value:
                 return f"{value.get('sheet')} r{value.get('row')} c{value.get('column')}"
             return "same as item"
         if spec["type"] == "bool":
             return "Yes" if value else "No"
-        if spec["type"] == "list":
+        if spec["type"] in ("list", "list_editor"):
             value = value or []
             text = ", ".join(str(v) for v in value)
             return text[:24] + "..." if len(text) > 24 else (text or "(empty)")
+        if spec["type"] == "rect":
+            value = value or {}
+            if "h" in value:
+                return f"x{value.get('x', 0)} y{value.get('y', 0)} w{value.get('w', 0)} h{value.get('h', 0)}"
+            return f"w{value.get('w', 0)} h{value.get('h', 0)}"
+        if spec["type"] == "color":
+            if not value:
+                return "None"
+            return f"{value.get('r', 0)}, {value.get('g', 0)}, {value.get('b', 0)}"
+        if spec["type"] in ("json", "jsonnull"):
+            if value in (None, "", [], {}):
+                return "None" if spec["type"] == "jsonnull" else "{}"
+            text = json.dumps(value, ensure_ascii=False)
+            return text[:26] + "..." if len(text) > 26 else text
         if value in (None, ""):
             return "None"
         return str(value)
+
+    def _get_field_value(self, item, spec):
+        current = item
+        for part in spec["key"].split("."):
+            if not isinstance(current, dict) or part not in current:
+                return copy.deepcopy(spec["default"])
+            current = current[part]
+        return current
+
+    def _set_field_value(self, item, key, value):
+        parts = key.split(".")
+        current = item
+        for part in parts[:-1]:
+            child = current.get(part)
+            if not isinstance(child, dict):
+                child = {}
+                current[part] = child
+            current = child
+        current[parts[-1]] = value
+
+    def _field_editor_parts(self):
+        spec = self.field_editor_spec
+        if not spec:
+            return []
+        value = self._get_field_value(self.field_editor_item, spec)
+        if spec["type"] == "rect":
+            value = value or {}
+            keys = spec.get("keys") or (["x", "y", "w", "h"] if ("x" in value or "y" in value) else ["w", "h"])
+            return [(key, str(value.get(key, 0 if key in ("x", "y") else 1))) for key in keys]
+        if spec["type"] == "color":
+            value = value or {}
+            return [(key, str(value.get(key, 0))) for key in ("r", "g", "b")]
+        if spec["type"] == "list_editor":
+            return [(str(index), str(value)) for index, value in enumerate(value or [])]
+        return []
+
+    def _draw_field_editor(self, screen, parent_rect):
+        spec = self.field_editor_spec
+        item = self.field_editor_item
+        if not spec or item is None:
+            self._close_field_editor()
+            return
+        self.modal_buttons = {}
+        parts = self._field_editor_parts()
+        list_mode = spec["type"] == "list_editor"
+        rows_to_draw = parts[:6] if list_mode else parts
+        popup_h = 98 + len(rows_to_draw) * 44 + (34 if list_mode else 0)
+        popup = pygame.Rect(parent_rect.centerx - 210 if list_mode else parent_rect.centerx - 180,
+                            parent_rect.y + 96, 420 if list_mode else 360, popup_h)
+        self._draw_card(screen, popup, (20, 24, 34), border_color=self.COLORS["gold"])
+        self._text(screen, spec["label"].upper(), (popup.x + 14, popup.y + 12), 13, self.COLORS["gold"])
+        close_rect = pygame.Rect(popup.right - 38, popup.y + 10, 28, 28)
+        self.modal_buttons["fe_close"] = close_rect
+        self._draw_button(screen, close_rect, "X", self.COLORS["red"], hover=(self.hover_modal_key == "fe_close"))
+
+        y = popup.y + 48
+        if list_mode:
+            add_rect = pygame.Rect(popup.x + 16, y, 96, 30)
+            self.modal_buttons["fe_add"] = add_rect
+            self._draw_button(screen, add_rect, "Add", (36, 124, 87), hover=(self.hover_modal_key == "fe_add"))
+            count_text = f"{len(parts)} entry" if len(parts) == 1 else f"{len(parts)} entries"
+            self._text(screen, count_text, (add_rect.right + 12, y + 7), 14, self.COLORS["muted"])
+            y += 42
+            if not parts:
+                self._text(screen, "No entry yet.", (popup.x + 16, y + 8), 15, self.COLORS["muted"])
+                return
+
+        for key, value in rows_to_draw:
+            row = pygame.Rect(popup.x + 16, y, popup.w - 32, 36)
+            bkey = f"fe_{key}"
+            hovered = self.hover_modal_key == bkey
+            pygame.draw.rect(screen, self.COLORS["panel_alt"] if hovered else (12, 15, 22), row)
+            pygame.draw.rect(screen, (56, 62, 76), row, 1)
+            if list_mode:
+                edit_rect = pygame.Rect(row.right - 102, row.y + 5, 56, 26)
+                del_rect = pygame.Rect(row.right - 42, row.y + 5, 36, 26)
+                self.modal_buttons[f"fe_edit_{key}"] = edit_rect
+                self.modal_buttons[f"fe_del_{key}"] = del_rect
+                display = value if len(value) <= 28 else value[:25] + "..."
+                self._text(screen, f"{int(key) + 1}. {display}", (row.x + 10, row.y + 8), 15, self.COLORS["line_light"])
+                self._draw_button(screen, edit_rect, "Edit", self.COLORS["button"],
+                                  hover=(self.hover_modal_key == f"fe_edit_{key}"))
+                self._draw_button(screen, del_rect, "Del", self.COLORS["red"],
+                                  hover=(self.hover_modal_key == f"fe_del_{key}"))
+            else:
+                self.modal_buttons[bkey] = row
+                self._text(screen, key.upper(), (row.x + 10, row.y + 7), 15, self.COLORS["muted"])
+                self._text(screen, value, (row.right - 92, row.y + 7), 15, self.COLORS["line_light"])
+            y += 44
+        if list_mode and len(parts) > len(rows_to_draw):
+            self._text(screen, f"+ {len(parts) - len(rows_to_draw)} more in JSON", (popup.x + 16, y + 4),
+                       13, self.COLORS["muted"])
+
+    def _open_color_picker(self, title, initial, callback):
+        initial = initial or {}
+        self.color_picker_open = True
+        self.color_picker_title = title
+        self.color_picker_value = {
+            "r": max(0, min(255, int(initial.get("r", 255)))),
+            "g": max(0, min(255, int(initial.get("g", 255)))),
+            "b": max(0, min(255, int(initial.get("b", 255)))),
+        }
+        self.color_picker_callback = callback
+        self.color_picker_buttons = {}
+
+    def _apply_color_picker(self):
+        if callable(self.color_picker_callback):
+            self.color_picker_callback(dict(self.color_picker_value))
+
+    def _close_color_picker(self):
+        self.color_picker_open = False
+        self.color_picker_callback = None
+        self.color_picker_buttons = {}
+
+    @staticmethod
+    def _color_picker_tuple(color):
+        return color.get("r", 0), color.get("g", 0), color.get("b", 0)
+
+    def _draw_color_picker(self, screen):
+        overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 130))
+        screen.blit(overlay, (0, 0))
+
+        rect = pygame.Rect(screen.get_width() // 2 - 260, screen.get_height() // 2 - 190, 520, 380)
+        self._draw_card(screen, rect, (20, 24, 34), border_color=self.COLORS["gold"])
+        self.color_picker_buttons = {}
+        self._text(screen, self.color_picker_title.upper(), (rect.x + 18, rect.y + 14), 13, self.COLORS["gold"])
+
+        close_rect = pygame.Rect(rect.right - 42, rect.y + 12, 30, 30)
+        self.color_picker_buttons["close"] = close_rect
+        self._draw_button(screen, close_rect, "X", self.COLORS["red"], hover=False)
+
+        wheel_size = 172
+        wheel_rect = pygame.Rect(rect.x + 28, rect.y + 58, wheel_size, wheel_size)
+        self.color_picker_wheel_rect = wheel_rect
+        self._draw_color_wheel(screen, wheel_rect)
+
+        current = self._color_picker_tuple(self.color_picker_value)
+        preview = pygame.Rect(wheel_rect.x, wheel_rect.bottom + 18, wheel_rect.w, 44)
+        pygame.draw.rect(screen, current, preview)
+        pygame.draw.rect(screen, self.COLORS["line_light"], preview, 1)
+        self._text_center(screen, f"RGB {current[0]}, {current[1]}, {current[2]}", preview, 14,
+                          (0, 0, 0) if sum(current) > 382 else self.COLORS["line_light"])
+
+        x = wheel_rect.right + 32
+        y = wheel_rect.y + 4
+        for key in ("r", "g", "b"):
+            row = pygame.Rect(x, y, rect.right - x - 28, 44)
+            self.color_picker_buttons[f"rgb_{key}"] = row
+            pygame.draw.rect(screen, self.COLORS["panel_alt"], row)
+            pygame.draw.rect(screen, (56, 62, 76), row, 1)
+            self._text(screen, key.upper(), (row.x + 14, row.y + 12), 16, self.COLORS["muted"])
+            self._text(screen, str(self.color_picker_value.get(key, 0)), (row.right - 70, row.y + 12),
+                       16, self.COLORS["line_light"])
+            y += 56
+
+        hint_y = y + 10
+        self._text(screen, "Wheel: hue + saturation", (x, hint_y), 14, self.COLORS["muted"])
+        self._text(screen, "Rows: exact RGB values", (x, hint_y + 24), 14, self.COLORS["muted"])
+        self._text(screen, "Esc or X to close", (x, hint_y + 48), 13, self.COLORS["muted"])
+
+    def _draw_color_wheel(self, screen, rect):
+        center = rect.center
+        radius = rect.w // 2
+        surface = pygame.Surface(rect.size, pygame.SRCALPHA)
+        for y in range(rect.h):
+            for x in range(rect.w):
+                dx = x - radius
+                dy = y - radius
+                dist = math.hypot(dx, dy)
+                if dist <= radius:
+                    hue = (math.atan2(dy, dx) / (2 * math.pi)) % 1.0
+                    sat = dist / radius
+                    r, g, b = colorsys.hsv_to_rgb(hue, sat, 1.0)
+                    surface.set_at((x, y), (int(r * 255), int(g * 255), int(b * 255), 255))
+        screen.blit(surface, rect)
+        pygame.draw.circle(screen, self.COLORS["line_light"], center, radius, 1)
+
+        r, g, b = self._color_picker_tuple(self.color_picker_value)
+        h, s, _ = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
+        angle = h * 2 * math.pi
+        marker = (
+            int(center[0] + math.cos(angle) * s * radius),
+            int(center[1] + math.sin(angle) * s * radius),
+        )
+        pygame.draw.circle(screen, (0, 0, 0), marker, 6, 2)
+        pygame.draw.circle(screen, (255, 255, 255), marker, 4, 1)
+
+    def _handle_color_picker_click(self, mouse_position):
+        for key, rect in self.color_picker_buttons.items():
+            if not rect.collidepoint(mouse_position):
+                continue
+            if key == "close":
+                self._close_color_picker()
+                return True
+            if key.startswith("rgb_"):
+                channel = key[-1]
+                def cb(value, ch=channel):
+                    if value is None:
+                        return
+                    self.color_picker_value[ch] = max(0, min(255, int(value)))
+                    self._apply_color_picker()
+                    self.message = f"{self.color_picker_title} updated."
+                self._open_text_prompt(f"{self.color_picker_title} {channel.upper()}",
+                                       self.color_picker_value.get(channel, 0), cb, kind="int",
+                                       allow_empty=False, label=f"{channel.upper()} (0-255):", minvalue=0)
+                return True
+
+        if self.color_picker_wheel_rect.collidepoint(mouse_position):
+            center = self.color_picker_wheel_rect.center
+            radius = self.color_picker_wheel_rect.w // 2
+            dx = mouse_position[0] - center[0]
+            dy = mouse_position[1] - center[1]
+            dist = math.hypot(dx, dy)
+            if dist <= radius:
+                hue = (math.atan2(dy, dx) / (2 * math.pi)) % 1.0
+                sat = dist / radius
+                r, g, b = colorsys.hsv_to_rgb(hue, sat, 1.0)
+                self.color_picker_value = {"r": int(r * 255), "g": int(g * 255), "b": int(b * 255)}
+                self._apply_color_picker()
+                self.message = f"{self.color_picker_title} updated."
+                return True
+
+        self._close_color_picker()
+        return True
 
     # --- Live item preview (simulates in-tracker behaviour) ---
     def _selected_item(self):
@@ -283,6 +533,7 @@ class ItemModalMixin:
             self.message = "Changes discarded."
         self.item_modal_open = False
         self.kind_picker_open = False
+        self._close_field_editor()
         self.position_pick_mode = False
         self.child_edit_index = None
         self.modal_item = None
@@ -318,7 +569,44 @@ class ItemModalMixin:
         elif key == "delete":
             self._delete_selected_item()
 
+    def _close_field_editor(self):
+        self.field_editor_open = False
+        self.field_editor_spec = None
+        self.field_editor_item = None
+        self.field_editor_callback = None
+
+    def _notify_field_editor_changed(self):
+        if callable(self.field_editor_callback):
+            self.field_editor_callback()
+
+    def _handle_field_editor_click(self, mouse_position):
+        if self.field_editor_open:
+            for key, rect in self.modal_buttons.items():
+                if not rect.collidepoint(mouse_position):
+                    continue
+                if key == "fe_close":
+                    self._close_field_editor()
+                    return True
+                if key == "fe_add":
+                    self._add_list_editor_value()
+                    return True
+                if key.startswith("fe_edit_"):
+                    self._edit_list_editor_value(int(key.rsplit("_", 1)[1]))
+                    return True
+                if key.startswith("fe_del_"):
+                    self._delete_list_editor_value(int(key.rsplit("_", 1)[1]))
+                    return True
+                if key.startswith("fe_"):
+                    self._edit_field_editor_part(key[len("fe_"):])
+                    return True
+            self._close_field_editor()
+            return True
+        return False
+
     def _handle_modal_click(self, mouse_position):
+        if self.field_editor_open:
+            self._handle_field_editor_click(mouse_position)
+            return
         # Kind picker overlay takes priority while open
         if self.kind_picker_open:
             for key, rect in self.modal_buttons.items():
@@ -454,6 +742,8 @@ class ItemModalMixin:
             return
         item["kind"] = kind
         self._ensure_kind_defaults(item)
+        if kind not in self.SPRITE_OPTIONAL_KINDS:
+            self._ensure_item_sprite(item)
         self.message = f"Type set to {kind}."
 
     def _edit_field(self, field_key):
@@ -464,33 +754,180 @@ class ItemModalMixin:
         if not spec:
             return
         ftype = spec["type"]
-        current = item.get(field_key, spec["default"])
+        current = self._get_field_value(item, spec)
         label = spec["label"]
         if ftype == "bool":
-            item[field_key] = not bool(current)
+            self._set_field_value(item, field_key, not bool(current))
             self.message = f"{label} updated."
         elif ftype in ("int", "float"):
             def cb(value, it=item, fk=field_key, lbl=label):
                 if value is None:
                     return
-                it[fk] = value
+                self._set_field_value(it, fk, value)
                 self.message = f"{lbl} updated."
             self._open_text_prompt(label, current if current is not None else 0, cb, kind=ftype, label=f"{label}:")
         elif ftype == "list":
             def cb(text, it=item, fk=field_key, lbl=label):
-                it[fk] = [v.strip() for v in (text or "").split(",") if v.strip() != ""] or [""]
+                self._set_field_value(it, fk, [v.strip() for v in (text or "").split(",") if v.strip() != ""])
                 self.message = f"{lbl} updated."
             self._open_text_prompt(label, ", ".join(str(v) for v in (current or [])), cb, label="Comma separated values:")
+        elif ftype == "list_editor":
+            self.field_editor_open = True
+            self.field_editor_spec = spec
+            self.field_editor_item = item
+            self.field_editor_callback = None
+        elif ftype == "rect":
+            self.field_editor_open = True
+            self.field_editor_spec = spec
+            self.field_editor_item = item
+            self.field_editor_callback = None
+        elif ftype == "color":
+            def apply_color(color, it=item, fk=field_key, lbl=label):
+                self._set_field_value(it, fk, color)
+                self.message = f"{lbl} updated."
+            self._open_color_picker(label, current or spec["default"], apply_color)
+        elif ftype in ("json", "jsonnull"):
+            def cb(text, it=item, fk=field_key, lbl=label, ft=ftype):
+                raw = (text or "").strip()
+                if raw == "" and ft == "jsonnull":
+                    self._set_field_value(it, fk, None)
+                    self.message = f"{lbl} cleared."
+                    return
+                try:
+                    self._set_field_value(it, fk, json.loads(raw) if raw else {})
+                    self.message = f"{lbl} updated."
+                except json.JSONDecodeError as exc:
+                    self._open_text_prompt(lbl, raw, cb, label=f"{lbl}:")
+                    self.prompt_error = f"Invalid JSON: {exc.msg}"
+            initial = "" if current is None else json.dumps(current, ensure_ascii=False)
+            self._open_text_prompt(label, initial, cb, label=f"{label}:")
         elif ftype == "sprite":
             def apply(sheet, row, column, it=item, fk=field_key, lbl=label):
-                it[fk] = {"sheet": sheet, "row": row, "column": column}
+                self._set_field_value(it, fk, {"sheet": sheet, "row": row, "column": column})
                 self.message = f"{lbl} set to {sheet} r{row} c{column}."
             self._open_sprite_picker(label, apply)
         else:  # str / strnull
             def cb(text, it=item, fk=field_key, lbl=label, ft=ftype):
-                it[fk] = text if text not in (None, "") else (None if ft == "strnull" else "")
+                self._set_field_value(it, fk, text if text not in (None, "") else (None if ft == "strnull" else ""))
                 self.message = f"{lbl} updated."
             self._open_text_prompt(label, str(current or ""), cb, label=f"{label}:")
+
+    def _edit_field_editor_part(self, part):
+        spec = self.field_editor_spec
+        item = self.field_editor_item
+        if not spec or item is None:
+            return
+        current = self._get_field_value(item, spec) or {}
+        if spec["type"] == "color":
+            label = f"{spec['label']} {part}"
+            def cb(value, it=item, sp=spec, key=part):
+                if value is None:
+                    return
+                data = dict(self._get_field_value(it, sp) or {})
+                data[key] = max(0, min(255, int(value)))
+                self._set_field_value(it, sp["key"], data)
+                self._notify_field_editor_changed()
+                self.message = f"{sp['label']} updated."
+            self._open_text_prompt(label, current.get(part, 0), cb, kind="int",
+                                   allow_empty=False, label=f"{part} (0-255):", minvalue=0)
+            return
+
+        label = f"{spec['label']} {part}"
+        minvalues = spec.get("min", {})
+        minvalue = minvalues.get(part) if part in minvalues else (0 if part in ("x", "y") else 1)
+        def cb(value, it=item, sp=spec, key=part):
+            if value is None:
+                return
+            data = dict(self._get_field_value(it, sp) or {})
+            data[key] = int(value)
+            self._set_field_value(it, sp["key"], data)
+            self._notify_field_editor_changed()
+            self.message = f"{sp['label']} updated."
+        self._open_text_prompt(label, current.get(part, 0 if part in ("x", "y") else 1), cb,
+                               kind="int", allow_empty=False, label=f"{part}:", minvalue=minvalue)
+
+    def _add_list_editor_value(self):
+        spec = self.field_editor_spec
+        item = self.field_editor_item
+        if not spec or item is None:
+            return
+        def cb(value, it=item, sp=spec):
+            if value in (None, ""):
+                return
+            values = list(self._get_field_value(it, sp) or [])
+            values.append(value)
+            self._set_field_value(it, sp["key"], values)
+            self._notify_field_editor_changed()
+            self.message = f"{sp['label']} added."
+        self._open_text_prompt(f"Add {spec['label']}", "", cb, allow_empty=False, label="Value:")
+
+    def _edit_list_editor_value(self, index):
+        spec = self.field_editor_spec
+        item = self.field_editor_item
+        if not spec or item is None:
+            return
+        values = list(self._get_field_value(item, spec) or [])
+        if not (0 <= index < len(values)):
+            return
+        def cb(value, it=item, sp=spec, idx=index):
+            if value in (None, ""):
+                return
+            vals = list(self._get_field_value(it, sp) or [])
+            if 0 <= idx < len(vals):
+                vals[idx] = value
+                self._set_field_value(it, sp["key"], vals)
+                self._notify_field_editor_changed()
+                self.message = f"{sp['label']} updated."
+        self._open_text_prompt(f"Edit {spec['label']}", values[index], cb, allow_empty=False, label="Value:")
+
+    def _delete_list_editor_value(self, index):
+        spec = self.field_editor_spec
+        item = self.field_editor_item
+        if not spec or item is None:
+            return
+        values = list(self._get_field_value(item, spec) or [])
+        if 0 <= index < len(values):
+            removed = values.pop(index)
+            self._set_field_value(item, spec["key"], values)
+            self._notify_field_editor_changed()
+            self.message = f"Removed {removed}."
+
+    def _edit_rect_field(self, item, field_key, current, label):
+        current = dict(current or {})
+        has_position = "x" in current or "y" in current
+
+        def finish(values):
+            self._set_field_value(item, field_key, values)
+            self.message = f"{label} updated."
+
+        if has_position:
+            def ask_y(x):
+                if x is None:
+                    return
+                def ask_w(y):
+                    if y is None:
+                        return
+                    def ask_h(w):
+                        if w is None:
+                            return
+                        self._open_text_prompt(f"{label} height", current.get("h", 32),
+                                               lambda h: finish({"x": x, "y": y, "w": w, "h": h}) if h is not None else None,
+                                               kind="int", allow_empty=False, label="h:", minvalue=1)
+                    self._open_text_prompt(f"{label} width", current.get("w", 120), ask_h,
+                                           kind="int", allow_empty=False, label="w:", minvalue=1)
+                self._open_text_prompt(f"{label} y", current.get("y", 0), ask_w,
+                                       kind="int", allow_empty=False, label="y:", minvalue=0)
+            self._open_text_prompt(f"{label} x", current.get("x", 0), ask_y,
+                                   kind="int", allow_empty=False, label="x:", minvalue=0)
+        else:
+            def ask_h(w):
+                if w is None:
+                    return
+                self._open_text_prompt(f"{label} height", current.get("h", 32),
+                                       lambda h: finish({"w": w, "h": h}) if h is not None else None,
+                                       kind="int", allow_empty=False, label="h:", minvalue=1)
+            self._open_text_prompt(f"{label} width", current.get("w", 120), ask_h,
+                                   kind="int", allow_empty=False, label="w:", minvalue=1)
 
     def _rename_selected_item(self):
         item = self._selected_item()
@@ -514,6 +951,8 @@ class ItemModalMixin:
             index = 0
         item["kind"] = self.ITEM_KINDS[(index + 1) % len(self.ITEM_KINDS)]
         self._ensure_kind_defaults(item)
+        if item["kind"] not in self.SPRITE_OPTIONAL_KINDS:
+            self._ensure_item_sprite(item)
         self.message = f"{item['name']} kind set to {item['kind']}."
 
     def _edit_selected_position(self):

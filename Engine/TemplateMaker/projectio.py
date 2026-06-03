@@ -15,10 +15,14 @@ class ProjectIOMixin:
     def _default_fonts(self):
         normal = {"r": 255, "g": 255, "b": 255}
         max_color = {"r": 0, "g": 255, "b": 0}
-        return {
+        fonts = {
             slot: {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": dict(normal), "Max": dict(max_color)}}
             for slot in self.FONT_SLOTS
         }
+        if "timerItemFont" in fonts:
+            fonts["timerItemFont"]["Size"] = 32
+            fonts["timerItemFont"]["Colors"]["Normal"] = {"r": 150, "g": 255, "b": 160}
+        return fonts
 
     def _kind_fields(self, kind):
         return self.KIND_FIELDS.get(kind, []) + self.COMMON_FIELDS
@@ -28,7 +32,7 @@ class ProjectIOMixin:
         for spec in self._kind_fields(kind):
             if spec["key"] not in item:
                 default = spec["default"]
-                item[spec["key"]] = list(default) if isinstance(default, list) else default
+                item[spec["key"]] = copy.deepcopy(default)
         for key, default in self.KIND_REQUIRED.get(kind, {}).items():
             if key not in item:
                 item[key] = copy.deepcopy(default)
@@ -86,6 +90,8 @@ class ProjectIOMixin:
             self.project_name = info.get("Name") or os.path.basename(folder)
             self.project_dir = folder
             self.template_size = (datas["Dimensions"]["width"], datas["Dimensions"]["height"])
+            self.background_color = dict(datas.get("BackgroundColor", {"r": 0, "g": 0, "b": 0}))
+            self.background_position = dict(datas.get("BackgroundPosition", {"x": 0, "y": 0}))
             self.background_path = os.path.join(folder, datas["Background"])
             self.background = pygame.image.load(self.background_path).convert_alpha()
             icon_file = os.path.join(folder, "icon.png")
@@ -168,7 +174,6 @@ class ProjectIOMixin:
         try:
             self.background_path = path
             self.background = pygame.image.load(path).convert_alpha()
-            self.template_size = self.background.get_size()
             self.message = f"Background loaded: {os.path.basename(path)}"
         except Exception as exc:
             self.message = f"Could not load background: {exc}"
@@ -290,7 +295,8 @@ class ProjectIOMixin:
                 "Datas": {
                     "Dimensions": {"width": self.template_size[0], "height": self.template_size[1]},
                     "Background": background_name,
-                    "BackgroundColor": {"r": 0, "g": 0, "b": 0},
+                    "BackgroundColor": dict(self.background_color or {"r": 0, "g": 0, "b": 0}),
+                    "BackgroundPosition": dict(self.background_position or {"x": 0, "y": 0}),
                     "Items": items_sheets
                 }
             },
@@ -328,6 +334,8 @@ class ProjectIOMixin:
         # Kind-specific fields (data-driven from schema)
         for spec in self._kind_fields(kind):
             key = spec["key"]
+            if "." in key:
+                continue
             value = item.get(key, spec["default"])
             if spec["type"] == "sprite":
                 if value:
@@ -345,6 +353,11 @@ class ProjectIOMixin:
                     data[key] = True
                 else:
                     data.pop(key, None)
+            elif spec["type"] == "jsonnull":
+                if value in (None, "", [], {}):
+                    data.pop(key, None)
+                else:
+                    data[key] = value
             else:
                 data[key] = value
 

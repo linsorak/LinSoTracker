@@ -28,10 +28,14 @@ class LayoutMixin:
             self._draw_position_pick(screen)
         elif self.item_modal_open:
             self._draw_item_modal(screen)
+        if self.field_editor_open and not self.item_modal_open:
+            self._draw_field_editor(screen, screen.get_rect())
         if self.fonts_modal_open:
             self._draw_fonts_modal(screen)
         if self.sprite_picker_open:
             self._draw_sprite_picker(screen)
+        if self.color_picker_open:
+            self._draw_color_picker(screen)
         if self.prompt_open:
             self._draw_text_prompt(screen)
 
@@ -53,6 +57,8 @@ class LayoutMixin:
         labels = [
             ("back", "Back"),
             ("background", "Load background"),
+            ("box", "Add box"),
+            ("timer", "Add timer"),
             ("save", "Save devtemplate"),
         ]
         self.buttons = {}
@@ -77,6 +83,8 @@ class LayoutMixin:
         return {
             "back": "Back",
             "background": "Load background",
+            "box": "Add box",
+            "timer": "Add timer",
             "save": "Save devtemplate",
         }[key]
 
@@ -96,9 +104,21 @@ class LayoutMixin:
         )
         bg_rect = self._get_template_rect(inner)
         self.last_bg_rect = bg_rect
+        bg_color = self.background_color or {"r": 0, "g": 0, "b": 0}
+        pygame.draw.rect(screen, (bg_color.get("r", 0), bg_color.get("g", 0), bg_color.get("b", 0)), bg_rect)
         if self.background:
-            scaled = pygame.transform.smoothscale(self.background, (bg_rect.w, bg_rect.h))
-            screen.blit(scaled, bg_rect)
+            scale = bg_rect.w / self.template_size[0]
+            bg_pos = self.background_position or {"x": 0, "y": 0}
+            bg_w = max(1, int(self.background.get_width() * scale))
+            bg_h = max(1, int(self.background.get_height() * scale))
+            scaled = pygame.transform.smoothscale(self.background, (bg_w, bg_h))
+            prev_clip = screen.get_clip()
+            screen.set_clip(bg_rect)
+            screen.blit(scaled, (
+                bg_rect.x + int(bg_pos.get("x", 0) * scale),
+                bg_rect.y + int(bg_pos.get("y", 0) * scale),
+            ))
+            screen.set_clip(prev_clip)
         else:
             self._draw_empty_canvas(screen, bg_rect)
 
@@ -118,13 +138,36 @@ class LayoutMixin:
         item_sheet = self._sheet_by_name(item.get("sheet")) or self.active_sheet
         cw = item_sheet["cell_w"] if item_sheet else self.cell_width
         ch = item_sheet["cell_h"] if item_sheet else self.cell_height
+        if item.get("kind") == "EditableBox":
+            sizes = item.get("Sizes") or {}
+            cw = int(sizes.get("w", 120))
+            ch = int(sizes.get("h", 32))
+        elif item.get("kind") == "TimerItem":
+            timer_rect = (item.get("Timer") or {}).get("Rect", {})
+            buttons = item.get("Buttons") or {}
+            cw = int(timer_rect.get("w", 180))
+            ch = int(timer_rect.get("h", 42))
+            for cfg in buttons.values():
+                rect_data = (cfg or {}).get("Rect", {})
+                cw = max(cw, int(rect_data.get("x", 0)) + int(rect_data.get("w", 0)))
+                ch = max(ch, int(rect_data.get("y", 0)) + int(rect_data.get("h", 0)))
         scale = bg_rect.w / self.template_size[0]
         size = (max(1, int(cw * scale)), max(1, int(ch * scale)))
         x = bg_rect.x + int(item["x"] * scale)
         y = bg_rect.y + int(item["y"] * scale)
         rect = pygame.Rect(x, y, size[0], size[1])
         item["screen_rect"] = rect
-        if icon:
+        if item.get("kind") == "EditableBox":
+            pygame.draw.rect(screen, (245, 245, 245), rect)
+            pygame.draw.rect(screen, self.COLORS["green"], rect, 2)
+            placeholder = item.get("PlaceHolder") or item.get("name") or "EditableBox"
+            self._text(screen, placeholder, (rect.x + 5, rect.y + 3), max(10, int(13 * scale)),
+                       (20, 20, 20))
+        elif item.get("kind") == "TimerItem":
+            pygame.draw.rect(screen, (12, 15, 22), rect)
+            pygame.draw.rect(screen, self.COLORS["green"], rect, 2)
+            self._text_center(screen, "00:00.00", rect, max(10, int(24 * scale)), self.COLORS["green"])
+        elif icon:
             icon = pygame.transform.smoothscale(icon, size)
             screen.blit(icon, rect)
         else:
@@ -244,6 +287,36 @@ class LayoutMixin:
         self._text(screen, "uses selected tile", (icon_rect.right + 16, set_icon.bottom + 6), 13, self.COLORS["muted"])
         y = icon_rect.bottom + 16
 
+        # Background color
+        bg_row = pygame.Rect(x, y, panel.w - pad * 2, 44)
+        self._draw_card(screen, bg_row, self.COLORS["panel_alt"], border_color=(56, 62, 76), radius=8)
+        self.info_buttons["background_color"] = bg_row
+        self._text(screen, "BACKGROUND COLOR", (bg_row.x + 10, bg_row.y + 6), 12, self.COLORS["gold"])
+        bg = self.background_color or {"r": 0, "g": 0, "b": 0}
+        swatch = pygame.Rect(bg_row.right - 56, bg_row.y + 10, 38, 24)
+        pygame.draw.rect(screen, (bg.get("r", 0), bg.get("g", 0), bg.get("b", 0)), swatch)
+        pygame.draw.rect(screen, self.COLORS["line_light"], swatch, 1)
+        self._text(screen, f"{bg.get('r',0)}, {bg.get('g',0)}, {bg.get('b',0)}",
+                   (bg_row.x + 10, bg_row.y + 24), 14, self.COLORS["line_light"])
+        y = bg_row.bottom + 14
+
+        dim_row = pygame.Rect(x, y, panel.w - pad * 2, 44)
+        self._draw_card(screen, dim_row, self.COLORS["panel_alt"], border_color=(56, 62, 76), radius=8)
+        self.info_buttons["dimensions"] = dim_row
+        self._text(screen, "DIMENSIONS", (dim_row.x + 10, dim_row.y + 6), 12, self.COLORS["gold"])
+        self._text(screen, f"{self.template_size[0]} x {self.template_size[1]}",
+                   (dim_row.x + 10, dim_row.y + 24), 15, self.COLORS["line_light"])
+        y = dim_row.bottom + 8
+
+        bg_pos = self.background_position or {"x": 0, "y": 0}
+        pos_row = pygame.Rect(x, y, panel.w - pad * 2, 44)
+        self._draw_card(screen, pos_row, self.COLORS["panel_alt"], border_color=(56, 62, 76), radius=8)
+        self.info_buttons["background_position"] = pos_row
+        self._text(screen, "BACKGROUND POSITION", (pos_row.x + 10, pos_row.y + 6), 12, self.COLORS["gold"])
+        self._text(screen, f"x {bg_pos.get('x', 0)} / y {bg_pos.get('y', 0)}",
+                   (pos_row.x + 10, pos_row.y + 24), 15, self.COLORS["line_light"])
+        y = pos_row.bottom + 14
+
         max_chars = max(8, (panel.w - pad * 2) // 9 - 2)
 
         # Editable Informations fields (click to edit). Always offer the standard keys.
@@ -268,7 +341,6 @@ class LayoutMixin:
         value_x = x + 120
         value_chars = max(4, (panel.right - pad - value_x) // 9)
         for label, value in [
-            ("Dimensions", f"{self.template_size[0]} x {self.template_size[1]}"),
             ("Background", os.path.basename(self.background_path) if self.background_path else "None"),
             ("Tilesets", str(len(self.sheets))),
             ("Items placed", str(len(self.placed_items))),

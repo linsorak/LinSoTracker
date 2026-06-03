@@ -31,6 +31,7 @@ class PreviewMixin:
                 "inc_index": 0,
                 "evo_index": 0,
                 "checked": False,
+                "submenu_open": False,
             }
             item["_preview"] = st
         return st
@@ -54,6 +55,9 @@ class PreviewMixin:
             tuple(item.get("Increment") or ()),
             item.get("valueMin"), item.get("valueMax"), item.get("valueIncrease"),
             item.get("valueStart"), item.get("maxValue"), item.get("maxValueAlternate"),
+            item.get("Background"), item.get("ShowNumbersOfItemsActive"),
+            item.get("ShowNumberOfCheckedItems"),
+            json.dumps(item.get("ItemsList") or [], sort_keys=True, default=str),
         )
 
     def _zoom_cell(self, sheet, row, column):
@@ -122,6 +126,15 @@ class PreviewMixin:
         return item.get("_component")
 
     def _draw_item_preview(self, screen, rect, item):
+        if item.get("kind") == "EditableBox":
+            self._draw_editable_box_preview(screen, rect, item)
+            return
+        if item.get("kind") == "TimerItem":
+            self._draw_timer_item_preview(screen, rect, item)
+            return
+        if item.get("kind") == "SubMenuItem":
+            self._draw_submenu_item_preview(screen, rect, item)
+            return
         comp = self._preview_component(item)
         if comp is not None:
             try:
@@ -136,12 +149,18 @@ class PreviewMixin:
                     scale = min(72 / max(1, cw), 72 / max(1, ch), 4.0)
                     sized = pygame.transform.smoothscale(
                         img, (max(1, int(img.get_width() * scale)), max(1, int(img.get_height() * scale))))
-                    # Anchor the icon cell (top-left of the composed image) at the box centre,
-                    # so it stays put regardless of label overflow.
-                    icon_w = cw * scale
-                    icon_h = ch * scale
-                    bx = int(rect.centerx - icon_w / 2)
-                    by = int(rect.centery - icon_h / 2)
+                    if item.get("kind") in ("CountItem", "AlternateCountItem", "LabelItem"):
+                        visible = sized.get_bounding_rect()
+                        bx = rect.centerx - visible.w // 2 - visible.x
+                        by = rect.centery - visible.h // 2 - visible.y
+                    else:
+                        # Anchor the icon cell (top-left of the composed image) at the box centre,
+                        # so it stays put regardless of label overflow.
+                        icon_w = cw * scale
+                        icon_h = ch * scale
+                        surface_offset_x = getattr(comp, "rect", pygame.Rect(0, 0, 0, 0)).x
+                        bx = int(rect.centerx - icon_w / 2 + surface_offset_x * scale)
+                        by = int(rect.centery - icon_h / 2)
                     prev_clip = screen.get_clip()
                     screen.set_clip(rect)
                     screen.blit(sized, (bx, by))
@@ -150,6 +169,203 @@ class PreviewMixin:
             except Exception:
                 pass
         self._draw_item_preview_sim(screen, rect, item)
+
+    @staticmethod
+    def _preview_color(data, fallback):
+        if not isinstance(data, dict):
+            return fallback
+        return data.get("r", fallback[0]), data.get("g", fallback[1]), data.get("b", fallback[2])
+
+    def _draw_editable_box_preview(self, screen, rect, item):
+        sizes = item.get("Sizes") or {}
+        style = item.get("Style") or {}
+        src_w = max(1, int(sizes.get("w", 120)))
+        src_h = max(1, int(sizes.get("h", 32)))
+        box = pygame.Rect(rect.centerx - src_w // 2, rect.centery - src_h // 2 - 10, src_w, src_h)
+
+        bg = self._preview_color(style.get("BackgroundColor"), (255, 255, 255))
+        text_color = self._preview_color(style.get("NormalTextColor"), (0, 0, 0))
+        selected_bg = self._preview_color(style.get("HoveredBackgroundColor"), (70, 70, 70))
+        selected_text = self._preview_color(style.get("HoveredTextColor"), (255, 255, 255))
+        prev_clip = screen.get_clip()
+        screen.set_clip(rect.inflate(-2, -2))
+        pygame.draw.rect(screen, bg, box)
+        pygame.draw.rect(screen, (70, 130, 210), box, 2)
+
+        placeholder = item.get("PlaceHolder") or item.get("name") or "EditableBox"
+        font = pygame.font.Font(None, max(13, min(22, int(src_h * 0.65))))
+        visible = placeholder
+        max_width = box.w - 12
+        while visible and font.size(visible)[0] > max_width:
+            visible = visible[:-1]
+        text = font.render(visible, True, text_color if item.get("PlaceHolder") else (120, 120, 120))
+        screen.blit(text, (box.x + 6, box.centery - text.get_height() // 2))
+        cursor_x = box.x + 8 + text.get_width()
+        pygame.draw.line(screen, text_color, (cursor_x, box.y + 5), (cursor_x, box.bottom - 5), 1)
+
+        suggestions = item.get("Lines") or []
+        if suggestions:
+            row_h = max(16, min(22, src_h))
+            list_h = min(len(suggestions), 2) * row_h
+            list_rect = pygame.Rect(box.x, box.bottom + 4, box.w, list_h)
+            pygame.draw.rect(screen, bg, list_rect)
+            pygame.draw.rect(screen, (30, 30, 30), list_rect, 1)
+            for index, suggestion in enumerate(suggestions[:2]):
+                row = pygame.Rect(list_rect.x, list_rect.y + index * row_h, list_rect.w, row_h)
+                if index == 0:
+                    pygame.draw.rect(screen, selected_bg, row)
+                line = font.render(str(suggestion), True, selected_text if index == 0 else text_color)
+                screen.blit(line, (row.x + 6, row.centery - line.get_height() // 2))
+        screen.set_clip(prev_clip)
+        if box.w > rect.w or box.h > rect.h:
+            self._text(screen, "clipped actual size", (rect.x + 8, rect.bottom - 18), 11, self.COLORS["muted"])
+
+    def _draw_timer_item_preview(self, screen, rect, item):
+        timer = item.get("Timer") or {}
+        buttons = item.get("Buttons") or {}
+        timer_rect_data = timer.get("Rect", {"x": 0, "y": 0, "w": 180, "h": 42})
+        rects = [pygame.Rect(timer_rect_data.get("x", 0), timer_rect_data.get("y", 0),
+                             timer_rect_data.get("w", 180), timer_rect_data.get("h", 42))]
+        for cfg in buttons.values():
+            if isinstance(cfg, dict) and cfg.get("Enable") is not False and "Rect" in cfg:
+                rd = cfg["Rect"]
+                rects.append(pygame.Rect(rd.get("x", 0), rd.get("y", 0), rd.get("w", 1), rd.get("h", 1)))
+        bounds = rects[0].copy()
+        for r in rects[1:]:
+            bounds.union_ip(r)
+        origin = (rect.centerx - bounds.w // 2 - bounds.x, rect.centery - bounds.h // 2 - bounds.y)
+
+        prev_clip = screen.get_clip()
+        screen.set_clip(rect.inflate(-2, -2))
+        timer_rect = pygame.Rect(origin[0] + rects[0].x, origin[1] + rects[0].y, rects[0].w, rects[0].h)
+        bg_cfg = timer.get("Background", {})
+        fill = self._preview_color(bg_cfg.get("Color"), (12, 15, 22))
+        border = self._preview_color(bg_cfg.get("BorderColor"), self.COLORS["green"])
+        pygame.draw.rect(screen, fill, timer_rect, border_radius=int(bg_cfg.get("Radius", 0)))
+        pygame.draw.rect(screen, border, timer_rect, max(1, int(bg_cfg.get("BorderSize", 1))))
+
+        font_cfg = timer.get("Font", {})
+        font = pygame.font.Font(None, int(font_cfg.get("Size", 32)))
+        color = self._preview_color(font_cfg.get("Color"), self.COLORS["green"])
+        text = "00:00.00" if timer.get("ShowCentiseconds", True) else "00:00"
+        surface = font.render(text, True, color)
+        screen.blit(surface, (timer_rect.centerx - surface.get_width() // 2,
+                              timer_rect.centery - surface.get_height() // 2))
+
+        for key, cfg in buttons.items():
+            if not isinstance(cfg, dict) or cfg.get("Enable") is False or "Rect" not in cfg:
+                continue
+            rd = cfg["Rect"]
+            br = pygame.Rect(origin[0] + rd.get("x", 0), origin[1] + rd.get("y", 0),
+                             rd.get("w", 80), rd.get("h", 28))
+            if key == "StartPause":
+                fill = self._preview_color((cfg.get("Colors") or {}).get("Start"), (35, 130, 85))
+                label = (cfg.get("Labels") or {}).get("Start", "Start")
+            else:
+                fill = self._preview_color(cfg.get("Color"), (110, 65, 135))
+                label = cfg.get("Label", "Reset")
+            pygame.draw.rect(screen, fill, br, border_radius=int(cfg.get("Radius", 6)))
+            pygame.draw.rect(screen, self._preview_color(cfg.get("BorderColor"), (235, 235, 235)), br, 1,
+                             border_radius=int(cfg.get("Radius", 6)))
+            bfont = pygame.font.Font(None, int((cfg.get("Font") or {}).get("Size", 16)))
+            btext = bfont.render(label, True, self._preview_color((cfg.get("Font") or {}).get("Color"), (255, 255, 255)))
+            screen.blit(btext, (br.centerx - btext.get_width() // 2, br.centery - btext.get_height() // 2))
+        screen.set_clip(prev_clip)
+        if bounds.w > rect.w or bounds.h > rect.h:
+            self._text(screen, "clipped actual size", (rect.x + 8, rect.bottom - 18), 11, self.COLORS["muted"])
+
+    def _draw_submenu_item_preview(self, screen, rect, item):
+        st = self._preview_state(item)
+        if st.get("submenu_open"):
+            self._draw_submenu_open_preview(screen, rect, item)
+            return
+
+        icon = self._get_icon_surface(item["row"], item["column"], item.get("sheet"))
+        if icon:
+            scaled = pygame.transform.smoothscale(icon, (72, 72))
+            if not item.get("isActive", False):
+                scaled = scaled.copy()
+                scaled.set_alpha(int(max(0.0, min(1.0, item.get("opacity", 0.5))) * 255))
+            screen.blit(scaled, (rect.centerx - 36, rect.centery - 36))
+
+        if item.get("ShowNumbersOfItemsActive"):
+            items = item.get("ItemsList") or []
+            active = sum(1 for subitem in items if subitem.get("isActive", False))
+            if item.get("ShowNumberOfCheckedItems"):
+                checked = sum(1 for subitem in items
+                              if subitem.get("Kind") == "CheckItem" and subitem.get("isActive", False))
+                text = f"{checked}/{active}"
+            else:
+                text = f"{active}/{len(items)}"
+            path = self._resolve_font_path((self.fonts.get("subMenuItemFont", {}) or {}).get("Name"))
+            try:
+                ptext.draw(text, midright=(rect.right - 12, rect.centery), fontname=path,
+                           antialias=True, owidth=1.2, ocolor=(0, 0, 0),
+                           color=self._font_color("subMenuItemFont"), fontsize=22, surf=screen)
+            except Exception:
+                self._text(screen, text, (rect.right - 56, rect.centery - 10), 18,
+                           self._font_color("subMenuItemFont"))
+
+        self._text(screen, "click to open", (rect.x + 8, rect.bottom - 18), 11, self.COLORS["muted"])
+
+    def _draw_submenu_open_preview(self, screen, rect, item):
+        bg = self._load_submenu_background(item.get("Background"))
+        items = item.get("ItemsList") or []
+
+        prev_clip = screen.get_clip()
+        screen.set_clip(rect.inflate(-2, -2))
+        pygame.draw.rect(screen, (5, 6, 9), rect)
+
+        if bg:
+            bg_w, bg_h = bg.get_size()
+            scale = min(rect.w / max(1, bg_w), rect.h / max(1, bg_h))
+            target = pygame.Rect(0, 0, max(1, int(bg_w * scale)), max(1, int(bg_h * scale)))
+            target.center = rect.center
+            screen.blit(pygame.transform.smoothscale(bg, target.size), target)
+        else:
+            bg_w, bg_h = self.template_size
+            scale = min(rect.w / max(1, bg_w), rect.h / max(1, bg_h))
+            target = pygame.Rect(rect.x + 8, rect.y + 8, rect.w - 16, rect.h - 28)
+            pygame.draw.rect(screen, (15, 18, 26), target)
+            pygame.draw.rect(screen, (56, 62, 76), target, 1)
+
+        for subitem in items[:80]:
+            pos = subitem.get("Positions") or {}
+            sheet = (subitem.get("SheetInformation") or {}).get("SpriteSheet")
+            row = (subitem.get("SheetInformation") or {}).get("row", 1)
+            column = (subitem.get("SheetInformation") or {}).get("column", 1)
+            icon = self._get_icon_surface(row, column, sheet)
+            if not icon:
+                continue
+            size = max(4, int(24 * scale))
+            x = target.x + int(pos.get("x", 0) * scale)
+            y = target.y + int(pos.get("y", 0) * scale)
+            scaled = pygame.transform.smoothscale(icon, (size, size))
+            if not subitem.get("isActive", False):
+                scaled = scaled.copy()
+                scaled.set_alpha(120)
+            screen.blit(scaled, (x, y))
+
+        if len(items) > 80:
+            self._text(screen, f"+{len(items) - 80}", (rect.right - 34, rect.bottom - 18), 11, self.COLORS["muted"])
+        self._text(screen, "submenu preview", (rect.x + 8, rect.bottom - 18), 11, self.COLORS["muted"])
+        screen.set_clip(prev_clip)
+
+    def _load_submenu_background(self, name):
+        if not name:
+            return None
+        candidates = []
+        if self.project_dir:
+            candidates.append(os.path.join(self.project_dir, name))
+        if self.background_path:
+            candidates.append(os.path.join(os.path.dirname(self.background_path), name))
+        for path in candidates:
+            if os.path.exists(path):
+                try:
+                    return pygame.image.load(path).convert_alpha()
+                except Exception:
+                    return None
+        return None
 
     def _advance_preview(self, item):
         self._preview_action(item, "left")
@@ -251,6 +467,8 @@ class PreviewMixin:
             st["evo_index"] = (st["evo_index"] + 1) % (len(item.get("children", [])) + 1)
         elif kind == "CheckItem":
             st["checked"] = not st["checked"]
+        elif kind == "SubMenuItem":
+            st["submenu_open"] = not st.get("submenu_open", False)
         else:
             st["active"] = not st["active"]
 
