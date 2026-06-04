@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+ARCH="$(uname -m)"
 PYTHON_VERSION="${PYTHON_VERSION:-3.14.5}"
-VENV_DIR="${VENV_DIR:-.venv-linux-${PYTHON_VERSION}}"
-BUILD_DIR="${BUILD_DIR:-build/nuitka-linux}"
+
+VENV_DIR="${VENV_DIR:-.venv-linux-${ARCH}-${PYTHON_VERSION}}"
+
+BUILD_BASE_DIR="${BUILD_BASE_DIR:-build}"
+BUILD_DIR="${BUILD_DIR:-${BUILD_BASE_DIR}/nuitka-linux-${ARCH}-$(date +%Y%m%d-%H%M%S)}"
+
 DIST_DIR="${DIST_DIR:-dist}"
 APP_NAME="${APP_NAME:-LinSoTracker}"
 
@@ -16,6 +21,46 @@ log() {
 fail() {
     printf '[build-linux] ERROR: %s\n' "$*" >&2
     exit 1
+}
+
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || fail "Missing command: $1"
+}
+
+copy_dir_to_dist() {
+    local source_dir="$1"
+    local dist_path="$2"
+
+    if [[ -d "$source_dir" ]]; then
+        log "Copying directory into dist: ${source_dir}"
+        rm -rf "${dist_path}/${source_dir}"
+        mkdir -p "${dist_path}"
+        cp -R "${source_dir}" "${dist_path}/"
+    fi
+}
+
+copy_file_to_dist() {
+    local source_file="$1"
+    local dist_path="$2"
+
+    if [[ -f "$source_file" ]]; then
+        log "Copying file into dist: ${source_file}"
+        mkdir -p "${dist_path}"
+        cp -f "${source_file}" "${dist_path}/"
+    fi
+}
+
+clean_old_builds_safe() {
+    mkdir -p "$BUILD_BASE_DIR"
+
+    log "Keeping previous build folders. Current build dir: ${BUILD_DIR}"
+
+    find "$BUILD_BASE_DIR" \
+        -maxdepth 1 \
+        -type d \
+        -name "nuitka-linux-*" \
+        -mtime +7 \
+        -exec rm -rf {} + 2>/dev/null || true
 }
 
 resolve_python() {
@@ -39,32 +84,61 @@ resolve_python() {
     fail "Python ${PYTHON_VERSION} not found. Install it, install pyenv, or run with PYTHON_BIN=/path/to/python."
 }
 
+[[ "$(uname -s)" == "Linux" ]] || fail "This script must run on Linux."
+
 PYTHON="$(resolve_python)"
 
 ACTUAL_VERSION="$("$PYTHON" -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')"
 [[ "$ACTUAL_VERSION" == "$PYTHON_VERSION" ]] || fail "Expected Python ${PYTHON_VERSION}, got ${ACTUAL_VERSION} from ${PYTHON}"
 
+"$PYTHON" -c 'import ssl; print(ssl.OPENSSL_VERSION)' >/dev/null 2>&1 || fail "Python SSL module is missing from ${PYTHON}"
+"$PYTHON" -c 'import tkinter' >/dev/null 2>&1 || fail "Python tkinter module is missing from ${PYTHON}"
+
+log "Using Python: ${PYTHON}"
+
 log "Creating venv: ${VENV_DIR}"
+rm -rf "$VENV_DIR"
 "$PYTHON" -m venv "$VENV_DIR"
+
 source "${VENV_DIR}/bin/activate"
 
 log "Installing Python dependencies"
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install -r requirements.txt
+
+if [[ -f requirements.txt ]]; then
+    python -m pip install -r requirements.txt
+else
+    log "requirements.txt not found, skipping"
+fi
+
 python -m pip install --no-deps pygame-menu==4.5.2
+
+log "Installing Nuitka from develop branch (same as Windows build)"
+python -m pip install --upgrade --force-reinstall "https://github.com/Nuitka/Nuitka/archive/develop.zip"
 
 DATA_ARGS=()
 [[ -d templates ]] && DATA_ARGS+=(--include-data-dir=templates=templates)
 [[ -d ressources ]] && DATA_ARGS+=(--include-data-dir=ressources=ressources)
+[[ -d resources ]] && DATA_ARGS+=(--include-data-dir=resources=resources)
 [[ -d default_saves ]] && DATA_ARGS+=(--include-data-dir=default_saves=default_saves)
+[[ -d extensions ]] && DATA_ARGS+=(--include-data-dir=extensions=extensions)
+[[ -d plugins ]] && DATA_ARGS+=(--include-data-dir=plugins=plugins)
+[[ -d seeds ]] && DATA_ARGS+=(--include-data-dir=seeds=seeds)
+
 [[ -f tracker.data ]] && DATA_ARGS+=(--include-data-file=tracker.data=tracker.data)
 [[ -f .dev ]] && DATA_ARGS+=(--include-data-file=.dev=.dev)
+[[ -f config.ini ]] && DATA_ARGS+=(--include-data-file=config.ini=config.ini)
+[[ -f settings.ini ]] && DATA_ARGS+=(--include-data-file=settings.ini=settings.ini)
+[[ -f settings.json ]] && DATA_ARGS+=(--include-data-file=settings.json=settings.json)
 
 ICON_ARGS=()
 [[ -f icon.png ]] && ICON_ARGS+=(--linux-icon=icon.png)
 
-log "Building standalone app with Nuitka"
-rm -rf "$BUILD_DIR"
+log "Building standalone Linux app with Nuitka"
+
+clean_old_builds_safe
+mkdir -p "$BUILD_DIR"
+
 python -m nuitka \
     --standalone \
     --assume-yes-for-downloads \
@@ -78,19 +152,49 @@ python -m nuitka \
     "${DATA_ARGS[@]}" \
     LinSoTracker.py
 
-ARCH="$(uname -m)"
+DIST_PATH="${BUILD_DIR}/LinSoTracker.dist"
+[[ -d "$DIST_PATH" ]] || fail "Could not find LinSoTracker.dist in ${BUILD_DIR}"
+
+log "Forcing project files into dist (alongside binary)"
+
+copy_dir_to_dist "templates" "$DIST_PATH"
+copy_dir_to_dist "ressources" "$DIST_PATH"
+copy_dir_to_dist "resources" "$DIST_PATH"
+copy_dir_to_dist "default_saves" "$DIST_PATH"
+copy_dir_to_dist "extensions" "$DIST_PATH"
+copy_dir_to_dist "plugins" "$DIST_PATH"
+copy_dir_to_dist "seeds" "$DIST_PATH"
+
+copy_file_to_dist "tracker.data" "$DIST_PATH"
+copy_file_to_dist ".dev" "$DIST_PATH"
+copy_file_to_dist "config.ini" "$DIST_PATH"
+copy_file_to_dist "settings.ini" "$DIST_PATH"
+copy_file_to_dist "settings.json" "$DIST_PATH"
+
+log "Dist content:"
+find "$DIST_PATH" -maxdepth 2 -print >&2 || true
+
 PACKAGE_NAME="${APP_NAME}-linux-${ARCH}"
 OUTPUT_PATH="${DIST_DIR}/${PACKAGE_NAME}"
 
 log "Packaging ${PACKAGE_NAME}"
-rm -rf "$OUTPUT_PATH"
-mkdir -p "$DIST_DIR"
-cp -R "${BUILD_DIR}/LinSoTracker.dist" "$OUTPUT_PATH"
 
-if command -v zip >/dev/null 2>&1; then
-    (cd "$DIST_DIR" && rm -f "${PACKAGE_NAME}.zip" && zip -qr "${PACKAGE_NAME}.zip" "$PACKAGE_NAME")
-    log "Done: ${DIST_DIR}/${PACKAGE_NAME}.zip"
-else
-    (cd "$DIST_DIR" && rm -f "${PACKAGE_NAME}.tar.gz" && tar -czf "${PACKAGE_NAME}.tar.gz" "$PACKAGE_NAME")
-    log "Done: ${DIST_DIR}/${PACKAGE_NAME}.tar.gz"
-fi
+rm -rf "$OUTPUT_PATH"
+mkdir -p "$OUTPUT_PATH"
+
+cp -R "$DIST_PATH" "$OUTPUT_PATH/"
+
+(
+    cd "$DIST_DIR"
+    if command -v zip >/dev/null 2>&1; then
+        rm -f "${PACKAGE_NAME}.zip"
+        zip -qr "${PACKAGE_NAME}.zip" "$PACKAGE_NAME"
+        log "Done: ${DIST_DIR}/${PACKAGE_NAME}.zip"
+    else
+        rm -f "${PACKAGE_NAME}.tar.gz"
+        tar -czf "${PACKAGE_NAME}.tar.gz" "$PACKAGE_NAME"
+        log "Done: ${DIST_DIR}/${PACKAGE_NAME}.tar.gz"
+    fi
+)
+
+log "App: ${OUTPUT_PATH}/LinSoTracker.dist/LinSoTracker"

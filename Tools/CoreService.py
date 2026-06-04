@@ -96,16 +96,12 @@ class CoreService(metaclass=Singleton):
 
     @staticmethod
     def resolve_app_path():
-        try:
-            compiled = globals().get("__compiled__")
-            containing_dir = getattr(compiled, "containing_dir", None)
-            if containing_dir:
-                return os.path.abspath(containing_dir)
-        except NameError:
-            pass
-
+        # sys.frozen is set by both Nuitka standalone and onefile.
+        # sys.executable reliably points to the main binary in both cases,
+        # whereas __compiled__.containing_dir returns the module's own subdir
+        # (e.g. Contents/MacOS/Tools/) which is wrong for macOS app bundles.
         if getattr(sys, 'frozen', False):
-            return os.path.dirname(sys.executable)
+            return os.path.dirname(os.path.abspath(sys.executable))
 
         if getattr(sys, 'argv', None) and sys.argv[0]:
             argv_path = os.path.abspath(sys.argv[0])
@@ -329,20 +325,29 @@ class CoreService(metaclass=Singleton):
 
     @staticmethod
     def convert_to_gs(surf):
+        # pygame-ce's transform.grayscale() drops the alpha channel, which causes
+        # transparent pixels to become opaque gray. Modify RGB directly via surfarray
+        # so the alpha channel is never touched.
         try:
-            gs = pygame.transform.grayscale(surf)
-            surf.fill((0, 0, 0, 0))
-            surf.blit(gs, (0, 0))
+            import pygame.surfarray
+            import numpy as np
+            px = pygame.surfarray.pixels3d(surf)
+            gray = ((px[:, :, 0].astype(np.uint16) +
+                     px[:, :, 1].astype(np.uint16) +
+                     px[:, :, 2].astype(np.uint16)) // 3).astype(np.uint8)
+            px[:, :, 0] = gray
+            px[:, :, 1] = gray
+            px[:, :, 2] = gray
+            del px
             return
-        except (AttributeError, pygame.error):
+        except Exception:
             pass
         width, height = surf.get_size()
         for x in range(width):
             for y in range(height):
                 red, green, blue, alpha = surf.get_at((x, y))
                 average = (red + green + blue) // 3
-                gs_color = (average, average, average, alpha)
-                surf.set_at((x, y), gs_color)
+                surf.set_at((x, y), (average, average, average, alpha))
 
     @staticmethod
     def create_directory(path):

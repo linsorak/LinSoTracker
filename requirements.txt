@@ -8,7 +8,5 @@ typing-extensions>=4.15.0
 # pygame-menu is installed by install-requirements.ps1 with --no-deps.
 # Its metadata depends on pygame, but this project uses pygame-ce for the pygame module.
 
-# Build tools for build-nuitka-onefile.bat
-nuitka>=4.1.1
-ordered-set>=4.1.0
-zstandard>=0.25.0
+# Build tools — installed separately by each build script (not via pip install -r)
+# ordered-set and zstandard are pulled in automatically as Nuitka dependencies.
