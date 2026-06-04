@@ -187,6 +187,28 @@ class TemplateMakerConstants:
         "timerItemFont",
     ]
 
+    # Map-only font slots (added when the template is a map template)
+    MAP_FONT_SLOTS = [
+        "mapFont", "mapFontTitle", "mapFontSubTitle", "mapFontChecksNumber",
+        "mapFontPagesIndicator", "mapFontListMaps", "mapFontCheckHint",
+        "mapFontCheckZoneHint", "rulesOptionsFontTitle",
+    ]
+
+    MAP_FONT_DEFAULTS = {
+        "mapFont": {"Name": "visitor1.ttf", "Size": 20, "Colors": {
+            "Logic": {"r": 0, "g": 255, "b": 0}, "NotLogic": {"r": 255, "g": 0, "b": 0},
+            "Done": {"r": 128, "g": 128, "b": 128}, "Normal": {"r": 255, "g": 255, "b": 255},
+            "Focused": {"r": 0, "g": 255, "b": 255}, "HaveLogic": {"r": 255, "g": 165, "b": 0}}},
+        "mapFontTitle": {"Name": "visitor1.ttf", "Size": 28, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontSubTitle": {"Name": "visitor1.ttf", "Size": 20, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontChecksNumber": {"Name": "visitor1.ttf", "Size": 13, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontPagesIndicator": {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontListMaps": {"Name": "visitor1.ttf", "Size": 18, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontCheckHint": {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontCheckZoneHint": {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "rulesOptionsFontTitle": {"Name": "visitor1.ttf", "Size": 22, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+    }
+
     COLORS = {
         "bg": (8, 9, 13),
         "bg_soft": (13, 15, 22),

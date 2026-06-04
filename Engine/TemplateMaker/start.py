@@ -87,12 +87,8 @@ class StartMixin:
                 self._text(screen, "Open", (card.right - 108, card.centery - 9), 16, self.COLORS["green"])
             screen.set_clip(prev_clip)
 
-            if max_scroll > 0:
-                track = pygame.Rect(list_rect.right - 8, list_rect.y + 4, 4, list_rect.h - 8)
-                pygame.draw.rect(screen, (40, 46, 62), track)
-                th = max(24, int(track.h * view_h / content_h))
-                ty = track.y + int((track.h - th) * self.project_scroll / max_scroll)
-                pygame.draw.rect(screen, self.COLORS["gold"], (track.x, ty, track.w, th))
+            track = pygame.Rect(list_rect.right - 8, list_rect.y + 4, 4, list_rect.h - 8)
+            self._register_scrollbar(screen, "project", track, self.project_scroll, max_scroll, content_h, view_h)
 
         # Back button
         back_rect = pygame.Rect(panel.x + pad, panel.bottom - 60, 150, 42)
@@ -134,6 +130,7 @@ class StartMixin:
             return
         self.project_name = name
         self.project_dir = os.path.join(self.main_menu.dev_template_directory, self._slugify(name))
+        self.saved_once = False
         self.project_info = {
             "Creator": "Template Maker",
             "Name": name,
@@ -146,6 +143,12 @@ class StartMixin:
         self.background = None
         self.illustration = None
         self.illustration_path = None
+        self.is_map_template = False
+        self.maps = []
+        self.maps_extra = {}
+        self.maps_extra_assets = {}
+        self.map_source_dir = None
+        self.selected_map_index = 0
         self.background_color = {"r": 0, "g": 0, "b": 0}
         self.background_position = {"x": 0, "y": 0}
         self.sheets = []

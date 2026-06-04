@@ -7,6 +7,7 @@ from tkinter import filedialog, messagebox, simpledialog
 from zipfile import ZipFile
 
 import pygame
+import pygame.gfxdraw
 
 from Tools import ptext
 
@@ -14,6 +15,7 @@ from Tools import ptext
 class LayoutMixin:
     def draw(self, screen, time_delta=0):
         width, height = screen.get_size()
+        self._scrollbars = {}
         self._layout(width, height)
         self._draw_background(screen, width, height)
         if self.mode == "start":
@@ -36,6 +38,20 @@ class LayoutMixin:
             self._draw_sprite_picker(screen)
         if self.color_picker_open:
             self._draw_color_picker(screen)
+        if self.map_options_open:
+            self._draw_map_options_modal(screen)
+        if self.check_modal_open:
+            self._draw_check_modal(screen)
+        if self.map_data_open:
+            self._draw_map_data_modal(screen)
+        if self.actions_editor_open:
+            self._draw_actions_editor(screen)
+        if self.hide_editor_open:
+            self._draw_hide_editor(screen)
+        if self.cond_builder_open:
+            self._draw_cond_builder(screen)
+        if self.name_picker_open:
+            self._draw_name_picker(screen)
         if self.context_menu_open:
             self._draw_context_menu(screen)
         if self.prompt_open:
@@ -66,6 +82,8 @@ class LayoutMixin:
                 ("background", "Load background"),
                 ("save", "Save devtemplate"),
                 ("saveas", "Save as"),
+                ("saveto", "Save to..."),
+                ("export", "Export .template"),
                 ("renumber", "Fix IDs"),
             ]
         self.buttons = {}
@@ -96,6 +114,8 @@ class LayoutMixin:
             "timer": "Add timer",
             "save": "Save devtemplate",
             "saveas": "Save as",
+            "saveto": "Save to...",
+            "export": "Export .template",
             "renumber": "Fix IDs",
         }[key]
 
@@ -103,20 +123,49 @@ class LayoutMixin:
         self._draw_card(screen, self.canvas_rect, self.COLORS["panel"], radius=14)
         title_rect = pygame.Rect(self.canvas_rect.x + 18, self.canvas_rect.y + 12, self.canvas_rect.w - 36, 28)
         canvas_size = self._canvas_size()
-        title = "Submenu canvas" if self.canvas_context == "submenu" else "Canvas"
+        map_view = self._map_view_active()
+        if map_view:
+            title = f"Map: {self._current_map()['name']}"
+        elif self.canvas_context == "submenu":
+            title = "Submenu canvas"
+        else:
+            title = "Canvas"
         self._text(screen, title, title_rect.topleft, 24, self.COLORS["gold"])
         self._text(screen, f"{canvas_size[0]} x {canvas_size[1]}", (title_rect.right - 120, title_rect.y + 5), 16, self.COLORS["muted"])
 
-        # "See links" checkbox, below the title (shown in main and submenu canvas)
-        box = pygame.Rect(title_rect.x, title_rect.y + 30, 18, 18)
-        self.see_links_rect = pygame.Rect(box.x, box.y, 110, 20)
-        pygame.draw.rect(screen, (20, 24, 34), box)
-        pygame.draw.rect(screen, self.COLORS["gold"] if self.show_links else (56, 62, 76), box, 2)
-        if self.show_links:
-            pygame.draw.line(screen, self.COLORS["green"], (box.x + 3, box.centery), (box.centerx - 1, box.bottom - 4), 2)
-            pygame.draw.line(screen, self.COLORS["green"], (box.centerx - 1, box.bottom - 4), (box.right - 3, box.y + 3), 2)
-        self._text(screen, "See links", (box.right + 6, box.y + 1), 14,
-                   self.COLORS["line_light"] if self.show_links else self.COLORS["muted"])
+        # "See links" + "Snap" checkboxes, below the title (item canvases only, not map view)
+        if map_view:
+            self.see_links_rect = pygame.Rect(0, 0, 1, 1)
+            self.snap_rect = pygame.Rect(0, 0, 1, 1)
+            self.grid_rect = pygame.Rect(0, 0, 1, 1)
+        else:
+            box = pygame.Rect(title_rect.x, title_rect.y + 30, 18, 18)
+            self.see_links_rect = pygame.Rect(box.x, box.y, 110, 20)
+            pygame.draw.rect(screen, (20, 24, 34), box)
+            pygame.draw.rect(screen, self.COLORS["gold"] if self.show_links else (56, 62, 76), box, 2)
+            if self.show_links:
+                pygame.draw.line(screen, self.COLORS["green"], (box.x + 3, box.centery), (box.centerx - 1, box.bottom - 4), 2)
+                pygame.draw.line(screen, self.COLORS["green"], (box.centerx - 1, box.bottom - 4), (box.right - 3, box.y + 3), 2)
+            self._text(screen, "See links", (box.right + 6, box.y + 1), 14,
+                       self.COLORS["line_light"] if self.show_links else self.COLORS["muted"])
+            sbox = pygame.Rect(box.right + 96, box.y, 18, 18)
+            self.snap_rect = pygame.Rect(sbox.x, sbox.y, 90, 20)
+            pygame.draw.rect(screen, (20, 24, 34), sbox)
+            pygame.draw.rect(screen, self.COLORS["gold"] if self.snap_enabled else (56, 62, 76), sbox, 2)
+            if self.snap_enabled:
+                pygame.draw.line(screen, self.COLORS["green"], (sbox.x + 3, sbox.centery), (sbox.centerx - 1, sbox.bottom - 4), 2)
+                pygame.draw.line(screen, self.COLORS["green"], (sbox.centerx - 1, sbox.bottom - 4), (sbox.right - 3, sbox.y + 3), 2)
+            self._text(screen, "Snap items", (sbox.right + 6, sbox.y + 1), 14,
+                       self.COLORS["line_light"] if self.snap_enabled else self.COLORS["muted"])
+            gbox = pygame.Rect(sbox.right + 96, box.y, 18, 18)
+            self.grid_rect = pygame.Rect(gbox.x, gbox.y, 60, 20)
+            pygame.draw.rect(screen, (20, 24, 34), gbox)
+            pygame.draw.rect(screen, self.COLORS["gold"] if self.grid_shown else (56, 62, 76), gbox, 2)
+            if self.grid_shown:
+                pygame.draw.line(screen, self.COLORS["green"], (gbox.x + 3, gbox.centery), (gbox.centerx - 1, gbox.bottom - 4), 2)
+                pygame.draw.line(screen, self.COLORS["green"], (gbox.centerx - 1, gbox.bottom - 4), (gbox.right - 3, gbox.y + 3), 2)
+            self._text(screen, "Grid", (gbox.right + 6, gbox.y + 1), 14,
+                       self.COLORS["line_light"] if self.grid_shown else self.COLORS["muted"])
 
         title_h = 60
         margin = 18
@@ -126,9 +175,22 @@ class LayoutMixin:
             self.canvas_rect.w - margin * 2,
             self.canvas_rect.h - title_h - margin,
         )
-        bg_rect = self._get_template_rect(inner)
+        # Map view supports zoom + pan for precise check placement
+        if map_view:
+            fit = self._get_template_rect(inner)
+            zw = max(1, int(fit.w * self.map_zoom))
+            zh = max(1, int(fit.h * self.map_zoom))
+            bg_rect = pygame.Rect(inner.centerx + self.map_pan[0] - zw // 2,
+                                  inner.centery + self.map_pan[1] - zh // 2, zw, zh)
+            self.map_view_rect = inner
+            clip_rect = inner
+        else:
+            bg_rect = self._get_template_rect(inner)
+            clip_rect = bg_rect
         self.last_bg_rect = bg_rect
         bg_color = self._canvas_background_color()
+        prev_clip = screen.get_clip()
+        screen.set_clip(clip_rect)
         pygame.draw.rect(screen, (bg_color.get("r", 0), bg_color.get("g", 0), bg_color.get("b", 0)), bg_rect)
         background = self._canvas_background_surface()
         if background:
@@ -137,17 +199,34 @@ class LayoutMixin:
             bg_w = max(1, int(background.get_width() * scale))
             bg_h = max(1, int(background.get_height() * scale))
             scaled = pygame.transform.smoothscale(background, (bg_w, bg_h))
-            prev_clip = screen.get_clip()
-            screen.set_clip(bg_rect)
             screen.blit(scaled, (
                 bg_rect.x + int(bg_pos.get("x", 0) * scale),
                 bg_rect.y + int(bg_pos.get("y", 0) * scale),
             ))
-            screen.set_clip(prev_clip)
-        else:
+        elif not map_view:
             self._draw_empty_canvas(screen, bg_rect)
+        screen.set_clip(prev_clip)
 
-        pygame.draw.rect(screen, self.COLORS["line_light"], bg_rect, 2)
+        # Grid overlay (item canvas) - enables grid snapping
+        if not map_view and self.grid_shown and self.snap_size > 0:
+            scale = bg_rect.w / canvas_size[0]
+            step = max(4, int(self.snap_size * scale))
+            prev = screen.get_clip()
+            screen.set_clip(clip_rect)
+            for gx in range(bg_rect.x, bg_rect.right, step):
+                pygame.draw.line(screen, (60, 66, 82), (gx, bg_rect.y), (gx, bg_rect.bottom), 1)
+            for gy in range(bg_rect.y, bg_rect.bottom, step):
+                pygame.draw.line(screen, (60, 66, 82), (bg_rect.x, gy), (bg_rect.right, gy), 1)
+            screen.set_clip(prev)
+
+        pygame.draw.rect(screen, self.COLORS["line_light"], clip_rect, 2)
+
+        # Map view: draw the checks markers (click map to add, drag to move) + zoom hint
+        if map_view:
+            self._draw_map_checks(screen, bg_rect, canvas_size)
+            self._text(screen, f"Zoom {self.map_zoom:.1f}x  (wheel=zoom, drag empty=pan)",
+                       (inner.right - 290, inner.y + 4), 13, self.COLORS["muted"])
+            return
 
         # Clip items to the template so off-canvas items (e.g. invisible helpers) don't spill out
         prev_clip = screen.get_clip()
@@ -163,7 +242,246 @@ class LayoutMixin:
             if index == self.selected_item_index:
                 pygame.draw.rect(screen, self.COLORS["gold"], rect.inflate(8, 8), 3)
             self._draw_linked_items(screen, item, bg_rect, parent_path=(index,))
+        # Alignment guides while dragging with snap on
+        dragging = self.dragging_item_index is not None or self.dragging_linked_path is not None
+        if dragging and self.snap_guides:
+            scale = bg_rect.w / canvas_size[0]
+            for orient, coord in self.snap_guides:
+                if orient == "v":
+                    sx = bg_rect.x + int(coord * scale)
+                    pygame.draw.line(screen, self.COLORS["gold"], (sx, bg_rect.y), (sx, bg_rect.bottom), 1)
+                else:
+                    sy = bg_rect.y + int(coord * scale)
+                    pygame.draw.line(screen, self.COLORS["gold"], (bg_rect.x, sy), (bg_rect.right, sy), 1)
         screen.set_clip(prev_clip)
+
+    def _draw_map_options_modal(self, screen):
+        m = self._current_map()
+        if not m:
+            self.map_options_open = False
+            return
+        data = m["data"]["Datas"]
+        sw, sh = screen.get_size()
+        overlay = pygame.Surface((sw, sh), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 175))
+        screen.blit(overlay, (0, 0))
+        modal = pygame.Rect(sw // 2 - 440, sh // 2 - 280, 880, 560)
+        self._draw_popup(screen, modal, radius=12)
+        self.map_options_buttons = {}
+        x = modal.x + 20
+        y = modal.y + 16
+        self._text(screen, f"Map options - {m['name']}", (x, y), 22, self.COLORS["gold"])
+        y += 36
+
+        # Left column: image imports + numeric options
+        colw = 380
+        for key, label in (("Background", "Map image"), ("SubMenuBackground", "Submenu image"),
+                           ("LeftArrow", "Left arrow"), ("RightArrow", "Right arrow")):
+            thumb_box = pygame.Rect(x, y, 40, 34)
+            btn = pygame.Rect(thumb_box.right + 8, y, colw - 48, 34)
+            self.map_options_buttons[f"mapimg_{key}"] = btn
+            surf = m["assets"].get(key)
+            pygame.draw.rect(screen, (10, 12, 18), thumb_box)
+            pygame.draw.rect(screen, (56, 62, 76), thumb_box, 1)
+            if surf:
+                iw, ih = surf.get_size()
+                s = min(36 / iw, 30 / ih)
+                tw, th = max(1, int(iw * s)), max(1, int(ih * s))
+                screen.blit(pygame.transform.smoothscale(surf, (tw, th)),
+                            (thumb_box.centerx - tw // 2, thumb_box.centery - th // 2))
+            self._draw_button(screen, btn, f"{label}: {'set' if surf else 'import'}",
+                              (36, 124, 87) if surf else (70, 74, 86), hover=(self.hover_modal_key == f"mapimg_{key}"))
+            y += 40
+
+        def opt_row(label, key, value):
+            row = pygame.Rect(x, y, colw, 32)
+            self._draw_card(screen, row, self.COLORS["panel_alt"], border_color=(56, 62, 76), radius=6)
+            self.map_options_buttons[f"opt_{key}"] = row
+            self._text(screen, label, (row.x + 8, row.y + 8), 13, self.COLORS["gold"])
+            self._text(screen, str(value), (row.x + 170, row.y + 8), 13, self.COLORS["line_light"])
+            return row
+
+        box = data.get("DrawBoxRect", {})
+        sub = data.get("DrawBoxRectSubTitle", {})
+        la = (data.get("LeftArrow") or {}).get("Positions", {})
+        ra = (data.get("RightArrow") or {}).get("Positions", {})
+        opt_row("Checks box (x,y,w,h)", "DrawBoxRect", f"{box.get('x',0)},{box.get('y',0)},{box.get('w',0)},{box.get('h',0)}"); y += 36
+        opt_row("Subtitle box", "DrawBoxRectSubTitle", f"{sub.get('x',0)},{sub.get('y',0)},{sub.get('w',0)},{sub.get('h',0)}"); y += 36
+        opt_row("Label Y", "LabelY", data.get("LabelY", 0)); y += 36
+        opt_row("Left arrow pos", "LeftArrowPos", f"{la.get('x',0)},{la.get('y',0)}"); y += 36
+        opt_row("Right arrow pos", "RightArrowPos", f"{ra.get('x',0)},{ra.get('y',0)}"); y += 36
+
+        # Right column: live preview of the map with the boxes overlaid
+        pv = pygame.Rect(modal.x + colw + 40, modal.y + 56, modal.right - (modal.x + colw + 40) - 20, 420)
+        pygame.draw.rect(screen, (8, 9, 13), pv)
+        pygame.draw.rect(screen, (56, 62, 76), pv, 1)
+        self._text(screen, "PREVIEW", (pv.x + 6, pv.y - 18), 12, self.COLORS["muted"])
+        bg = m["assets"].get("Background")
+        if bg:
+            iw, ih = bg.get_size()
+            s = min((pv.w - 8) / iw, (pv.h - 8) / ih)
+            dw, dh = max(1, int(iw * s)), max(1, int(ih * s))
+            ox = pv.x + (pv.w - dw) // 2
+            oy = pv.y + (pv.h - dh) // 2
+            screen.blit(pygame.transform.smoothscale(bg, (dw, dh)), (ox, oy))
+
+            def to_pv(px, py):
+                return ox + int(px * s), oy + int(py * s)
+            if box:
+                r = pygame.Rect(*to_pv(box.get("x", 0), box.get("y", 0)),
+                                int(box.get("w", 0) * s), int(box.get("h", 0) * s))
+                pygame.draw.rect(screen, self.COLORS["gold"], r, 2)
+            sb = m["assets"].get("SubMenuBackground")
+            if sb and box:
+                sbw, sbh = max(1, int(box.get("w", 1) * s)), max(1, int(box.get("h", 1) * s))
+                screen.blit(pygame.transform.smoothscale(sb, (sbw, sbh)), to_pv(box.get("x", 0), box.get("y", 0)))
+                r = pygame.Rect(*to_pv(box.get("x", 0), box.get("y", 0)), sbw, sbh)
+                pygame.draw.rect(screen, self.COLORS["gold"], r, 2)
+            for arrow, pos in (("LeftArrow", la), ("RightArrow", ra)):
+                if pos:
+                    ax, ay = to_pv(pos.get("x", 0), pos.get("y", 0))
+                    asurf = m["assets"].get(arrow)
+                    if asurf:
+                        aw = max(6, int(asurf.get_width() * s)); ah = max(6, int(asurf.get_height() * s))
+                        screen.blit(pygame.transform.smoothscale(asurf, (aw, ah)), (ax, ay))
+                    else:
+                        pygame.draw.circle(screen, self.COLORS["green"], (ax, ay), 5)
+        else:
+            self._text_center(screen, "Import a map image", pv, 16, self.COLORS["muted"])
+
+        # Window-size warning + Fit button (maps render right of the items)
+        wok, rw, rh = self._map_window_ok()
+        if not wok:
+            warn = pygame.Rect(modal.x + 20, modal.bottom - 86, colw, 34)
+            pygame.draw.rect(screen, (60, 40, 20), warn)
+            pygame.draw.rect(screen, (200, 140, 60), warn, 1)
+            self._text(screen, f"Window too small - need {rw}x{rh}", (warn.x + 8, warn.y + 4), 12, (255, 200, 120))
+            self._text(screen, f"have {self.template_size[0]}x{self.template_size[1]}", (warn.x + 8, warn.y + 18), 11, self.COLORS["muted"])
+            fit_btn = pygame.Rect(warn.right - 64, warn.y + 6, 56, 22)
+            self.map_options_buttons["fit_window"] = fit_btn
+            self._draw_button(screen, fit_btn, "Fit", (36, 124, 87), hover=(self.hover_modal_key == "fit_window"))
+
+        close_btn = pygame.Rect(modal.right - 120, modal.bottom - 44, 100, 30)
+        self.map_options_buttons["close"] = close_btn
+        self._draw_button(screen, close_btn, "Close", (36, 124, 87), hover=(self.hover_modal_key == "close"))
+
+    def _draw_check_modal(self, screen):
+        check = self._selected_check()
+        if not check:
+            self.check_modal_open = False
+            return
+        sw, sh = screen.get_size()
+        overlay = pygame.Surface((sw, sh), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 170))
+        screen.blit(overlay, (0, 0))
+        modal = pygame.Rect(sw // 2 - 260, sh // 2 - 220, 520, 440)
+        self._draw_popup(screen, modal, radius=12)
+        self.check_modal_buttons = {}
+        self.check_subrows = {}
+        x = modal.x + 20
+        y = modal.y + 16
+        is_block = check.get("Kind") == "Block"
+        self._text(screen, f"Edit check  (#{check.get('Id')})", (x, y), 22, self.COLORS["gold"])
+        y += 36
+
+        def field_row(label, key, value):
+            row = pygame.Rect(x, y, modal.w - 40, 38)
+            self._draw_card(screen, row, self.COLORS["panel_alt"], border_color=(56, 62, 76), radius=8)
+            self.check_modal_buttons[f"field_{key}"] = row
+            self._text(screen, label.upper(), (row.x + 10, row.y + 4), 11, self.COLORS["gold"])
+            disp = str(value) if value not in (None, "") else "click to edit"
+            self._text(screen, disp[:54], (row.x + 10, row.y + 18), 14, self.COLORS["line_light"])
+
+        field_row("Name", "Name", check.get("Name"))
+        y += 44
+        field_row("Zone", "Zone", check.get("Zone"))
+        y += 44
+
+        # Kind toggle
+        kind_btn = pygame.Rect(x, y, modal.w - 40, 32)
+        self.check_modal_buttons["toggle_kind"] = kind_btn
+        self._draw_button(screen, kind_btn, f"Kind: {check.get('Kind')}  (click to switch)",
+                          (70, 74, 86), hover=(self.hover_modal_key == "toggle_kind"))
+        y += 40
+
+        if not is_block:
+            field_row("Conditions", "Conditions", check.get("Conditions"))
+            y += 44
+        else:
+            self._text(screen, "SUB-CHECKS", (x, y), 12, self.COLORS["gold"])
+            add_btn = pygame.Rect(modal.right - 50, y - 4, 30, 24)
+            self.check_modal_buttons["add_sub"] = add_btn
+            self._draw_button(screen, add_btn, "+", (36, 124, 87), hover=(self.hover_modal_key == "add_sub"))
+            y += 22
+            list_area = pygame.Rect(x, y, modal.w - 40, modal.bottom - y - 60)
+            self._draw_card(screen, list_area, (10, 12, 18), border_color=(56, 62, 76), radius=8)
+            ry = list_area.y + 4
+            prev_clip = screen.get_clip()
+            screen.set_clip(list_area)
+            for si, sub in enumerate(check.get("Checks", [])):
+                if ry + 30 > list_area.bottom:
+                    break
+                nrow = pygame.Rect(list_area.x + 4, ry, list_area.w - 70, 26)
+                crow = pygame.Rect(nrow.right + 4, ry, 0, 26)  # placeholder
+                cond_row = pygame.Rect(nrow.right + 4, ry, list_area.right - nrow.right - 34, 26)
+                del_btn = pygame.Rect(list_area.right - 26, ry, 22, 26)
+                self.check_subrows[(si, "Name")] = nrow
+                self.check_subrows[(si, "Conditions")] = cond_row
+                self.check_subrows[(si, "del")] = del_btn
+                pygame.draw.rect(screen, self.COLORS["panel_alt"], nrow)
+                pygame.draw.rect(screen, self.COLORS["panel_alt"], cond_row)
+                self._text(screen, str(sub.get("Name", ""))[:18], (nrow.x + 4, nrow.y + 5), 13, self.COLORS["line_light"])
+                self._text(screen, str(sub.get("Conditions", ""))[:22], (cond_row.x + 4, cond_row.y + 5), 12, self.COLORS["muted"])
+                pygame.draw.rect(screen, self.COLORS["red"], del_btn)
+                self._text(screen, "x", (del_btn.x + 7, del_btn.y + 4), 14, self.COLORS["line_light"])
+                ry += 30
+            screen.set_clip(prev_clip)
+
+        # Close / Delete buttons
+        close_btn = pygame.Rect(modal.right - 120, modal.bottom - 44, 100, 30)
+        del_check_btn = pygame.Rect(modal.x + 20, modal.bottom - 44, 120, 30)
+        self.check_modal_buttons["close"] = close_btn
+        self.check_modal_buttons["delete"] = del_check_btn
+        self._draw_button(screen, close_btn, "Close", (36, 124, 87), hover=(self.hover_modal_key == "close"))
+        self._draw_button(screen, del_check_btn, "Delete check", self.COLORS["red"], hover=(self.hover_modal_key == "delete"))
+
+    def _draw_map_checks(self, screen, bg_rect, canvas_size):
+        self.check_screen_rects = {}
+        checks = self._current_map()["data"].get("ChecksList", [])
+        scale = bg_rect.w / canvas_size[0]
+        extra = self.maps_extra or {}
+        ssc = extra.get("SizeSimpleCheck", {"w": 5, "h": 5})
+        sgc = extra.get("SizeGroupChecks", {"w": 16, "h": 16})
+        red = (200, 40, 40)
+        black = (0, 0, 0)
+        prev_clip = screen.get_clip()
+        screen.set_clip(getattr(self, "map_view_rect", bg_rect))
+        for index, check in enumerate(checks):
+            pos = check.get("Positions") or {}
+            cx = bg_rect.x + int(pos.get("x", 0) * scale)
+            cy = bg_rect.y + int(pos.get("y", 0) * scale)
+            is_block = check.get("Kind") == "Block"
+            if is_block:
+                side = max(12, int(sgc.get("w", 16) * 2 * scale))
+                rect = pygame.Rect(cx - side // 2, cy - side // 2, side, side)
+                pygame.draw.rect(screen, red, rect)
+                pygame.draw.rect(screen, black, rect, max(1, int(2 * scale)))
+                n = len(check.get("Checks") or [])
+                self._text_center(screen, str(n), rect, max(11, int(side * 0.55)), (255, 255, 255))
+            else:
+                r = max(5, int(ssc.get("w", 5) * scale))
+                rect = pygame.Rect(cx - r, cy - r, r * 2, r * 2)
+                pygame.gfxdraw.filled_circle(screen, cx, cy, r, red)
+                pygame.gfxdraw.aacircle(screen, cx, cy, r, black)
+            self.check_screen_rects[index] = rect.inflate(6, 6)
+            if index == self.selected_check_index:
+                pygame.draw.rect(screen, self.COLORS["line_light"], rect.inflate(8, 8), 2)
+                name = check.get("Name", "")
+                if name:
+                    self._text(screen, name, (rect.right + 6, rect.y - 2), 14, self.COLORS["line_light"])
+        screen.set_clip(prev_clip)
+        self._text(screen, f"{len(checks)} check(s) - click map to add, double-click to edit",
+                   (bg_rect.x + 6, bg_rect.bottom + 2), 13, self.COLORS["muted"])
 
     def _draw_linked_items(self, screen, item, bg_rect, depth=0, parent_path=()):
         if depth > 8:
@@ -295,12 +613,153 @@ class LayoutMixin:
             self._text(screen, name, (ix + 34, row.y + 4), 14, self.COLORS["line_light"])
             self._text(screen, item.get("kind", "Item"), (ix + 34, row.y + 22), 11, self.COLORS["muted"])
         screen.set_clip(prev_clip)
-        if max_scroll > 0:
-            track = pygame.Rect(area.right - 7, view.y, 4, view.h)
-            pygame.draw.rect(screen, (40, 46, 62), track)
-            th = max(20, int(track.h * view.h / content_h))
-            ty = track.y + int((track.h - th) * self.items_list_scroll / max_scroll)
-            pygame.draw.rect(screen, self.COLORS["gold"], (track.x, ty, track.w, th))
+        track = pygame.Rect(area.right - 7, view.y, 4, view.h)
+        self._register_scrollbar(screen, "items_list", track, self.items_list_scroll, max_scroll, content_h, view.h)
+
+    def _draw_maps_tab(self, screen, panel, x, y, pad):
+        self.maps_rows = {}
+        self.maps_buttons = {}
+        # Add / Remove buttons
+        add_btn = pygame.Rect(panel.right - pad - 30, y - 2, 30, 26)
+        rem_btn = pygame.Rect(add_btn.x - 36, y - 2, 30, 26)
+        self.maps_buttons["map_add"] = add_btn
+        self.maps_buttons["map_remove"] = rem_btn
+        self._text(screen, f"{len(self.maps)} map(s)", (x, y), 13, self.COLORS["muted"])
+        self._draw_button(screen, add_btn, "+", (36, 124, 87), hover=(self.hover_key == "map_add"))
+        self._draw_button(screen, rem_btn, "-", self.COLORS["red"], hover=(self.hover_key == "map_remove"))
+        y += 34
+
+        # Warn when the window is too small to show the maps (placed right of items)
+        ok, rw, rh = self._map_window_ok()
+        if not ok:
+            warn = pygame.Rect(x, y, panel.w - pad * 2, 46)
+            pygame.draw.rect(screen, (60, 40, 20), warn)
+            pygame.draw.rect(screen, (200, 140, 60), warn, 1)
+            self._text(screen, "Window too small for maps!", (warn.x + 8, warn.y + 4), 13, (255, 200, 120))
+            self._text(screen, f"need {rw}x{rh}, have {self.template_size[0]}x{self.template_size[1]}",
+                       (warn.x + 8, warn.y + 22), 11, self.COLORS["muted"])
+            fit_btn = pygame.Rect(warn.right - 70, warn.y + 12, 62, 22)
+            self.maps_buttons["fit_window"] = fit_btn
+            self._draw_button(screen, fit_btn, "Fit", (36, 124, 87), hover=(self.hover_key == "fit_window"))
+            y += 52
+
+        # Map list
+        list_h = min(len(self.maps) * 34 + 8, 180)
+        area = pygame.Rect(x, y, panel.w - pad * 2, max(40, list_h))
+        self._draw_card(screen, area, (10, 12, 18), border_color=(56, 62, 76), radius=8)
+        ry = area.y + 6
+        for index, m in enumerate(self.maps):
+            row = pygame.Rect(area.x + 4, ry, area.w - 8, 28)
+            self.maps_rows[index] = row
+            if index == self.selected_map_index:
+                pygame.draw.rect(screen, (40, 46, 62), row)
+                pygame.draw.rect(screen, self.COLORS["gold"], row, 1)
+            elif self.hover_key == f"maprow_{index}":
+                pygame.draw.rect(screen, self.COLORS["panel_alt"], row)
+            thumb = m["assets"].get("Background")
+            if thumb:
+                screen.blit(pygame.transform.smoothscale(thumb, (22, 22)), (row.x + 4, row.y + 3))
+            else:
+                pygame.draw.rect(screen, (30, 35, 48), pygame.Rect(row.x + 4, row.y + 3, 22, 22))
+            self._text(screen, m["name"], (row.x + 32, row.y + 6), 14, self.COLORS["line_light"])
+            ry += 32
+        y = area.bottom + 12
+
+        # Selected map: rename + options + checks list
+        if not (0 <= self.selected_map_index < len(self.maps)):
+            return
+        m = self.maps[self.selected_map_index]
+        third = (panel.w - pad * 2 - 16) // 3
+        rename_btn = pygame.Rect(x, y, third, 30)
+        opt_btn = pygame.Rect(rename_btn.right + 8, y, third, 30)
+        data_btn = pygame.Rect(opt_btn.right + 8, y, panel.right - pad - (opt_btn.right + 8), 30)
+        self.maps_buttons["map_rename"] = rename_btn
+        self.maps_buttons["map_options"] = opt_btn
+        self.maps_buttons["map_data"] = data_btn
+        self._draw_button(screen, rename_btn, f"{m['name']}"[:10], (70, 74, 86), hover=(self.hover_key == "map_rename"))
+        self._draw_button(screen, opt_btn, "Options", (70, 74, 86), hover=(self.hover_key == "map_options"))
+        self._draw_button(screen, data_btn, "Map data", (70, 74, 86), hover=(self.hover_key == "map_data"))
+        y += 38
+
+        # Checks / blocks list for this map (Blocks section + Simple checks section)
+        checks = m["data"].get("ChecksList", [])
+        blocks = [(i, c) for i, c in enumerate(checks) if c.get("Kind") == "Block"]
+        simples = [(i, c) for i, c in enumerate(checks) if c.get("Kind") != "Block"]
+        self._text(screen, f"CHECKS  ({len(checks)})", (x, y), 12, self.COLORS["gold"])
+        self._text(screen, "click=select  dbl=edit", (x + 110, y + 1), 11, self.COLORS["muted"])
+        y += 20
+        area = pygame.Rect(x, y, panel.w - pad * 2, panel.bottom - y - 12)
+        self._draw_card(screen, area, (10, 12, 18), border_color=(56, 62, 76), radius=8)
+        self.map_check_rows = []
+        if not checks:
+            self._text_center(screen, "Click the map to add a check", area, 14, self.COLORS["muted"])
+            return
+
+        # Build the flat render list (headers + blocks + expanded sub-checks + simples)
+        entries = [("header", f"BLOCKS ({len(blocks)})")]
+        for i, c in blocks:
+            entries.append(("block", i, c))
+            if i in self.expanded_blocks:
+                for si, sub in enumerate(c.get("Checks") or []):
+                    entries.append(("sub", i, si, sub))
+        entries.append(("header", f"SIMPLE CHECKS ({len(simples)})"))
+        for i, c in simples:
+            entries.append(("simple", i, c))
+
+        row_h = 26
+        view = area.inflate(-8, -8)
+        content_h = len(entries) * row_h
+        max_scroll = max(0, content_h - view.h)
+        self.maps_checks_scroll = max(0, min(getattr(self, "maps_checks_scroll", 0), max_scroll))
+        self.maps_checks_max_scroll = max_scroll
+        self.maps_checks_rect = area
+        prev_clip = screen.get_clip()
+        screen.set_clip(view)
+        for ei, entry in enumerate(entries):
+            cy = view.y + ei * row_h - self.maps_checks_scroll
+            if cy + row_h < view.y or cy > view.bottom:
+                continue
+            row = pygame.Rect(view.x, cy, view.w, row_h - 2)
+            kind = entry[0]
+            if kind == "header":
+                self._text(screen, entry[1], (row.x + 4, row.y + 4), 12, self.COLORS["gold"])
+                continue
+            if kind == "block":
+                i, c = entry[1], entry[2]
+                expanded = i in self.expanded_blocks
+                tri = pygame.Rect(row.x + 2, row.y, 18, row.h)
+                self.map_check_rows.append((tri, {"t": "toggle", "i": i}))
+                selrow = pygame.Rect(tri.right, row.y, row.w - tri.w, row.h)
+                self.map_check_rows.append((selrow, {"t": "block", "i": i}))
+                if i == self.selected_check_index:
+                    pygame.draw.rect(screen, (40, 46, 62), row)
+                    pygame.draw.rect(screen, self.COLORS["gold"], row, 1)
+                self._text(screen, "v" if expanded else ">", (tri.x + 4, row.y + 4), 13, self.COLORS["line_light"])
+                mk = pygame.Rect(row.x + 22, row.y + 6, 13, 13)
+                pygame.draw.rect(screen, (200, 40, 40), mk)
+                pygame.draw.rect(screen, (0, 0, 0), mk, 1)
+                nm = str(c.get("Name", ""))[:max(6, (row.w - 70) // 8)]
+                self._text(screen, nm, (row.x + 40, row.y + 4), 13, self.COLORS["line_light"])
+                self._text(screen, f"[{len(c.get('Checks') or [])}]", (row.right - 30, row.y + 4), 12, self.COLORS["muted"])
+            elif kind == "sub":
+                i, si, sub = entry[1], entry[2], entry[3]
+                self.map_check_rows.append((row, {"t": "sub", "i": i, "si": si}))
+                self._text(screen, "- " + str(sub.get("Name", ""))[:max(6, (row.w - 60) // 8)],
+                           (row.x + 44, row.y + 4), 12, self.COLORS["muted"])
+            else:  # simple
+                i, c = entry[1], entry[2]
+                self.map_check_rows.append((row, {"t": "simple", "i": i}))
+                if i == self.selected_check_index:
+                    pygame.draw.rect(screen, (40, 46, 62), row)
+                    pygame.draw.rect(screen, self.COLORS["gold"], row, 1)
+                mk = pygame.Rect(row.x + 8, row.y + 6, 13, 13)
+                pygame.gfxdraw.filled_circle(screen, mk.centerx, mk.centery, 6, (200, 40, 40))
+                pygame.gfxdraw.aacircle(screen, mk.centerx, mk.centery, 6, (0, 0, 0))
+                nm = str(c.get("Name", ""))[:max(6, (row.w - 50) // 8)]
+                self._text(screen, nm, (row.x + 28, row.y + 4), 13, self.COLORS["line_light"])
+        screen.set_clip(prev_clip)
+        track = pygame.Rect(area.right - 7, view.y, 4, view.h)
+        self._register_scrollbar(screen, "maps_checks", track, self.maps_checks_scroll, max_scroll, content_h, view.h)
 
     def _draw_left_panel(self, screen):
         panel = self.left_panel_rect
@@ -309,10 +768,13 @@ class LayoutMixin:
         x = panel.x + pad
         y = panel.y + 12
 
-        # Tabs: Sheets | Items List
+        # Tabs: Sheets | Items List (| Maps when a map template)
         self.left_tabs = {}
-        tab_w = (panel.w - pad * 2 - 8) // 2
-        for i, (key, label) in enumerate([("sheets", "Sheets"), ("items", "Items List")]):
+        tabs = [("sheets", "Sheets"), ("items", "Items")]
+        if self.is_map_template:
+            tabs.append(("maps", "Maps"))
+        tab_w = (panel.w - pad * 2 - 8 * (len(tabs) - 1)) // len(tabs)
+        for i, (key, label) in enumerate(tabs):
             tr = pygame.Rect(x + i * (tab_w + 8), y, tab_w, 30)
             self.left_tabs[key] = tr
             active = self.left_tab == key
@@ -326,6 +788,13 @@ class LayoutMixin:
             self.sheet_list_rows = {}
             self.sheet_rect = pygame.Rect(0, 0, 1, 1)
             self._draw_items_list_tab(screen, panel, x, y, pad)
+            return
+
+        if self.left_tab == "maps":
+            self.sheet_buttons = {}
+            self.sheet_list_rows = {}
+            self.sheet_rect = pygame.Rect(0, 0, 1, 1)
+            self._draw_maps_tab(screen, panel, x, y, pad)
             return
 
         # New (blank) / Add (import) / Remove buttons
@@ -531,6 +1000,14 @@ class LayoutMixin:
         fonts_btn = pygame.Rect(x, y, panel.w - pad * 2, 38)
         self.info_buttons["fonts"] = fonts_btn
         self._draw_button(screen, fonts_btn, "Edit fonts", (70, 74, 86), hover=(self.hover_key == "fonts"))
+        y += 46
+
+        # Map template toggle
+        map_btn = pygame.Rect(x, y, panel.w - pad * 2, 34)
+        self.info_buttons["map_template"] = map_btn
+        on = self.is_map_template
+        self._draw_button(screen, map_btn, f"Map template: {'ON' if on else 'OFF'}",
+                          (36, 124, 87) if on else (70, 74, 86), hover=(self.hover_key == "map_template"))
         y += 38
 
         screen.set_clip(prev_clip)
@@ -540,12 +1017,8 @@ class LayoutMixin:
         max_scroll = max(0, content_h - view.h)
         self.info_scroll = max(0, min(self.info_scroll, max_scroll))
         self.info_max_scroll = max_scroll
-        if max_scroll > 0:
-            track = pygame.Rect(panel.right - 7, view.y + 2, 4, view.h - 4)
-            pygame.draw.rect(screen, (40, 46, 62), track)
-            th = max(24, int(track.h * view.h / content_h))
-            ty = track.y + int((track.h - th) * self.info_scroll / max_scroll)
-            pygame.draw.rect(screen, self.COLORS["gold"], (track.x, ty, track.w, th))
+        track = pygame.Rect(panel.right - 7, view.y + 2, 4, view.h - 4)
+        self._register_scrollbar(screen, "info", track, self.info_scroll, max_scroll, content_h, view.h)
 
     def _draw_link_elbow(self, screen, a, b, color):
         ax, ay = a.center

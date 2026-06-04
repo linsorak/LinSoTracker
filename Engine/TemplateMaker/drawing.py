@@ -58,6 +58,17 @@ class DrawingMixin:
         pygame.draw.rect(screen, color, rect)
         pygame.draw.rect(screen, border_color or self.COLORS["line"], rect, 1)
 
+    def _draw_popup(self, screen, rect, radius=12, border_color=None):
+        """Modal frame with a drop shadow + thick bright border, so the popup
+        clearly stands out from whatever is behind it."""
+        shadow = rect.inflate(22, 22)
+        shadow_surf = pygame.Surface(shadow.size, pygame.SRCALPHA)
+        pygame.draw.rect(shadow_surf, (0, 0, 0, 140), shadow_surf.get_rect(), border_radius=radius + 6)
+        screen.blit(shadow_surf, shadow.topleft)
+        pygame.draw.rect(screen, self.COLORS["panel"], rect, border_radius=radius)
+        pygame.draw.rect(screen, (6, 7, 11), rect, 1, border_radius=radius)
+        pygame.draw.rect(screen, border_color or self.COLORS["gold"], rect, 3, border_radius=radius)
+
     def _draw_button(self, screen, rect, label, color, hover=False):
         # Flat solid fill, brighten slightly on hover
         fill = self._lighten(color, 18) if hover else color
@@ -125,7 +136,25 @@ class DrawingMixin:
         h = int(th * scale)
         return pygame.Rect(container.x + (container.w - w) // 2, container.y + (container.h - h) // 2, w, h)
 
+    def _map_view_active(self):
+        return (getattr(self, "left_tab", None) == "maps"
+                and getattr(self, "is_map_template", False)
+                and self._current_map() is not None)
+
+    def _current_map(self):
+        maps = getattr(self, "maps", None)
+        idx = getattr(self, "selected_map_index", 0)
+        if maps and 0 <= idx < len(maps):
+            return maps[idx]
+        return None
+
     def _canvas_size(self):
+        if self._map_view_active():
+            bg = self._current_map()["assets"].get("Background")
+            if bg:
+                return bg.get_size()
+            dims = self._current_map()["data"]["Datas"].get("Dimensions", {})
+            return (dims.get("width") or self.template_size[0], dims.get("height") or self.template_size[1])
         if getattr(self, "canvas_context", "main") == "submenu":
             background = self._submenu_background_surface()
             if background:
@@ -133,17 +162,21 @@ class DrawingMixin:
         return self.template_size
 
     def _canvas_background_surface(self):
+        if self._map_view_active():
+            return self._current_map()["assets"].get("Background")
         if getattr(self, "canvas_context", "main") == "submenu":
             return self._submenu_background_surface()
         return self.background
 
     def _canvas_background_color(self):
+        if self._map_view_active():
+            return {"r": 0, "g": 0, "b": 0}
         if getattr(self, "canvas_context", "main") == "submenu":
             return {"r": 0, "g": 0, "b": 0}
         return self.background_color or {"r": 0, "g": 0, "b": 0}
 
     def _canvas_background_position(self):
-        if getattr(self, "canvas_context", "main") == "submenu":
+        if self._map_view_active() or getattr(self, "canvas_context", "main") == "submenu":
             return {"x": 0, "y": 0}
         return self.background_position or {"x": 0, "y": 0}
 
@@ -171,6 +204,53 @@ class DrawingMixin:
                 except Exception:
                     return None
         return None
+
+    # ---- generic draggable scrollbars ----------------------------------
+    SCROLL_ATTRS = {
+        "info": "info_scroll", "items_list": "items_list_scroll",
+        "sheet": "sheet_scroll", "picker": "picker_scroll",
+        "fonts": "fonts_scroll", "project": "project_scroll",
+        "maps_checks": "maps_checks_scroll", "map_data": "map_data_scroll",
+        "cond_builder": "cond_builder_scroll", "hide_editor": "hide_editor_scroll",
+        "name_picker": "name_picker_scroll",
+    }
+
+    def _register_scrollbar(self, screen, name, track, scroll, max_scroll, content_h, view_h):
+        pygame.draw.rect(screen, (40, 46, 62), track)
+        if max_scroll <= 0 or content_h <= 0:
+            return
+        th = max(20, int(track.h * view_h / content_h))
+        ty = track.y + int((track.h - th) * scroll / max_scroll)
+        thumb = pygame.Rect(track.x, ty, track.w, th)
+        pygame.draw.rect(screen, self.COLORS["gold"], thumb)
+        self._scrollbars[name] = {"track": track, "thumb": thumb, "max": max_scroll}
+
+    def _start_scrollbar_drag(self, mouse_position):
+        for name, sb in (self._scrollbars or {}).items():
+            if sb["thumb"].collidepoint(mouse_position):
+                self.dragging_scrollbar = name
+                self.scrollbar_drag_offset = mouse_position[1] - sb["thumb"].y
+                self.suppress_next_click = True
+                return True
+            if sb["track"].collidepoint(mouse_position):
+                self.dragging_scrollbar = name
+                self.scrollbar_drag_offset = sb["thumb"].h // 2
+                self.suppress_next_click = True
+                self._update_scrollbar_drag(mouse_position)
+                return True
+        return False
+
+    def _update_scrollbar_drag(self, mouse_position):
+        name = self.dragging_scrollbar
+        sb = (self._scrollbars or {}).get(name)
+        attr = self.SCROLL_ATTRS.get(name)
+        if not sb or not attr:
+            return
+        track = sb["track"]
+        denom = max(1, track.h - sb["thumb"].h)
+        frac = (mouse_position[1] - track.y - self.scrollbar_drag_offset) / denom
+        frac = max(0.0, min(1.0, frac))
+        setattr(self, attr, int(frac * sb["max"]))
 
     def _draw_status(self, screen):
         rect = pygame.Rect(20, screen.get_height() - 42, screen.get_width() - 40, 28)

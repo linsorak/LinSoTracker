@@ -18,58 +18,78 @@ class FontsMixin:
         screen.blit(overlay, (0, 0))
 
         pad = 24
-        modal_w = min(760, screen.get_width() - 80)
-        modal_h = min(80 + len(self.FONT_SLOTS) * 64 + 40, screen.get_height() - 60)
+        slots = self._active_font_slots()
+        row_h = 62
+        modal_w = min(820, screen.get_width() - 80)
+        view_h = min(len(slots) * row_h, screen.get_height() - 220)
+        modal_h = view_h + 130
         rect = pygame.Rect((screen.get_width() - modal_w) // 2, (screen.get_height() - modal_h) // 2, modal_w, modal_h)
-        self._draw_card(screen, rect, (16, 19, 28), border_color=self.COLORS["gold"])
+        self._draw_popup(screen, rect, radius=8)
         self.fonts_buttons = {}
 
         self._text(screen, "FONTS", (rect.x + pad, rect.y + 18), 13, self.COLORS["muted"])
-        self._text(screen, "Template fonts", (rect.x + pad, rect.y + 36), 24, self.COLORS["gold"])
+        title = "Template fonts" + ("  (incl. map fonts)" if self.is_map_template else "")
+        self._text(screen, title, (rect.x + pad, rect.y + 36), 24, self.COLORS["gold"])
         pygame.draw.line(screen, self.COLORS["line"], (rect.x + pad, rect.y + 74), (rect.right - pad, rect.y + 74), 1)
         close_rect = pygame.Rect(rect.right - pad - 32, rect.y + 22, 32, 32)
         self.fonts_buttons["close"] = close_rect
         self._draw_button(screen, close_rect, "X", self.COLORS["red"], hover=(self.hover_modal_key == "fonts_close"))
 
-        y = rect.y + 86
-        for slot in self.FONT_SLOTS:
-            font = self.fonts.get(slot) or self._default_fonts()[slot]
-            row = pygame.Rect(rect.x + pad, y, rect.w - pad * 2, 54)
+        # Scrollable font rows
+        view = pygame.Rect(rect.x + pad, rect.y + 86, rect.w - pad * 2, view_h)
+        content_h = len(slots) * row_h
+        max_scroll = max(0, content_h - view.h)
+        self.fonts_scroll = max(0, min(getattr(self, "fonts_scroll", 0), max_scroll))
+        self.fonts_max_scroll = max_scroll
+        prev_clip = screen.get_clip()
+        screen.set_clip(view)
+        y = view.y - self.fonts_scroll
+        for slot in slots:
+            font = self.fonts.get(slot) or self.MAP_FONT_DEFAULTS.get(slot) or self._default_fonts().get(slot)
+            if y + row_h < view.y or y > view.bottom:
+                y += row_h
+                continue
+            row = pygame.Rect(view.x, y, view.w, 54)
             self._draw_card(screen, row, (12, 15, 22), border_color=(56, 62, 76))
             self._text(screen, slot, (row.x + 12, row.y + 8), 15, self.COLORS["gold"])
 
-            # Name (ttf)
-            name_rect = pygame.Rect(row.x + 12, row.y + 28, 200, 22)
+            name_rect = pygame.Rect(row.x + 12, row.y + 28, 180, 22)
             self.fonts_buttons[f"{slot}|name"] = name_rect
             pygame.draw.rect(screen, self.COLORS["panel_alt"], name_rect)
             pygame.draw.rect(screen, (56, 62, 76), name_rect, 1)
-            nm = str(font.get("Name", "")); nm = nm if len(nm) <= 22 else nm[:19] + "..."
+            nm = str(font.get("Name", "")); nm = nm if len(nm) <= 20 else nm[:17] + "..."
             self._text(screen, nm, (name_rect.x + 6, name_rect.y + 3), 13, self.COLORS["line_light"])
 
-            # Size
-            size_rect = pygame.Rect(name_rect.right + 10, row.y + 28, 56, 22)
+            size_rect = pygame.Rect(name_rect.right + 10, row.y + 28, 50, 22)
             self.fonts_buttons[f"{slot}|size"] = size_rect
             pygame.draw.rect(screen, self.COLORS["panel_alt"], size_rect)
             pygame.draw.rect(screen, (56, 62, 76), size_rect, 1)
             self._text(screen, str(font.get("Size", 16)), (size_rect.x + 8, size_rect.y + 3), 13, self.COLORS["line_light"])
 
-            # Color swatches Normal / Max
-            colors = font.get("Colors", {})
-            for ckey, cx in (("Normal", size_rect.right + 16), ("Max", size_rect.right + 116)):
-                self._text(screen, ckey, (cx, row.y + 8), 12, self.COLORS["muted"])
-                sw = pygame.Rect(cx, row.y + 28, 78, 22)
-                self.fonts_buttons[f"{slot}|{ckey}"] = sw
+            # Color swatches for each color key the font actually defines
+            colors = font.get("Colors", {}) or {"Normal": {"r": 255, "g": 255, "b": 255}}
+            cx = size_rect.right + 12
+            sw_w = 48
+            for ckey in colors:
+                if cx + sw_w > row.right - 150:
+                    break
+                self._text(screen, ckey[:8], (cx, row.y + 8), 11, self.COLORS["muted"])
+                sw = pygame.Rect(cx, row.y + 28, sw_w, 22)
+                self.fonts_buttons[f"{slot}|color|{ckey}"] = sw
                 col = colors.get(ckey, {"r": 255, "g": 255, "b": 255})
                 pygame.draw.rect(screen, (col.get("r", 255), col.get("g", 255), col.get("b", 255)), sw)
                 pygame.draw.rect(screen, self.COLORS["line_light"], sw, 1)
+                cx += sw_w + 8
 
-            # Live preview using the actual font file + size + Normal color
-            preview_rect = pygame.Rect(size_rect.right + 210, row.y + 6, row.right - (size_rect.right + 210) - 10, 42)
+            preview_rect = pygame.Rect(row.right - 140, row.y + 6, 130, 42)
             pygame.draw.rect(screen, (8, 9, 13), preview_rect)
             pygame.draw.rect(screen, (56, 62, 76), preview_rect, 1)
-            nc = colors.get("Normal", {"r": 255, "g": 255, "b": 255})
+            nc = colors.get("Normal") or next(iter(colors.values()), {"r": 255, "g": 255, "b": 255})
             self._draw_font_preview(screen, preview_rect, font, (nc.get("r", 255), nc.get("g", 255), nc.get("b", 255)))
-            y += 62
+            y += row_h
+        screen.set_clip(prev_clip)
+        track = pygame.Rect(rect.right - pad + 6, view.y, 5, view.h)
+        self._register_scrollbar(screen, "fonts", track, self.fonts_scroll, max_scroll, content_h, view.h)
 
     def _resolve_font_path(self, name):
         if not name:
@@ -108,8 +128,12 @@ class FontsMixin:
             if key == "close":
                 self.fonts_modal_open = False
                 return
-            slot, _, field = key.partition("|")
-            font = self.fonts.setdefault(slot, self._default_fonts()[slot])
+            parts = key.split("|")
+            slot = parts[0]
+            field = parts[1] if len(parts) > 1 else ""
+            default_font = self.MAP_FONT_DEFAULTS.get(slot) or self._default_fonts().get(slot) \
+                or {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}}
+            font = self.fonts.setdefault(slot, copy.deepcopy(default_font))
             if field == "name":
                 path = filedialog.askopenfilename(title="Pick a font", filetypes=[("Fonts", "*.ttf *.otf"), ("All files", "*.*")])
                 if path:
@@ -123,12 +147,13 @@ class FontsMixin:
                         f["Size"] = value
                 self._open_text_prompt("Font size", int(font.get("Size", 16)), set_size,
                                        kind="int", allow_empty=False, label="Size (px):", minvalue=1)
-            elif field in ("Normal", "Max"):
-                col = font.setdefault("Colors", {}).setdefault(field, {"r": 255, "g": 255, "b": 255})
-                def set_color(color, f=font, fld=field, s=slot):
+            elif field == "color" and len(parts) > 2:
+                ckey = parts[2]
+                col = font.setdefault("Colors", {}).setdefault(ckey, {"r": 255, "g": 255, "b": 255})
+                def set_color(color, f=font, fld=ckey, s=slot):
                     f.setdefault("Colors", {})[fld] = color
                     self.message = f"{s} {fld} color updated."
-                self._open_color_picker(f"{slot} {field}", col, set_color)
+                self._open_color_picker(f"{slot} {ckey}", col, set_color)
             return
         self.fonts_modal_open = False
 

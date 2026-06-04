@@ -26,6 +26,18 @@ class ProjectIOMixin:
             fonts["timerItemFont"]["Colors"]["Normal"] = {"r": 150, "g": 255, "b": 160}
         return fonts
 
+    def _active_font_slots(self):
+        slots = list(self.FONT_SLOTS)
+        if self.is_map_template:
+            slots += list(self.MAP_FONT_SLOTS)
+        return slots
+
+    def _ensure_map_fonts(self):
+        """Seed missing map font slots (with their proper color keys)."""
+        for slot in self.MAP_FONT_SLOTS:
+            if slot not in self.fonts:
+                self.fonts[slot] = copy.deepcopy(self.MAP_FONT_DEFAULTS[slot])
+
     def _kind_fields(self, kind):
         return self.KIND_FIELDS.get(kind, []) + self.COMMON_FIELDS
 
@@ -110,10 +122,24 @@ class ProjectIOMixin:
             self.item_modal_open = False
             self.placed_items = self._items_from_tracker_json(data[3].get("Items", []))
             self.main_items = self.placed_items
+            # Map template: load the Maps list (section 5) + preserve the rest
+            if len(data) >= 5 and isinstance(data[4], dict):
+                self.is_map_template = True
+                self.maps_extra = {k: copy.deepcopy(v) for k, v in data[4].items() if k != "Maps"}
+                self.map_source_dir = folder
+                self.maps = self._load_maps(data[4].get("Maps", []), folder)
+                self._ensure_map_extras()
+                self._ensure_map_fonts()
+            else:
+                self.is_map_template = False
+                self.maps_extra = {}
+                self.map_source_dir = None
+                self.maps = []
             self.canvas_context = "main"
             self.submenu_parent = None
             self.submenu_parent_index = None
             self.mode = "editor"
+            self.saved_once = True
             self.message = f"Opened {self.project_name}."
         except Exception as exc:
             self.message = f"Could not open project: {exc}"
@@ -317,11 +343,12 @@ class ProjectIOMixin:
         if self.canvas_context == "submenu":
             self._sync_submenu_canvas()
         # Already-saved / opened project: save directly without re-asking the name
-        if self.project_dir and self.project_name:
+        if self.saved_once and self.project_dir and self.project_name:
             self._do_save(self.project_name)
             return
+        # First save: propose the template folder name
         self._open_text_prompt("Save devtemplate", self.project_name or "My Template",
-                               self._do_save, allow_empty=False, label="Template name:")
+                               self._do_save, allow_empty=False, label="Template folder name:")
 
     def _action_saveas(self):
         if self.canvas_context == "submenu":
@@ -329,11 +356,53 @@ class ProjectIOMixin:
         self._open_text_prompt("Save as new devtemplate", self.project_name or "My Template",
                                self._do_save, allow_empty=False, label="New template name:")
 
-    def _do_save(self, name):
+    def _action_saveto(self):
+        if self.canvas_context == "submenu":
+            self._sync_submenu_canvas()
+        folder = filedialog.askdirectory(title="Choose where to save the template")
+        if not folder:
+            return
+
+        def cb(name):
+            if name:
+                self._do_save(name, base_dir=folder)
+        self._open_text_prompt("Save in chosen folder", self.project_name or "My Template",
+                               cb, allow_empty=False, label="Template name:")
+
+    def _action_export(self):
+        if self.canvas_context == "submenu":
+            self._sync_submenu_canvas()
+        if not (self.project_dir and os.path.isdir(self.project_dir)):
+            self.message = "Save the template first, then export."
+            return
+        default = f"{self._slugify(self.project_name or 'template') or 'template'}.template"
+        path = filedialog.asksaveasfilename(
+            title="Export template", defaultextension=".template",
+            initialfile=default, filetypes=[("LinSoTracker template", "*.template")])
+        if not path:
+            return
+        try:
+            with ZipFile(path, "w") as archive:
+                for fname in os.listdir(self.project_dir):
+                    fp = os.path.join(self.project_dir, fname)
+                    if os.path.isfile(fp):
+                        archive.write(fp, fname)
+            self._flash_status(f"Exported to {path}")
+        except Exception as exc:
+            self.message = f"Export failed: {exc}"
+
+    def _do_save(self, name, base_dir=None):
         if self.canvas_context == "submenu":
             self._sync_submenu_canvas()
         if not name:
             return
+        # Map templates: ensure the window reserves room for the maps (drawn to the
+        # right of the items), otherwise they would render off-screen in the tracker.
+        if self.is_map_template and self.maps:
+            ok, rw, rh = self._map_window_ok()
+            if not ok:
+                self.template_size = (max(self.template_size[0], rw), max(self.template_size[1], rh))
+                self.message = f"Window widened to {self.template_size[0]}x{self.template_size[1]} for maps."
         slug = self._slugify(name)
         if not slug:
             self.message = "Invalid template name."
@@ -354,7 +423,7 @@ class ProjectIOMixin:
             self.message = "Save blocked - " + " | ".join(str(e) for e in errs[:2]) + extra
             return
 
-        template_dir = os.path.join(self.main_menu.dev_template_directory, slug)
+        template_dir = os.path.join(base_dir or self.main_menu.dev_template_directory, slug)
         source_dir = self.project_dir
         self.project_name = name
         self.project_dir = template_dir
@@ -414,14 +483,349 @@ class ProjectIOMixin:
         self._save_fonts(template_dir, source_dir)
         self._save_submenu_backgrounds(template_dir, source_dir)
         self._save_item_image_assets(template_dir, source_dir)
+        if self.is_map_template:
+            self._save_map_assets(template_dir)
 
         tracker_json = self._build_tracker_json(name, background_name, sheet_files)
         with open(os.path.join(template_dir, "tracker.json"), "w", encoding="utf-8") as file:
             json.dump(tracker_json, file, indent=2)
 
+        self.saved_once = True
         self.main_menu.process_templates_list()
         self._scan_projects()
         self._flash_status(f"Saved '{name}'  -  {template_dir}")
+
+    # ---- Maps model ------------------------------------------------------
+    def _toggle_map_template(self):
+        if self.is_map_template:
+            self.is_map_template = False
+            if self.left_tab == "maps":
+                self.left_tab = "sheets"
+            self.message = "Map template OFF - Maps section will not be saved."
+            return
+        if not self.maps:
+            self.maps = [self._new_map_dict("Main Map")]
+            self.selected_map_index = 0
+        self._ensure_map_extras()
+        self.is_map_template = True
+        self._ensure_map_fonts()
+        self.left_tab = "maps"
+        self.message = "Map template ON - manage maps in the Maps tab."
+
+    def _new_map_dict(self, name, json_file=None):
+        """Build an in-memory map (Datas scaffold + empty checks + placeholder
+        assets), mirroring devtemplates/twilightprincessmap."""
+        w, h = self.template_size
+        datas = {
+            "Name": name,
+            "Background": None,
+            "Dimensions": {"width": w, "height": h},
+            "SubMenuBackground": None,
+            "DrawBoxRect": {"x": int(w * 0.30), "y": int(h * 0.25), "w": int(w * 0.40), "h": int(h * 0.50)},
+            "DrawBoxRectSubTitle": {"x": int(w * 0.30), "y": int(h * 0.28), "w": int(w * 0.40), "h": int(h * 0.47)},
+            "LabelY": int(h * 0.18),
+            "LeftArrow": {"Image": None, "Positions": {"x": int(w * 0.45), "y": int(h * 0.86)}},
+            "RightArrow": {"Image": None, "Positions": {"x": int(w * 0.52), "y": int(h * 0.86)}},
+        }
+        return {
+            "name": name,
+            "json_file": json_file or self._unique_map_file(name),
+            "data": {"Datas": datas, "ChecksList": []},
+            "assets": {},          # key -> pygame.Surface (loaded/imported)
+        }
+
+    def _unique_map_file(self, name):
+        base = self._slugify(name) or "map"
+        existing = {m["json_file"] for m in self.maps}
+        candidate = f"{base}.json"
+        i = 1
+        while candidate in existing:
+            candidate = f"{base}-{i}.json"
+            i += 1
+        return candidate
+
+    def _load_maps(self, maps_list, folder):
+        maps = []
+        for entry in maps_list:
+            jf = entry.get("Datas", "main_map.json")
+            path = os.path.join(folder, jf)
+            inner = {"Datas": {}, "ChecksList": []}
+            if os.path.isfile(path):
+                try:
+                    with open(path, "r", encoding="utf-8-sig") as f:
+                        content = json.load(f)
+                    inner = content[0] if isinstance(content, list) and content else content
+                except Exception:
+                    pass
+            d = inner.get("Datas", {})
+            m = {"name": d.get("Name", jf), "json_file": jf, "data": inner, "assets": {}}
+            for key in ("Background", "SubMenuBackground"):
+                self._load_map_asset(m, key, d.get(key), folder)
+            for key in ("LeftArrow", "RightArrow"):
+                self._load_map_asset(m, key, (d.get(key) or {}).get("Image"), folder)
+            maps.append(m)
+        return maps
+
+    def _load_map_asset(self, m, key, filename, folder):
+        if not filename:
+            return
+        path = os.path.join(folder, filename)
+        if os.path.isfile(path):
+            try:
+                m["assets"][key] = pygame.image.load(path).convert_alpha()
+            except Exception:
+                pass
+
+    def _add_map(self):
+        name = f"Map {len(self.maps) + 1}"
+        self.maps.append(self._new_map_dict(name))
+        self.selected_map_index = len(self.maps) - 1
+        self.message = f"Added {name}."
+
+    def _remove_map(self, index):
+        if not (0 <= index < len(self.maps)):
+            return
+        if len(self.maps) <= 1:
+            self.message = "A map template needs at least one map."
+            return
+        removed = self.maps.pop(index)
+        self.selected_map_index = max(0, min(self.selected_map_index, len(self.maps) - 1))
+        self.message = f"Removed {removed['name']}."
+
+    def _import_map_image(self, index, asset_key):
+        """Import an image for a map asset (Background / SubMenuBackground /
+        LeftArrow / RightArrow)."""
+        if not (0 <= index < len(self.maps)):
+            return
+        path = filedialog.askopenfilename(
+            title=f"Select {asset_key} image",
+            filetypes=[("PNG image", "*.png"), ("All files", "*.*")])
+        if not path:
+            return
+        try:
+            surface = pygame.image.load(path).convert_alpha()
+        except Exception as exc:
+            self.message = f"Could not load image: {exc}"
+            return
+        m = self.maps[index]
+        m["assets"][asset_key] = surface
+        filename = f"{self._slugify(m['name']) or 'map'}_{asset_key.lower()}.png"
+        data = m["data"]["Datas"]
+        if asset_key in ("LeftArrow", "RightArrow"):
+            data.setdefault(asset_key, {"Image": None, "Positions": {"x": 0, "y": 0}})
+            data[asset_key]["Image"] = filename
+        else:
+            data[asset_key] = filename
+        self.message = f"{asset_key} set for {m['name']}."
+
+    def _ensure_map_extras(self):
+        """Seed the section-5 keys the tracker reads unconditionally for a map
+        (sizes, checks counter, action helpers), so a fresh map template runs."""
+        e = self.maps_extra
+        e.setdefault("SizeSimpleCheck", {"w": 5, "h": 5})
+        e.setdefault("SizeGroupChecks", {"w": 16, "h": 16})
+        e.setdefault("CptChecksPosition", {"x": 10, "y": 10})
+        e.setdefault("ActionsConditions", {})
+        e.setdefault("RulesOptionsLists", [])
+        e.setdefault("RulesOptions", [])
+
+    def _required_map_dimensions(self):
+        """Window must be wide enough to host items + the widest map to its right
+        (the tracker places maps at background.right)."""
+        items_w = self.background.get_width() if self.background else self.template_size[0]
+        items_h = self.background.get_height() if self.background else self.template_size[1]
+        map_w = map_h = 0
+        for m in self.maps:
+            bg = m["assets"].get("Background")
+            if bg:
+                mw, mh = bg.get_size()
+            else:
+                dims = m["data"]["Datas"].get("Dimensions", {})
+                mw, mh = dims.get("width", 0), dims.get("height", 0)
+            map_w = max(map_w, mw)
+            map_h = max(map_h, mh)
+        return items_w + map_w, max(items_h, map_h)
+
+    def _map_window_ok(self):
+        if not (self.is_map_template and self.maps):
+            return True, 0, 0
+        rw, rh = self._required_map_dimensions()
+        ok = self.template_size[0] >= rw and self.template_size[1] >= rh
+        return ok, rw, rh
+
+    def _fit_window_to_maps(self):
+        rw, rh = self._required_map_dimensions()
+        self.template_size = (max(self.template_size[0], rw), max(self.template_size[1], rh))
+        self._flash_status(f"Window fit to {self.template_size[0]} x {self.template_size[1]} (room for maps).")
+
+    def _open_map_options(self):
+        if self._current_map():
+            self.map_options_open = True
+
+    def _edit_map_option(self, key):
+        m = self._current_map()
+        if not m:
+            return
+        data = m["data"]["Datas"]
+        if key in ("DrawBoxRect", "DrawBoxRectSubTitle"):
+            cur = data.get(key, {"x": 0, "y": 0, "w": 0, "h": 0})
+            initial = f"{cur.get('x',0)},{cur.get('y',0)},{cur.get('w',0)},{cur.get('h',0)}"
+
+            def cb(value, k=key):
+                parts = [p.strip() for p in str(value).split(",")]
+                if len(parts) == 4 and all(p.lstrip("-").isdigit() for p in parts):
+                    data[k] = {"x": int(parts[0]), "y": int(parts[1]), "w": int(parts[2]), "h": int(parts[3])}
+                    self.message = f"{k} updated."
+                else:
+                    self.message = "Enter x,y,w,h."
+            self._open_text_prompt(key, initial, cb, label="x,y,w,h:")
+        elif key == "LabelY":
+            def cb(value):
+                if value is not None:
+                    data["LabelY"] = value
+                    self.message = "Label Y updated."
+            self._open_text_prompt("Label Y", int(data.get("LabelY", 0)), cb, kind="int", label="Y:")
+        elif key in ("LeftArrowPos", "RightArrowPos"):
+            arrow = "LeftArrow" if key == "LeftArrowPos" else "RightArrow"
+            cfg = data.setdefault(arrow, {"Image": None, "Positions": {"x": 0, "y": 0}})
+            pos = cfg.setdefault("Positions", {"x": 0, "y": 0})
+            initial = f"{pos.get('x',0)},{pos.get('y',0)}"
+
+            def cb(value, p=pos):
+                parts = [q.strip() for q in str(value).split(",")]
+                if len(parts) == 2 and all(q.lstrip("-").isdigit() for q in parts):
+                    p["x"], p["y"] = int(parts[0]), int(parts[1])
+                    self.message = f"{arrow} position updated."
+                else:
+                    self.message = "Enter x,y."
+            self._open_text_prompt(f"{arrow} position", initial, cb, label="x,y:")
+
+    def _rename_map(self, index):
+        if not (0 <= index < len(self.maps)):
+            return
+        m = self.maps[index]
+
+        def cb(value):
+            if value:
+                m["name"] = value
+                m["data"]["Datas"]["Name"] = value
+                self.message = f"Map renamed to {value}."
+        self._open_text_prompt("Rename map", m["name"], cb, allow_empty=False, label="Map name:")
+
+    def _save_map_assets(self, template_dir):
+        # First copy every still-needed file from the source folder (map json files,
+        # RulesOptions backgrounds, map_list.png, etc) that we do not regenerate.
+        self._copy_remaining_map_files(template_dir)
+        for m in self.maps:
+            # write the map json
+            with open(os.path.join(template_dir, m["json_file"]), "w", encoding="utf-8") as f:
+                json.dump([m["data"]], f, indent=2)
+            data = m["data"]["Datas"]
+            self._save_one_map_asset(m, "Background", data, template_dir, fallback="bg")
+            self._save_one_map_asset(m, "SubMenuBackground", data, template_dir, fallback="submenu")
+            self._save_one_map_asset(m, "LeftArrow", data, template_dir, fallback="left")
+            self._save_one_map_asset(m, "RightArrow", data, template_dir, fallback="right")
+        self._save_extra_section_assets(template_dir)
+
+    def _save_extra_section_assets(self, template_dir):
+        """Write/placeholder every image referenced by section-5 extras (maps-list
+        + rules-list submenu backgrounds, arrows) so the tracker can load them."""
+        refs = set()
+        ml = self.maps_extra.get("MapsList")
+        if ml:
+            box = ml.get("MapsListBox", {})
+            for key in ("LeftArrow", "RightArrow"):
+                img = (box.get(key) or {}).get("Image")
+                if img:
+                    refs.add(("arrow", img, key))
+            if box.get("SubMenuBackground"):
+                refs.add(("panel", box["SubMenuBackground"], None))
+        for rl in self.maps_extra.get("RulesOptionsLists", []):
+            box = rl.get("ListBox", {})
+            if box.get("SubMenuBackground"):
+                refs.add(("panel", box["SubMenuBackground"], None))
+            for key in ("LeftArrow", "RightArrow"):
+                img = (box.get(key) or {}).get("Image")
+                if img:
+                    refs.add(("arrow", img, key))
+        for kind, fname, akey in refs:
+            dest = os.path.join(template_dir, fname)
+            if fname in self.maps_extra_assets:
+                try:
+                    pygame.image.save(self.maps_extra_assets[fname], dest)
+                except Exception:
+                    pass
+                continue
+            if os.path.exists(dest):
+                continue
+            if kind == "arrow":
+                surf = self._placeholder_map_asset("left" if "Left" in (akey or "") else "right", {})
+            else:
+                surf = pygame.Surface((363, 455), pygame.SRCALPHA)
+                surf.fill((16, 19, 28, 235))
+                pygame.draw.rect(surf, (243, 200, 106), surf.get_rect(), 2)
+            try:
+                pygame.image.save(surf, dest)
+            except Exception:
+                pass
+
+    def _copy_remaining_map_files(self, template_dir):
+        """Copy assets referenced by the preserved section 5 (RulesOptions submenu
+        backgrounds, maps list background, etc) that live in the source folder."""
+        src = self.map_source_dir
+        if not src or not os.path.isdir(src) or os.path.abspath(src) == os.path.abspath(template_dir):
+            return
+        skip = {"tracker.json", "background.png", "icon.png", "illustration.png"}
+        skip |= {f"{self._slugify(s['name']) or 'sheet'}.png" for s in self.sheets}
+        skip |= {f.get("Name") for f in (self.fonts or {}).values() if f.get("Name")}
+        for fname in os.listdir(src):
+            if fname in skip:
+                continue
+            sp = os.path.join(src, fname)
+            dp = os.path.join(template_dir, fname)
+            if os.path.isfile(sp) and not os.path.exists(dp):
+                try:
+                    shutil.copyfile(sp, dp)
+                except Exception:
+                    pass
+
+    def _save_one_map_asset(self, m, key, data, template_dir, fallback):
+        if key in ("LeftArrow", "RightArrow"):
+            filename = (data.get(key) or {}).get("Image")
+        else:
+            filename = data.get(key)
+        if not filename:
+            filename = f"{self._slugify(m['name']) or 'map'}_{key.lower()}.png"
+            if key in ("LeftArrow", "RightArrow"):
+                data.setdefault(key, {"Image": None, "Positions": {"x": 0, "y": 0}})
+                data[key]["Image"] = filename
+            else:
+                data[key] = filename
+        dest = os.path.join(template_dir, filename)
+        surface = m["assets"].get(key)
+        if surface is None:
+            surface = self._placeholder_map_asset(fallback, data)
+        try:
+            pygame.image.save(surface, dest)
+        except Exception:
+            pass
+
+    def _placeholder_map_asset(self, kind, data):
+        w, h = self.template_size
+        if kind == "bg":
+            if self.background:
+                return self.background
+            s = pygame.Surface((w, h)); s.fill((0, 0, 0)); return s
+        if kind == "submenu":
+            box = data.get("DrawBoxRect", {"w": 360, "h": 450})
+            s = pygame.Surface((max(1, box["w"]), max(1, box["h"])), pygame.SRCALPHA)
+            s.fill((16, 19, 28, 235))
+            pygame.draw.rect(s, (243, 200, 106), s.get_rect(), 2)
+            return s
+        a = pygame.Surface((28, 28), pygame.SRCALPHA)
+        pts = [(20, 4), (20, 24), (6, 14)] if kind == "left" else [(8, 4), (8, 24), (22, 14)]
+        pygame.draw.polygon(a, (238, 230, 210), pts)
+        return a
 
     def _save_fonts(self, template_dir, source_dir=None):
         names = {font.get("Name") for font in (self.fonts or {}).values() if font.get("Name")}
@@ -534,7 +938,7 @@ class ProjectIOMixin:
         informations.setdefault("Version", "0.1")
         if "Comments" not in informations and "Credits" not in informations:
             informations["Comments"] = "Generated by LinSoTracker Template Maker"
-        return [
+        sections = [
             {
                 "Informations": informations
             },
@@ -558,6 +962,13 @@ class ProjectIOMixin:
                 ]
             }
         ]
+        # Map template: build section 5 (Maps list + preserved extras)
+        if self.is_map_template and self.maps:
+            section = {"Maps": [{"Id": i, "Datas": m["json_file"]} for i, m in enumerate(self.maps)]}
+            for key, value in (self.maps_extra or {}).items():
+                section[key] = copy.deepcopy(value)
+            sections.append(section)
+        return sections
 
     def _referenced_item_identities(self, items):
         """Identities of items embedded as Hint/Active/Inactive refs of another item.

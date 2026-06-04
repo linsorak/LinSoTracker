@@ -305,7 +305,7 @@ class SheetsMixin:
 
     def _draw_tileset(self, screen, area):
         geom, scroll, srect = self._draw_tileset_grid(
-            screen, area, self.active_sheet, self.sheet_scroll, self.selected_cell)
+            screen, area, self.active_sheet, self.sheet_scroll, self.selected_cell, name="sheet")
         self.sheet_scroll = scroll
         self.sheet_rect = srect
         self._tileset_geom = geom
@@ -313,7 +313,7 @@ class SheetsMixin:
             _, row, column = self.selected_cell
             self._text(screen, f"row {row}, col {column}", (area.x + 4, area.bottom + 2), 13, self.COLORS["green"])
 
-    def _draw_tileset_grid(self, screen, area, sheet, scroll, selected):
+    def _draw_tileset_grid(self, screen, area, sheet, scroll, selected, name=None):
         """Render a spritesheet as a clickable grid. Returns (geom, clamped_scroll, inner_rect)."""
         surface = sheet["surface"]
         cw, ch = sheet["cell_w"], sheet["cell_h"]
@@ -362,6 +362,9 @@ class SheetsMixin:
 
         screen.set_clip(prev_clip)
         pygame.draw.rect(screen, (56, 62, 76), inner, 1)
+        if name and max_scroll > 0:
+            track = pygame.Rect(area.right - 8, inner.y, 4, inner.h)
+            self._register_scrollbar(screen, name, track, scroll, max_scroll, int(full_h), inner.h)
         geom = (origin_x, origin_y, cell_px, cell_h_px, cols, rows)
         return geom, scroll, inner
 
@@ -431,7 +434,7 @@ class SheetsMixin:
             return
         area = pygame.Rect(rect.x + pad, ty, rect.w - pad * 2, rect.bottom - ty - pad)
         self._draw_card(screen, area, (10, 12, 18), border_color=(56, 62, 76))
-        geom, scroll, srect = self._draw_tileset_grid(screen, area, sheet, self.picker_scroll, None)
+        geom, scroll, srect = self._draw_tileset_grid(screen, area, sheet, self.picker_scroll, None, name="picker")
         self.picker_scroll = scroll
         self.picker_geom = geom
         self.picker_tileset_rect = srect

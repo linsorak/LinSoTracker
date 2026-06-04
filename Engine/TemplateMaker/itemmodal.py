@@ -29,7 +29,7 @@ class ItemModalMixin:
         modal_h = min(720, screen.get_height() - 40)
         rect = pygame.Rect((screen.get_width() - modal_w) // 2, (screen.get_height() - modal_h) // 2, modal_w, modal_h)
         self.item_modal_rect = rect
-        self._draw_card(screen, rect, (16, 19, 28), border_color=self.COLORS["gold"])
+        self._draw_popup(screen, rect, radius=10)
         self.modal_buttons = {}
 
         # --- Header (no strip, clean) ---
@@ -408,7 +408,7 @@ class ItemModalMixin:
         popup_h = 98 + len(rows_to_draw) * 44 + (34 if list_mode else 0)
         popup = pygame.Rect(parent_rect.centerx - 210 if list_mode else parent_rect.centerx - 180,
                             parent_rect.y + 96, 420 if list_mode else 360, popup_h)
-        self._draw_card(screen, popup, (20, 24, 34), border_color=self.COLORS["gold"])
+        self._draw_popup(screen, popup, radius=10)
         self._text(screen, spec["label"].upper(), (popup.x + 14, popup.y + 12), 13, self.COLORS["gold"])
         close_rect = pygame.Rect(popup.right - 38, popup.y + 10, 28, 28)
         self.modal_buttons["fe_close"] = close_rect
@@ -483,7 +483,7 @@ class ItemModalMixin:
         screen.blit(overlay, (0, 0))
 
         rect = pygame.Rect(screen.get_width() // 2 - 260, screen.get_height() // 2 - 190, 520, 380)
-        self._draw_card(screen, rect, (20, 24, 34), border_color=self.COLORS["gold"])
+        self._draw_popup(screen, rect, radius=10)
         self.color_picker_buttons = {}
         self._text(screen, self.color_picker_title.upper(), (rect.x + 18, rect.y + 14), 13, self.COLORS["gold"])
 
@@ -724,6 +724,90 @@ class ItemModalMixin:
                 return index
         return None
 
+    def _nudge_selected(self, dx, dy):
+        """Move the current selection by (dx, dy) canvas pixels. Returns True if
+        something moved."""
+        # Map check selected
+        if self._map_view_active() and self.selected_check_index is not None:
+            checks = self._current_checks()
+            if 0 <= self.selected_check_index < len(checks):
+                pos = checks[self.selected_check_index].setdefault("Positions", {"x": 0, "y": 0})
+                pos["x"] = max(0, pos.get("x", 0) + dx)
+                pos["y"] = max(0, pos.get("y", 0) + dy)
+                self.message = f"Check at {pos['x']}, {pos['y']}."
+                return True
+            return False
+        # Linked item selected
+        if self.selected_linked_path is not None:
+            item = self._get_linked_item_by_path(self.selected_linked_path)
+            if item is not None:
+                item["x"] = max(0, item.get("x", 0) + dx)
+                item["y"] = max(0, item.get("y", 0) + dy)
+                self.message = f"{item.get('name', 'item')} at {item['x']}, {item['y']}."
+                return True
+            return False
+        # Top-level item selected
+        if self.selected_item_index is not None and 0 <= self.selected_item_index < len(self.placed_items):
+            item = self.placed_items[self.selected_item_index]
+            item["x"] = max(0, item.get("x", 0) + dx)
+            item["y"] = max(0, item.get("y", 0) + dy)
+            self.message = f"{item.get('name', 'item')} at {item['x']}, {item['y']}."
+            return True
+        return False
+
+    def _item_canvas_size(self, item):
+        sr = item.get("screen_rect")
+        if sr and sr.w > 0 and self.last_bg_rect.w:
+            sc = self._canvas_size()[0] / self.last_bg_rect.w
+            return sr.w * sc, sr.h * sc
+        sheet = self._sheet_by_name(item.get("sheet")) or self.active_sheet
+        if sheet:
+            return float(sheet["cell_w"]), float(sheet["cell_h"])
+        return 32.0, 32.0
+
+    def _snap_xy(self, moving, x, y):
+        """Snap a top-left position (canvas px) to nearby items' left/center/right
+        and top/center/bottom anchors. Grid snap only when the grid is shown.
+        Sets self.snap_guides."""
+        self.snap_guides = []
+        if not (self.snap_enabled or self.grid_shown):
+            return int(x), int(y)
+        scale = self._canvas_size()[0] / self.last_bg_rect.w if self.last_bg_rect.w else 1
+        thr = max(3.0, 8 * scale)            # snap threshold (canvas px ~ constant on screen)
+        w, h = self._item_canvas_size(moving)
+
+        best_dx = best_dy = None
+        guide_x = guide_y = None
+        if self.snap_enabled:
+            moving_x = (x, x + w / 2, x + w)
+            moving_y = (y, y + h / 2, y + h)
+            for other in self.placed_items:
+                if other is moving:
+                    continue
+                ow, oh = self._item_canvas_size(other)
+                ox, oy = other.get("x", 0), other.get("y", 0)
+                for mv in moving_x:
+                    for ov in (ox, ox + ow / 2, ox + ow):
+                        d = ov - mv
+                        if abs(d) <= thr and (best_dx is None or abs(d) < abs(best_dx)):
+                            best_dx, guide_x = d, ov
+                for mv in moving_y:
+                    for ov in (oy, oy + oh / 2, oy + oh):
+                        d = ov - mv
+                        if abs(d) <= thr and (best_dy is None or abs(d) < abs(best_dy)):
+                            best_dy, guide_y = d, ov
+        if best_dx is not None:
+            x += best_dx
+            self.snap_guides.append(("v", guide_x))
+        elif self.grid_shown and self.snap_size > 0:
+            x = round(x / self.snap_size) * self.snap_size
+        if best_dy is not None:
+            y += best_dy
+            self.snap_guides.append(("h", guide_y))
+        elif self.grid_shown and self.snap_size > 0:
+            y = round(y / self.snap_size) * self.snap_size
+        return int(x), int(y)
+
     def _move_item_to_mouse(self, index, mouse_position):
         if index < 0 or index >= len(self.placed_items) or not self.last_bg_rect.w:
             return
@@ -732,8 +816,10 @@ class ItemModalMixin:
         x = max(self.last_bg_rect.x, min(x, self.last_bg_rect.right - 1))
         y = max(self.last_bg_rect.y, min(y, self.last_bg_rect.bottom - 1))
         scale = self._canvas_size()[0] / self.last_bg_rect.w
-        self.placed_items[index]["x"] = int((x - self.last_bg_rect.x) * scale)
-        self.placed_items[index]["y"] = int((y - self.last_bg_rect.y) * scale)
+        cx, cy = self._snap_xy(self.placed_items[index],
+                               (x - self.last_bg_rect.x) * scale, (y - self.last_bg_rect.y) * scale)
+        self.placed_items[index]["x"] = cx
+        self.placed_items[index]["y"] = cy
 
     def _move_linked_item_to_mouse(self, path, mouse_position):
         item = self._get_linked_item_by_path(path)
@@ -744,8 +830,9 @@ class ItemModalMixin:
         x = max(self.last_bg_rect.x, min(x, self.last_bg_rect.right - 1))
         y = max(self.last_bg_rect.y, min(y, self.last_bg_rect.bottom - 1))
         scale = self._canvas_size()[0] / self.last_bg_rect.w
-        item["x"] = int((x - self.last_bg_rect.x) * scale)
-        item["y"] = int((y - self.last_bg_rect.y) * scale)
+        cx, cy = self._snap_xy(item, (x - self.last_bg_rect.x) * scale, (y - self.last_bg_rect.y) * scale)
+        item["x"] = cx
+        item["y"] = cy
 
     def _handle_property_button(self, key):
         if key == "rename":
@@ -956,7 +1043,7 @@ class ItemModalMixin:
         popup_w = min(640, parent_rect.w - 56)
         popup_h = min(560, parent_rect.h - 86)
         popup = pygame.Rect(parent_rect.centerx - popup_w // 2, parent_rect.centery - popup_h // 2, popup_w, popup_h)
-        self._draw_card(screen, popup, (20, 24, 34), border_color=self.COLORS["gold"])
+        self._draw_popup(screen, popup, radius=10)
         self._text(screen, spec["label"].upper(), (popup.x + 18, popup.y + 14), 14, self.COLORS["gold"])
         self._text(screen, "Select existing items to clone into this field.",
                    (popup.x + 18, popup.y + 38), 13, self.COLORS["muted"])

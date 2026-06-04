@@ -28,13 +28,18 @@ from Engine.TemplateMaker.projectio import ProjectIOMixin
 from Engine.TemplateMaker.fonts import FontsMixin
 from Engine.TemplateMaker.preview import PreviewMixin
 from Engine.TemplateMaker.itemmodal import ItemModalMixin
+from Engine.TemplateMaker.mapchecks import MapChecksMixin
+from Engine.TemplateMaker.mapdata import MapDataMixin
+from Engine.TemplateMaker.condbuilder import CondBuilderMixin
+from Engine.TemplateMaker.namepicker import NamePickerMixin
 from Engine.TemplateMaker.input import InputMixin
 from Engine.TemplateMaker.textprompt import TextPromptMixin
 
 
 class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixin,
                     SheetsMixin, ProjectIOMixin, FontsMixin, PreviewMixin,
-                    ItemModalMixin, InputMixin, TextPromptMixin):
+                    ItemModalMixin, MapChecksMixin, MapDataMixin, CondBuilderMixin,
+                    NamePickerMixin, InputMixin, TextPromptMixin):
     def __init__(self, main_menu):
         self.main_menu = main_menu
         self.core_service = main_menu.core_service
@@ -46,6 +51,12 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.project_icon = None
         self.illustration = None
         self.illustration_path = None
+        self.is_map_template = False
+        self.maps = []
+        self.maps_extra = {}
+        self.maps_extra_assets = {}
+        self.map_source_dir = None
+        self.selected_map_index = 0
         self.sheets = []
         self.active_sheet_index = 0
         self.sheet_scroll = 0
@@ -59,6 +70,7 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.mode = "start"
         self.project_name = None
         self.project_dir = None
+        self.saved_once = False
         self.project_info = {}
         self.background_color = {"r": 0, "g": 0, "b": 0}
         self.background_position = {"x": 0, "y": 0}
@@ -66,6 +78,8 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.font_files = {}
         self.fonts_modal_open = False
         self.fonts_buttons = {}
+        self.fonts_scroll = 0
+        self.fonts_max_scroll = 0
         self.message = "Create a new template project or open an existing one."
         self.buttons = {}
         self.start_buttons = {}
@@ -117,8 +131,83 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.prop_category_scroll = 0
         self.show_links = False
         self.see_links_rect = pygame.Rect(0, 0, 1, 1)
+        self.snap_enabled = False
+        self.snap_size = 16
+        self.snap_guides = []
+        self.snap_rect = pygame.Rect(0, 0, 1, 1)
+        self.grid_shown = False
+        self.grid_rect = pygame.Rect(0, 0, 1, 1)
         self.left_tab = "sheets"
         self.left_tabs = {}
+        self.maps_rows = {}
+        self.maps_buttons = {}
+        self.check_screen_rects = {}
+        self.selected_check_index = None
+        self.dragging_check_index = None
+        self.check_drag_moved = False
+        self.check_modal_open = False
+        self.check_modal_buttons = {}
+        self.check_subrows = {}
+        self.map_check_rows = []
+        self.expanded_blocks = set()
+        self.maps_checks_scroll = 0
+        self.maps_checks_max_scroll = 0
+        self.maps_checks_rect = pygame.Rect(0, 0, 1, 1)
+        self.map_options_open = False
+        self.map_options_buttons = {}
+        self.map_data_open = False
+        self.map_data_buttons = {}
+        self.map_data_scroll = 0
+        self.map_data_max_scroll = 0
+        self.selected_rules_list = None
+        self.actions_editor_open = False
+        self.actions_editor_rule = None
+        self.actions_editor_buttons = {}
+        self.hide_editor_open = False
+        self.hide_editor_rule = None
+        self.hide_editor_entry = None
+        self.hide_editor_buttons = {}
+        self.hide_editor_scroll = 0
+        self.hide_editor_max_scroll = 0
+        self.name_picker_open = False
+        self.name_picker_title = ""
+        self.name_picker_all = []
+        self.name_picker_query = ""
+        self.name_picker_scroll = 0
+        self.name_picker_max_scroll = 0
+        self.name_picker_callback = None
+        self.name_picker_rows = {}
+        self.name_picker_buttons = {}
+        self.cond_builder_open = False
+        self.cond_builder_name = None
+        self.cond_builder_sink = None
+        self.cond_builder_mode = None
+        self.cond_pick_target = None
+        self.cond_builder_scroll = 0
+        self.cond_builder_max_scroll = 0
+        self.cond_builder_buttons = {}
+        self.cond_builder_rows = {}
+        self.cg_nodes = []
+        self.cg_links = []
+        self.cg_next_id = 0
+        self.cg_drag_node = None
+        self.cg_drag_offset = (0, 0)
+        self.cg_drag_wire_src = None
+        self.cg_wire_end = None
+        self.cg_pan = [0, 0]
+        self.cg_zoom = 1.0
+        self.cg_panning = False
+        self.cg_pan_start = (0, 0)
+        self.cg_pan_origin = [0, 0]
+        self.map_zoom = 1.0
+        self.map_pan = [0, 0]
+        self.map_view_rect = pygame.Rect(0, 0, 1, 1)
+        self.panning_map = False
+        self.pan_start = (0, 0)
+        self.pan_origin = [0, 0]
+        self._scrollbars = {}
+        self.dragging_scrollbar = None
+        self.scrollbar_drag_offset = 0
         self.items_list_rows = {}
         self.items_list_entries = []
         self.items_list_scroll = 0
