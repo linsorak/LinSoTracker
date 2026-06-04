@@ -68,11 +68,17 @@ class InputMixin:
             if button == 1:
                 for key, r in self.context_menu_buttons.items():
                     if r.collidepoint(mouse_position):
-                        if key == "ctx_duplicate":
+                        if key == "ctx_edit":
+                            self._context_edit_target()
+                            self.context_menu_open = False
+                        elif key == "ctx_duplicate":
                             self._duplicate_item(self.context_menu_index)
                             self.context_menu_open = False
+                        elif key == "ctx_unlink":
+                            self._context_unlink_target()
+                            self.context_menu_open = False
                         elif key == "ctx_delete":
-                            self._delete_item_at(self.context_menu_index)
+                            self._context_delete_target()
                             self.context_menu_open = False
                         elif key == "ctx_add":
                             self.context_add_open = not self.context_add_open
@@ -85,14 +91,34 @@ class InputMixin:
             self.context_add_open = False
             return True
         if button == 3 and no_overlay and self.last_bg_rect.collidepoint(mouse_position):
-            idx = self._get_item_index_at(mouse_position)
-            if idx is not None:
-                self.selected_item_index = idx
-            self.context_menu_index = idx
+            linked_path = self._find_linked_item_path_at(mouse_position)
+            if linked_path is not None:
+                self.selected_linked_path = linked_path
+                self.selected_item_index = None
+                self.context_menu_index = None
+                self.context_menu_path = linked_path
+            else:
+                idx = self._get_item_index_at(mouse_position)
+                if idx is not None:
+                    self.selected_item_index = idx
+                    self.selected_linked_path = None
+                self.context_menu_index = idx
+                self.context_menu_path = (idx,) if idx is not None else None
             self.context_menu_pos = mouse_position
             self.context_menu_open = True
             self.context_add_open = False
             return True
+        # Right-click on an Items List row -> context menu (Edit / Duplicate / Delete)
+        if button == 3 and no_overlay and self.left_tab == "items":
+            for index, rect in self.items_list_rows.items():
+                if rect.collidepoint(mouse_position):
+                    entry = self.items_list_entries[index]
+                    self.context_menu_path = entry["path"]
+                    self.context_menu_index = entry["path"][0] if entry["depth"] == 0 else None
+                    self.context_menu_pos = mouse_position
+                    self.context_menu_open = True
+                    self.context_add_open = False
+                    return True
 
         if button == 1:
             if self.field_editor_open:
@@ -142,10 +168,13 @@ class InputMixin:
                     return True
 
             # Items List tab rows (click select, double-click edit) - top-level + linked
-            for index, rect in self.items_list_rows.items():
-                if rect.collidepoint(mouse_position):
+            if self.left_tab == "items":
+              for index, rect in self.items_list_rows.items():
+                if rect.collidepoint(mouse_position) and index < len(self.items_list_entries):
                     entry = self.items_list_entries[index]
                     path = entry["path"]
+                    if not path or path[0] >= len(self.placed_items):
+                        return True
                     now = pygame.time.get_ticks()
                     double = self.last_click_item == index and now - self.last_click_time < 350
                     self.last_click_time = now

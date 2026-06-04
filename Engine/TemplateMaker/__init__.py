@@ -126,6 +126,7 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.context_menu_open = False
         self.context_add_open = False
         self.context_menu_index = None
+        self.context_menu_path = None
         self.context_menu_pos = (0, 0)
         self.context_menu_buttons = {}
         self.sprite_picker_open = False

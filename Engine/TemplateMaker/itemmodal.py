@@ -1240,13 +1240,15 @@ class ItemModalMixin:
                 except ValueError:
                     pass
             elif key == "delete":
+                freed = 0
                 if self.modal_item_index is not None and 0 <= self.modal_item_index < len(self.placed_items):
-                    self.placed_items.pop(self.modal_item_index)
-                    for i, it in enumerate(self.placed_items, start=1):
-                        it["id"] = i
+                    deleted = self.placed_items.pop(self.modal_item_index)
+                    freed = len(self._release_linked_items(deleted))
                     self.selected_item_index = None
+                elif self.modal_item_path is not None:
+                    self._delete_linked_item_by_path(self.modal_item_path)
                 self._close_item_modal(save=False)
-                self.message = "Item deleted."
+                self.message = "Item deleted." + (f" ({freed} linked kept)" if freed else "")
             return
         # Click on empty modal area: keep open. Only close when clicking outside.
         if not self.item_modal_rect.collidepoint(mouse_position):
@@ -1653,6 +1655,18 @@ class ItemModalMixin:
             self.message = f"{t} updated."
         self._open_text_prompt(title, str(children[index].get(key) or ""), cb, label=f"{title}:")
 
+    def _release_linked_items(self, item):
+        """Detach an item's Hint/Active/Inactive refs back into the canvas as classic
+        items (so deleting a parent does not delete its linked items)."""
+        released = []
+        for field in ("HintItems", "ActiveItems", "InactiveItems"):
+            for ref in item.get(field) or []:
+                freed = self._clean_item_transients(copy.deepcopy(ref))
+                freed["uid"] = self._new_uid()
+                released.append(freed)
+        self.placed_items.extend(released)
+        return released
+
     def _delete_selected_item(self):
         if self.selected_linked_path is not None:
             deleted = self._delete_linked_item_by_path(self.selected_linked_path)
@@ -1664,11 +1678,11 @@ class ItemModalMixin:
             return
         if 0 <= self.selected_item_index < len(self.placed_items):
             deleted = self.placed_items.pop(self.selected_item_index)
-            for index, item in enumerate(self.placed_items, start=1):
-                item["id"] = index
+            freed = self._release_linked_items(deleted)
             self.selected_item_index = None
             self.dragging_item_index = None
-            self.message = f"Deleted {deleted['name']}."
+            extra = f" ({len(freed)} linked item(s) kept)" if freed else ""
+            self.message = f"Deleted {deleted['name']}.{extra}"
 
     def _duplicate_item(self, index):
         if index is None or not (0 <= index < len(self.placed_items)):
@@ -1685,6 +1699,44 @@ class ItemModalMixin:
         self.placed_items.append(clone)
         self.selected_item_index = len(self.placed_items) - 1
         self.message = f"Duplicated {clone.get('name', 'item')}."
+
+    def _context_edit_target(self):
+        path = self.context_menu_path
+        if not path:
+            return
+        if len(path) == 1:
+            self.selected_item_index = path[0]
+            self.selected_linked_path = None
+            self._open_item_modal(path[0])
+        else:
+            self.selected_item_index = None
+            self.selected_linked_path = path
+            self._open_item_modal(path[0], path)
+
+    def _context_unlink_target(self):
+        path = self.context_menu_path
+        if not path or len(path) == 1:
+            return
+        item = self._get_linked_item_by_path(path)
+        if item is None:
+            return
+        freed = self._clean_item_transients(copy.deepcopy(item))
+        freed["uid"] = self._new_uid()
+        self._delete_linked_item_by_path(path)
+        self.placed_items.append(freed)
+        self.selected_linked_path = None
+        self.message = f"Unlinked {freed.get('name', 'item')}."
+
+    def _context_delete_target(self):
+        path = self.context_menu_path
+        if not path:
+            return
+        if len(path) == 1:
+            self._delete_item_at(path[0])
+        else:
+            deleted = self._delete_linked_item_by_path(path)
+            if deleted:
+                self.message = f"Deleted linked {deleted.get('name', 'item')}."
 
     def _action_renumber(self):
         """Reassign unique, gap-free ids to every item (top-level + linked refs +
@@ -1709,6 +1761,8 @@ class ItemModalMixin:
         if index is None or not (0 <= index < len(self.placed_items)):
             return
         deleted = self.placed_items.pop(index)
+        freed = self._release_linked_items(deleted)
         self.selected_item_index = None
         self.dragging_item_index = None
-        self.message = f"Deleted {deleted.get('name', 'item')}."
+        extra = f" ({len(freed)} linked item(s) kept)" if freed else ""
+        self.message = f"Deleted {deleted.get('name', 'item')}.{extra}"

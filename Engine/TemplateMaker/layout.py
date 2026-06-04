@@ -107,19 +107,16 @@ class LayoutMixin:
         self._text(screen, title, title_rect.topleft, 24, self.COLORS["gold"])
         self._text(screen, f"{canvas_size[0]} x {canvas_size[1]}", (title_rect.right - 120, title_rect.y + 5), 16, self.COLORS["muted"])
 
-        # "See links" checkbox (main canvas only - submenus have no links), below the title
-        if self.canvas_context == "submenu":
-            self.see_links_rect = pygame.Rect(0, 0, 1, 1)
-        else:
-            box = pygame.Rect(title_rect.x, title_rect.y + 30, 18, 18)
-            self.see_links_rect = pygame.Rect(box.x, box.y, 110, 20)
-            pygame.draw.rect(screen, (20, 24, 34), box)
-            pygame.draw.rect(screen, self.COLORS["gold"] if self.show_links else (56, 62, 76), box, 2)
-            if self.show_links:
-                pygame.draw.line(screen, self.COLORS["green"], (box.x + 3, box.centery), (box.centerx - 1, box.bottom - 4), 2)
-                pygame.draw.line(screen, self.COLORS["green"], (box.centerx - 1, box.bottom - 4), (box.right - 3, box.y + 3), 2)
-            self._text(screen, "See links", (box.right + 6, box.y + 1), 14,
-                       self.COLORS["line_light"] if self.show_links else self.COLORS["muted"])
+        # "See links" checkbox, below the title (shown in main and submenu canvas)
+        box = pygame.Rect(title_rect.x, title_rect.y + 30, 18, 18)
+        self.see_links_rect = pygame.Rect(box.x, box.y, 110, 20)
+        pygame.draw.rect(screen, (20, 24, 34), box)
+        pygame.draw.rect(screen, self.COLORS["gold"] if self.show_links else (56, 62, 76), box, 2)
+        if self.show_links:
+            pygame.draw.line(screen, self.COLORS["green"], (box.x + 3, box.centery), (box.centerx - 1, box.bottom - 4), 2)
+            pygame.draw.line(screen, self.COLORS["green"], (box.centerx - 1, box.bottom - 4), (box.right - 3, box.y + 3), 2)
+        self._text(screen, "See links", (box.right + 6, box.y + 1), 14,
+                   self.COLORS["line_light"] if self.show_links else self.COLORS["muted"])
 
         title_h = 60
         margin = 18
@@ -560,9 +557,19 @@ class LayoutMixin:
 
     def _draw_context_menu(self, screen):
         items = []
-        if self.context_menu_index is not None:
-            items += [("ctx_duplicate", "Duplicate"), ("ctx_delete", "Delete")]
-        items.append(("ctx_add", "Add item  >"))
+        has_target = self.context_menu_path is not None
+        top_level = has_target and len(self.context_menu_path) == 1
+        if has_target:
+            items.append(("ctx_edit", "Edit"))
+            if top_level:
+                items.append(("ctx_duplicate", "Duplicate"))
+            else:
+                items.append(("ctx_unlink", "Unlink"))
+            items.append(("ctx_delete", "Delete"))
+        # "Add item" only from the canvas (needs a drop position)
+        on_canvas = self.last_bg_rect.collidepoint(self.context_menu_pos)
+        if on_canvas:
+            items.append(("ctx_add", "Add item  >"))
         w, rh = 160, 30
         mx, my = self.context_menu_pos
         h = len(items) * rh + 8

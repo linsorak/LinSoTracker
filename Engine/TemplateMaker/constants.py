@@ -140,7 +140,6 @@ class TemplateMakerConstants:
             {"key": "Style.SelectedTextColor", "type": "color", "label": "Selected text", "default": {"r": 255, "g": 255, "b": 255}},
             {"key": "Style.HoveredBackgroundColor", "type": "color", "label": "Hovered bg", "default": {"r": 70, "g": 70, "b": 70}},
             {"key": "Style.HoveredTextColor", "type": "color", "label": "Hovered text", "default": {"r": 255, "g": 255, "b": 255}},
-            {"key": "Style", "type": "json", "label": "Style config", "default": {}},
         ],
         "LabelItem": [
             {"key": "LabelList", "type": "list", "label": "Labels", "default": [""]},
