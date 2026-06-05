@@ -3,6 +3,7 @@ import io
 import json
 import math
 import os
+import shutil
 from tkinter import messagebox
 from zipfile import ZipFile
 
@@ -73,8 +74,20 @@ class MainMenu:
         self.template_maker = None
         self.template_maker_button = None
         self.bank = Bank()
-        self.template_directory = os.path.join(self.core_service.get_app_path(), "templates")
-        self.dev_template_directory = os.path.join(self.core_service.get_app_path(), "devtemplates")
+        app_path = self.core_service.get_app_path()
+        if self.core_service.dev_version:
+            # Dev: read/write next to the sources
+            self.template_directory = os.path.join(app_path, "templates")
+            self.dev_template_directory = os.path.join(app_path, "devtemplates")
+        else:
+            # Packaged: the app folder can be read-only (macOS App Translocation,
+            # mounted .dmg, /Applications without write rights). Use a writable
+            # location and seed it from the bundled templates on first launch.
+            base = self.core_service.temp_path_fixe
+            self.template_directory = os.path.join(base, "templates")
+            self.dev_template_directory = os.path.join(base, "devtemplates")
+            self._seed_bundled_templates(os.path.join(app_path, "templates"), self.template_directory)
+            self._seed_bundled_templates(os.path.join(app_path, "devtemplates"), self.dev_template_directory)
         self.template_list = []
         self.extract_data()
         self.init_menu()
@@ -85,6 +98,25 @@ class MainMenu:
         self.btn_paypal = None
         self.btn_discord = None
         self.init_btns()
+
+    @staticmethod
+    def _seed_bundled_templates(bundled_dir, writable_dir):
+        """Copy templates shipped inside the (possibly read-only) app bundle into a
+        writable directory. Per-template so new official templates are added on
+        update without clobbering the user's own saved/edited templates."""
+        try:
+            os.makedirs(writable_dir, exist_ok=True)
+            if not os.path.isdir(bundled_dir):
+                return
+            for name in os.listdir(bundled_dir):
+                src = os.path.join(bundled_dir, name)
+                dst = os.path.join(writable_dir, name)
+                if os.path.isdir(src) and not os.path.exists(dst):
+                    shutil.copytree(src, dst)
+                elif os.path.isfile(src) and not os.path.exists(dst):
+                    shutil.copyfile(src, dst)
+        except Exception:
+            pass
 
     def init_btns(self):
         dimensions = self.get_dimension()
