@@ -35,3 +35,7 @@ templates/windwaker.template
 devtemplates
 dist-nuitka-onefile
 website
+
+# MkDocs
+_site/
+site/

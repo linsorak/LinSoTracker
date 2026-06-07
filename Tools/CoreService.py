@@ -397,6 +397,31 @@ class CoreService(metaclass=Singleton):
         if os.path.exists(path):
             os.startfile(path)
 
+    def sync_tracker_data(self):
+        """Compare local tracker.data with the remote one and replace it if they
+        differ. Returns True if the file was updated."""
+        if self.dev_version:
+            return False
+        url = "http://linsotracker.com/tracker/tracker.data"
+        local_path = os.path.join(self.app_path, "tracker.data")
+        try:
+            response = urlopen(url, timeout=15)
+            remote_bytes = response.read()
+        except (URLError, Exception):
+            return False
+        if not remote_bytes:
+            return False
+        try:
+            if os.path.exists(local_path):
+                with open(local_path, "rb") as file:
+                    if file.read() == remote_bytes:
+                        return False
+            with open(local_path, "wb") as file:
+                file.write(remote_bytes)
+            return True
+        except Exception:
+            return False
+
     def download_and_replace(self, url, destination_path, destination_filename):
         download_path_location_file = os.path.join(self.temp_path, destination_filename)
         urllib.request.urlretrieve(url, download_path_location_file)
