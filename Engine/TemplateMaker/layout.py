@@ -255,8 +255,11 @@ class LayoutMixin:
                 item["screen_rect"] = pygame.Rect(0, 0, 0, 0)
                 continue
             item["screen_rect"] = rect.clip(item_clip)
+            selected_indices = getattr(self, "selected_item_indices", set()) or set()
+            if index in selected_indices:
+                pygame.draw.rect(screen, self.COLORS["gold"], rect.inflate(8, 8), 2)
             if index == self.selected_item_index:
-                pygame.draw.rect(screen, self.COLORS["gold"], rect.inflate(8, 8), 3)
+                pygame.draw.rect(screen, self.COLORS["gold"], rect.inflate(12, 12), 3)
             self._draw_linked_items(screen, item, bg_rect, parent_path=(index,))
         # Alignment guides while dragging with snap on
         dragging = self.dragging_item_index is not None or self.dragging_linked_path is not None
@@ -534,10 +537,20 @@ class LayoutMixin:
         item_sheet = self._sheet_by_name(item.get("sheet")) or self.active_sheet
         cw = item_sheet["cell_w"] if item_sheet else self.cell_width
         ch = item_sheet["cell_h"] if item_sheet else self.cell_height
+        external_image = None
         if item.get("kind") == "EditableBox":
             sizes = item.get("Sizes") or {}
             cw = int(sizes.get("w", 120))
             ch = int(sizes.get("h", 32))
+        elif item.get("kind") == "ImageItem":
+            external_image = self._load_item_image_asset(item, "Image")
+            if external_image:
+                cw = external_image.get_width()
+                ch = external_image.get_height()
+            else:
+                sizes = item.get("Sizes") or {}
+                cw = int(sizes.get("w", 64))
+                ch = int(sizes.get("h", 64))
         elif item.get("kind") == "TimerItem":
             timer_rect = (item.get("Timer") or {}).get("Rect", {})
             buttons = item.get("Buttons") or {}
@@ -563,6 +576,16 @@ class LayoutMixin:
             pygame.draw.rect(screen, (12, 15, 22), rect)
             pygame.draw.rect(screen, self.COLORS["green"], rect, 2)
             self._text_center(screen, "00:00.00", rect, max(10, int(24 * scale)), self.COLORS["green"])
+        elif item.get("kind") == "ImageItem":
+            if external_image:
+                image = pygame.transform.smoothscale(external_image, size)
+                if not item.get("visible", True):
+                    image = image.copy()
+                    image.set_alpha(95)
+                screen.blit(image, rect)
+            else:
+                pygame.draw.rect(screen, self.COLORS["panel_alt"], rect)
+                self._text_center(screen, "Image", rect, max(10, int(13 * scale)), self.COLORS["muted"])
         elif icon:
             icon = pygame.transform.smoothscale(icon, size)
             if not item.get("visible", True):
@@ -1169,12 +1192,22 @@ class LayoutMixin:
 
         size = self._canvas_size()
         infos = [
-            ("Dimensions", f"{size[0]} x {size[1]}"),
-            ("Choices inside" if item.get("kind") == "MultipleChoiceItem" else "Items inside", str(len(self.placed_items))),
-            ("Counter", "active" if item.get("ShowNumbersOfItemsActive") else "off"),
+            ("Dimensions", f"{size[0]} x {size[1]}", None),
+            ("Choices inside" if item.get("kind") == "MultipleChoiceItem" else "Items inside", str(len(self.placed_items)), None),
         ]
+        if item.get("kind") in ("SubMenuItem", "MultipleChoiceItem"):
+            infos.extend([
+                ("Counter", "active" if item.get("ShowNumbersOfItemsActive") else "off", "submenu_counter"),
+                ("Checked count", "active" if item.get("ShowNumberOfCheckedItems") else "off", "submenu_checked_counter"),
+            ])
         value_x = x + 112
-        for label, value in infos:
+        for label, value, key in infos:
+            row = pygame.Rect(x, y - 4, panel.w - pad * 2, 24)
+            if key:
+                self.info_buttons[key] = row
+                hovered = self.hover_key == key
+                if hovered:
+                    pygame.draw.rect(screen, self.COLORS["panel_alt"], row)
             self._text(screen, label, (x, y), 13, self.COLORS["muted"])
             self._text(screen, value, (value_x, y), 15, self.COLORS["line_light"])
             y += 26

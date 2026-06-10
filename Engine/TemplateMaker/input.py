@@ -195,13 +195,13 @@ class InputMixin:
             if linked_path is not None:
                 self.selected_linked_path = linked_path
                 self.selected_item_index = None
+                self._clear_multi_selection()
                 self.context_menu_index = None
                 self.context_menu_path = linked_path
             else:
                 idx = self._get_item_index_at(mouse_position)
                 if idx is not None:
-                    self.selected_item_index = idx
-                    self.selected_linked_path = None
+                    self._set_single_item_selection(idx)
                 self.context_menu_index = idx
                 self.context_menu_path = (idx,) if idx is not None else None
             self.context_menu_pos = mouse_position
@@ -335,13 +335,17 @@ class InputMixin:
                     self.last_click_time = now
                     self.last_click_item = index
                     if entry["depth"] == 0:
-                        self.selected_item_index = path[0]
-                        self.selected_linked_path = None
+                        if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                            selected = self._toggle_item_selection(path[0])
+                            self.message = f"{len(selected)} item(s) selected."
+                            return True
+                        self._set_single_item_selection(path[0])
                         if double:
                             self._open_item_modal(path[0])
                     else:
                         self.selected_item_index = None
                         self.selected_linked_path = path
+                        self._clear_multi_selection()
                         if double:
                             self._open_item_modal(path[0], path)
                     return True
@@ -401,6 +405,16 @@ class InputMixin:
                         self._exit_submenu_canvas()
                     elif key == "submenu_background":
                         self._import_submenu_background()
+                    elif key == "submenu_counter":
+                        if self.submenu_parent:
+                            value = not bool(self.submenu_parent.get("ShowNumbersOfItemsActive"))
+                            self.submenu_parent["ShowNumbersOfItemsActive"] = value
+                            self.message = f"Submenu counter {'enabled' if value else 'disabled'}."
+                    elif key == "submenu_checked_counter":
+                        if self.submenu_parent:
+                            value = not bool(self.submenu_parent.get("ShowNumberOfCheckedItems"))
+                            self.submenu_parent["ShowNumberOfCheckedItems"] = value
+                            self.message = f"Submenu checked counter {'enabled' if value else 'disabled'}."
                     elif key.startswith("info_"):
                         self._edit_info_field(key[len("info_"):])
                     elif key == "set_icon":
@@ -426,6 +440,7 @@ class InputMixin:
                 self.last_click_item = linked_path
                 self.selected_item_index = linked_path[0] if linked_path else None
                 self.selected_linked_path = linked_path
+                self._clear_multi_selection()
                 item = self._get_linked_item_by_path(linked_path)
                 if not item:
                     return True
@@ -438,12 +453,17 @@ class InputMixin:
 
             item_index = self._get_item_index_at(mouse_position)
             if item_index is not None:
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    selected = self._toggle_item_selection(item_index)
+                    self.last_click_time = pygame.time.get_ticks()
+                    self.last_click_item = item_index
+                    self.message = f"{len(selected)} item(s) selected."
+                    return True
                 now = pygame.time.get_ticks()
                 double = self.last_click_item == item_index and now - self.last_click_time < 350
                 self.last_click_time = now
                 self.last_click_item = item_index
-                self.selected_item_index = item_index
-                self.selected_linked_path = None
+                self._set_single_item_selection(item_index)
                 item = self.placed_items[item_index]
                 if double:
                     self._open_item_modal(item_index)
@@ -495,6 +515,8 @@ class InputMixin:
                 or self.sprite_picker_open or self.check_modal_open
                 or self.map_options_open or self.map_data_open):
             return
+        if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+            return
         # Map view: drag a check marker, or pan the map (empty area)
         if self._map_view_active() and self.map_view_rect.collidepoint(mouse_position):
             idx = self._check_index_at(mouse_position)
@@ -516,6 +538,7 @@ class InputMixin:
                 return
             self.selected_item_index = linked_path[0]
             self.selected_linked_path = linked_path
+            self._clear_multi_selection()
             self.dragging_linked_path = linked_path
             self.suppress_next_click = True
             rect = item.get("screen_rect", pygame.Rect(mouse_position[0], mouse_position[1], 1, 1))
@@ -533,14 +556,22 @@ class InputMixin:
                     self.pan_origin = list(self.canvas_pan)
                     self.suppress_next_click = True
                 return
-            self.selected_item_index = item_index
-            self.selected_linked_path = None
+            if item_index not in self._selected_indices():
+                self._set_single_item_selection(item_index)
+            else:
+                self.selected_item_index = item_index
+                self.selected_linked_path = None
             self.dragging_item_index = item_index
             self.suppress_next_click = True
             item = self.placed_items[item_index]
             rect = item.get("screen_rect", pygame.Rect(mouse_position[0], mouse_position[1], 1, 1))
             self.drag_offset = (mouse_position[0] - rect.x, mouse_position[1] - rect.y)
-            self.message = f"Moving {item['name']}."
+            self.group_drag_offsets = {
+                index: (self.placed_items[index].get("x", 0), self.placed_items[index].get("y", 0))
+                for index in self._selected_indices()
+            }
+            selected_count = len(self._selected_indices())
+            self.message = f"Moving {selected_count} item(s)." if selected_count > 1 else f"Moving {item['name']}."
         self._move_item_to_mouse(self.dragging_item_index, mouse_position)
 
     def mouse_up(self):
@@ -550,6 +581,7 @@ class InputMixin:
             self._cg_drag_end(mp)
         self.dragging_item_index = None
         self.dragging_linked_path = None
+        self.group_drag_offsets = {}
         self.dragging_check_index = None
         self.dragging_scrollbar = None
         self.panning_map = False
@@ -689,6 +721,13 @@ class InputMixin:
             else:
                 btns = self.modal_buttons
             for key, rect in btns.items():
+                if self.item_modal_open:
+                    if self.prop_category and key != "propcat_close" and not key.startswith("field_"):
+                        continue
+                    if self.child_edit_index is not None and key != "ce_close" and key != "ce_sprite" and not key.startswith("ce_"):
+                        continue
+                    if self.kind_picker_open and not key.startswith("kindopt_"):
+                        continue
                 if rect.collidepoint(mouse_position):
                     self.hover_modal_key = key
                     break
@@ -758,6 +797,10 @@ class InputMixin:
                 self.hover_key = "submenu_back"
             elif self.info_buttons.get("submenu_background") and self.info_buttons["submenu_background"].collidepoint(mouse_position):
                 self.hover_key = "submenu_background"
+            elif self.info_buttons.get("submenu_counter") and self.info_buttons["submenu_counter"].collidepoint(mouse_position):
+                self.hover_key = "submenu_counter"
+            elif self.info_buttons.get("submenu_checked_counter") and self.info_buttons["submenu_checked_counter"].collidepoint(mouse_position):
+                self.hover_key = "submenu_checked_counter"
             else:
                 for index, rect in self.sheet_list_rows.items():
                     if rect.collidepoint(mouse_position):

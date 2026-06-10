@@ -7,6 +7,7 @@ set "PYTHON=.venv\Scripts\python.exe"
 set "OUT_DIR=dist-nuitka-onefile"
 set "APP_NAME=LinSoTracker"
 set "APP_VERSION="
+set "WINDOWS_VERSION="
 
 if not exist "%PYTHON%" (
     echo Python virtual environment not found: %PYTHON%
@@ -33,6 +34,8 @@ if %ERRORLEVEL% NEQ 0 goto error
 echo Synchronizing version from CoreService.py...
 for /f "usebackq delims=" %%v in (`"%PYTHON%" Tools\sync_version.py --print-version`) do set "APP_VERSION=%%v"
 if "%APP_VERSION%"=="" goto error
+for /f "usebackq delims=" %%v in (`"%PYTHON%" Tools\sync_version.py --print-windows-version`) do set "WINDOWS_VERSION=%%v"
+if "%WINDOWS_VERSION%"=="" goto error
 "%PYTHON%" Tools\sync_version.py
 if %ERRORLEVEL% NEQ 0 goto error
 
@@ -53,8 +56,8 @@ echo Building %APP_NAME% onefile executable with Nuitka...
     %DEV_FILE_OPTION% ^
     --product-name="%APP_NAME%" ^
     --file-description="%APP_NAME%" ^
-    --product-version="%APP_VERSION%" ^
-    --file-version="%APP_VERSION%" ^
+    --product-version="%WINDOWS_VERSION%" ^
+    --file-version="%WINDOWS_VERSION%" ^
     LinSoTracker.py
 if %ERRORLEVEL% NEQ 0 goto error
 

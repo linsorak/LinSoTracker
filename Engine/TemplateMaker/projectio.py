@@ -120,6 +120,7 @@ class ProjectIOMixin:
             self.illustration_path = illu_file if os.path.exists(illu_file) else None
             self.selected_cell = None
             self.selected_item_index = None
+            self.selected_item_indices = set()
             self.item_modal_open = False
             self.placed_items = self._items_from_tracker_json(data[3].get("Items", []))
             self.main_items = self.placed_items
@@ -250,6 +251,7 @@ class ProjectIOMixin:
         self.placed_items = item["_submenu_items"]
         self.canvas_context = "submenu"
         self.selected_item_index = None
+        self.selected_item_indices = set()
         self.dragging_item_index = None
         self.last_click_item = None
         label = "choices" if item.get("kind") == "MultipleChoiceItem" else "submenu"
@@ -277,6 +279,7 @@ class ProjectIOMixin:
         self.submenu_parent = None
         self.submenu_parent_index = None
         self.selected_item_index = None
+        self.selected_item_indices = set()
         self.dragging_item_index = None
         self.last_click_item = None
         self.message = f"Saved items for {name}."
@@ -891,6 +894,9 @@ class ProjectIOMixin:
                     if item.get("kind") in ("SubMenuItem", "MultipleChoiceItem") else []
             for child in self._iter_all_items(nested):
                 yield child
+            for key in ("ActiveItems", "InactiveItems", "HintItems"):
+                for child in self._iter_all_items(item.get(key) or []):
+                    yield child
 
     def _save_submenu_backgrounds(self, template_dir, source_dir=None):
         for item in self._iter_all_items(self.main_items):
@@ -1055,6 +1061,30 @@ class ProjectIOMixin:
                 "Style": item.get("Style", {}),
                 "Lines": item.get("Lines", []),
             }
+
+        if kind == "ImageItem":
+            data = dict(item.get("_raw", {}))
+            data.update({
+                "Id": assigned_id,
+                "Kind": "ImageItem",
+                "Name": item["name"],
+                "Positions": {"x": item["x"], "y": item["y"]},
+                "Image": item.get("Image"),
+                "Sizes": item.get("Sizes", {"w": 64, "h": 64}),
+                "isActive": item.get("isActive", True),
+                "Hint": item.get("hint"),
+                "OpacityDisable": item.get("opacity", 0.5),
+            })
+            data.pop("SheetInformation", None)
+            if item.get("visible", True) is not True:
+                data["Visible"] = bool(item.get("visible"))
+            else:
+                data.pop("Visible", None)
+            if item.get("AlwaysEnable", False):
+                data["AlwaysEnable"] = True
+            else:
+                data.pop("AlwaysEnable", None)
+            return data
 
         # Start from the raw json (if any) to keep fields of unsupported kinds intact
         data = dict(item.get("_raw", {}))

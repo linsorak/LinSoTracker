@@ -96,7 +96,12 @@ class TemplateChecker:
         self.__check_element_is_in_section_and_valid("Kind", section, "Item ID = {}".format(index), str)
         self.__check_element_is_in_section_and_valid("Name", section, "Item ID = {}".format(index), str)
         self.__positions_check("Positions", section, "Item ID = {}".format(index))
-        self.__sheet_positions_check("SheetInformation", section, "Item ID = {}".format(index))
+        if section.get("Kind") == "ImageItem":
+            if "Image" in section and section["Image"] is not None and not isinstance(section["Image"], str):
+                self.errors.append(self.ERROR_IS_NOT_IN_EXCEPTED_TYPE.format(
+                    "Image.Item ID = {}".format(index), str))
+        else:
+            self.__sheet_positions_check("SheetInformation", section, "Item ID = {}".format(index))
         self.__check_element_is_in_section_and_valid("isActive", section, "Item ID = {}".format(index), bool)
 
         if "Hint" in section.keys():

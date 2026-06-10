@@ -248,8 +248,10 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.hover_property_key = None
         self.hover_modal_key = None
         self.selected_item_index = None
+        self.selected_item_indices = set()
         self.dragging_item_index = None
         self.dragging_linked_path = None
+        self.group_drag_offsets = {}
         self.suppress_next_click = False
         self.drag_offset = (0, 0)
         self.last_bg_rect = pygame.Rect(0, 0, 1, 1)

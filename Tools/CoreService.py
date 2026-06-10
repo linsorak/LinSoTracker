@@ -11,6 +11,7 @@ import time
 import urllib
 import webbrowser
 from contextlib import contextmanager
+from datetime import date
 from tkinter import messagebox
 from urllib.error import URLError
 from urllib.request import urlopen
@@ -37,7 +38,10 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.5"
+        self.version = "2.5.0.0-BETA-001"
+        self.beta_version = "BETA" in self.version.upper()
+        self.beta_lock_enabled = True
+        self.beta_end_date = None
         self.key_encryption = "I5WpbQcf6qeid_6pnm54RlQOKftZBL-ZQ8XjJCO6AGc="
         self.temp_path = tempfile.gettempdir()
         self.json_data = None
@@ -66,6 +70,7 @@ class CoreService(metaclass=Singleton):
 
         # if not self.dev_version:
         self.read_checker()
+        self.print_beta_status()
         self.load_default_configuration()
         self.fps_max = 30
         self.clock = pygame.time.Clock()
@@ -128,6 +133,32 @@ class CoreService(metaclass=Singleton):
                 json.dump(data, f, indent=2)
         except OSError as e:
             print(f"Failed to write to 'user.conf': {e}")
+
+    def load_cached_beta_configuration(self):
+        user_configuration = os.path.join(self.temp_path_fixe, "user.conf")
+        if not os.path.exists(user_configuration):
+            return
+        try:
+            with open(user_configuration, 'r') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return
+        self.beta_lock_enabled = bool(data.get("betaLockEnabled", self.beta_lock_enabled))
+        self.beta_end_date = self.parse_date(data.get("betaEndDate")) or self.beta_end_date
+
+    def save_beta_configuration(self):
+        if self.beta_end_date:
+            self.save_configuration("betaEndDate", self.beta_end_date.isoformat())
+        self.save_configuration("betaLockEnabled", self.beta_lock_enabled)
+
+    @staticmethod
+    def parse_date(value):
+        if not value:
+            return None
+        try:
+            return date.fromisoformat(str(value).split("T", 1)[0])
+        except ValueError:
+            return None
 
     def register_app_launch(self):
         if self.launch_registered:
@@ -212,12 +243,17 @@ class CoreService(metaclass=Singleton):
 
     def read_checker(self):
         url = "https://linsotracker.com/tracker/update.json"
+        self.load_cached_beta_configuration()
         try:
             response = urlopen(url)
             data_json = json.loads(response.read())
+            self.read_beta_configuration(data_json)
 
             if "lastest_version" in data_json:
-                if self.get_version() != data_json["lastest_version"] and (self.detect_os() == "win" or self.detect_os() == "linux") and not self.dev_version:
+                if self.get_version() != data_json["lastest_version"] \
+                        and (self.detect_os() == "win" or self.detect_os() == "linux") \
+                        and not self.dev_version \
+                        and not self.beta_version:
                     self.new_version = data_json["lastest_version"]
 
                     args_current_version = f'--current_version="{self.version}"'
@@ -250,6 +286,24 @@ class CoreService(metaclass=Singleton):
 
         except URLError:
             pass
+
+    def read_beta_configuration(self, data_json):
+        beta_data = data_json.get("beta", {})
+        if isinstance(beta_data, dict):
+            self.beta_lock_enabled = bool(beta_data.get("enabled", self.beta_lock_enabled))
+            beta_end_date = (
+                beta_data.get("end_date")
+                or beta_data.get("endDate")
+                or beta_data.get("end")
+            )
+        else:
+            beta_end_date = None
+
+        beta_end_date = beta_end_date or data_json.get("beta_end_date") or data_json.get("betaEndDate")
+        parsed_date = self.parse_date(beta_end_date)
+        if parsed_date:
+            self.beta_end_date = parsed_date
+        self.save_beta_configuration()
 
     def get_new_version(self):
         return self.new_version
@@ -286,6 +340,25 @@ class CoreService(metaclass=Singleton):
 
     def get_version(self):
         return self.version
+
+    def is_beta_version(self):
+        return self.beta_version
+
+    def print_beta_status(self):
+        if not self.beta_version:
+            print("LinSoTracker build mode: release")
+            return
+        end_date = self.beta_end_date.isoformat() if self.beta_end_date else "unknown"
+        print(f"LinSoTracker build mode: beta (lock={'on' if self.beta_lock_enabled else 'off'}, end={end_date})")
+
+    def is_beta_expired(self):
+        return (
+            self.beta_lock_enabled
+            and self.beta_version
+            and not self.dev_version
+            and self.beta_end_date is not None
+            and date.today() >= self.beta_end_date
+        )
 
     def zoom_image(self, image):
         return pygame.transform.smoothscale(image, (image.get_rect().w * self.zoom, image.get_rect().h * self.zoom))

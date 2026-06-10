@@ -18,7 +18,7 @@ class TemplateMakerConstants:
         "CheckItem", "OpenLinkItem", "GoModeItem", "SubMenuItem", "MultipleChoiceItem", "TimerItem", "EditableBox",
     ]
 
-    SPRITE_OPTIONAL_KINDS = {"TimerItem", "EditableBox"}
+    SPRITE_OPTIONAL_KINDS = {"TimerItem", "EditableBox", "ImageItem"}
 
     # Structural fields required by complex kinds, seeded as defaults and always serialized
     # (not all are editable in the UI, but they keep the item valid for the tracker).
@@ -27,7 +27,7 @@ class TemplateMakerConstants:
             "ItemsList": [], "ShowNumbersOfItemsActive": False, "ShowNumberOfCheckedItems": False,
         },
         "MultipleChoiceItem": {
-            "ItemsList": [],
+            "ItemsList": [], "ShowNumbersOfItemsActive": False, "ShowNumberOfCheckedItems": False,
         },
         "TimerItem": {
             "Timer": {
@@ -100,6 +100,11 @@ class TemplateMakerConstants:
             {"key": "maxValueAlternate", "type": "int", "label": "Max alternate", "default": 10},
             {"key": "customFont", "type": "strnull", "label": "Custom font", "default": None},
         ],
+        "ImageItem": [
+            {"key": "Image", "type": "image", "label": "Image file", "default": None},
+            {"key": "Sizes", "type": "rect", "label": "Fallback size", "default": {"w": 64, "h": 64},
+             "keys": ["w", "h"]},
+        ],
         "IncrementalItem": [
             {"key": "Increment", "type": "list_editor", "label": "Increments", "default": ["1"]},
             {"key": "StartIncrementIndex", "type": "int", "label": "Start index", "default": 0, "omit_default": True},
@@ -110,8 +115,12 @@ class TemplateMakerConstants:
         ],
         "MultipleChoiceItem": [
             {"key": "Background", "type": "image", "label": "Choice background", "default": None},
+            {"key": "Dimensions", "type": "rect", "label": "Choice dimensions",
+             "default": {"w": 268, "h": 122}, "keys": ["w", "h"]},
             {"key": "BackgroundOffset", "type": "rect", "label": "Background offset",
              "default": {"x": 0, "y": 0}, "keys": ["x", "y"], "min": {"x": None, "y": None}},
+            {"key": "ShowNumbersOfItemsActive", "type": "bool", "label": "Show active count", "default": False},
+            {"key": "ShowNumberOfCheckedItems", "type": "bool", "label": "Show checked count", "default": False},
             {"key": "ActiveOnSelection", "type": "bool", "label": "Active on selection", "default": False},
             {"key": "CloseOnSelection", "type": "bool", "label": "Close on selection", "default": False},
         ],

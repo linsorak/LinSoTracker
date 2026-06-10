@@ -11,6 +11,9 @@ BUILD_DIR="${BUILD_DIR:-${BUILD_BASE_DIR}/nuitka-linux-${ARCH}-$(date +%Y%m%d-%H
 
 DIST_DIR="${DIST_DIR:-dist}"
 APP_NAME="${APP_NAME:-LinSoTracker}"
+APP_VERSION=""
+SYSTEM_VERSION=""
+PACKAGE_VERSION=""
 
 cd "$(dirname "$0")"
 
@@ -102,6 +105,11 @@ rm -rf "$VENV_DIR"
 
 source "${VENV_DIR}/bin/activate"
 
+APP_VERSION="$(python Tools/sync_version.py --print-version)"
+SYSTEM_VERSION="$(python Tools/sync_version.py --print-system-version)"
+PACKAGE_VERSION="$(printf '%s' "$APP_VERSION" | tr -c 'A-Za-z0-9._-' '-')"
+log "App version: ${APP_VERSION} (system metadata: ${SYSTEM_VERSION})"
+
 log "Installing Python dependencies"
 python -m pip install --upgrade pip setuptools wheel
 
@@ -148,6 +156,8 @@ python -m nuitka \
     --include-package-data=pygame_gui \
     --output-dir="$BUILD_DIR" \
     --product-name="$APP_NAME" \
+    --product-version="$SYSTEM_VERSION" \
+    --file-version="$SYSTEM_VERSION" \
     "${ICON_ARGS[@]}" \
     "${DATA_ARGS[@]}" \
     LinSoTracker.py
@@ -174,7 +184,7 @@ copy_file_to_dist "settings.json" "$DIST_PATH"
 log "Dist content:"
 find "$DIST_PATH" -maxdepth 2 -print >&2 || true
 
-PACKAGE_NAME="${APP_NAME}-linux-${ARCH}"
+PACKAGE_NAME="${APP_NAME}-${PACKAGE_VERSION}-linux-${ARCH}"
 OUTPUT_PATH="${DIST_DIR}/${PACKAGE_NAME}"
 
 log "Packaging ${PACKAGE_NAME}"

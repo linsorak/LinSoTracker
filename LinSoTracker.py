@@ -10,6 +10,7 @@ import tkinter
 import traceback
 import logging
 from datetime import datetime
+from tkinter import messagebox
 
 import pygame
 
@@ -22,6 +23,13 @@ PRINT_SCREEN_KEYS = {k for k in (
     getattr(pygame, "K_PRINT", None),
     getattr(pygame, "K_SYSREQ", None),
 ) if k is not None}
+
+def show_beta_expired_message():
+    messagebox.showerror(
+        "LinSoTracker beta ended",
+        "This LinSoTracker beta build has expired and can no longer be launched.\n\n"
+        "Please download an updated release to continue using LinSoTracker."
+    )
 
 
 def save_screenshot(surface, base_dir):
@@ -68,6 +76,10 @@ core_service = CoreService()
 
 def main():
     try:
+        if core_service.is_beta_expired():
+            show_beta_expired_message()
+            return
+
         os.environ["SDL_MOUSE_FOCUS_CLICKTHROUGH"] = "1"
         os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
         pygame.init()

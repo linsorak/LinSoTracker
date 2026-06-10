@@ -11,6 +11,10 @@ BUILD_DIR="${BUILD_DIR:-${BUILD_BASE_DIR}/nuitka-macos-arm64-$(date +%Y%m%d-%H%M
 
 DIST_DIR="${DIST_DIR:-dist}"
 APP_NAME="${APP_NAME:-LinSoTracker}"
+APP_VERSION=""
+SYSTEM_VERSION=""
+MACOS_VERSION=""
+PACKAGE_VERSION=""
 
 PYTHON_INSTALL_ROOT="/Library/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_MINOR}"
 PYTHON_BIN_DEFAULT="${PYTHON_INSTALL_ROOT}/bin/python3.14"
@@ -163,6 +167,12 @@ rm -rf "$VENV_DIR"
 
 source "${VENV_DIR}/bin/activate"
 
+APP_VERSION="$(python Tools/sync_version.py --print-version)"
+SYSTEM_VERSION="$(python Tools/sync_version.py --print-system-version)"
+MACOS_VERSION="$(python Tools/sync_version.py --print-macos-version)"
+PACKAGE_VERSION="$(printf '%s' "$APP_VERSION" | tr -c 'A-Za-z0-9._-' '-')"
+log "App version: ${APP_VERSION} (system metadata: ${SYSTEM_VERSION}, macOS bundle: ${MACOS_VERSION})"
+
 log "Installing Python dependencies"
 python -m pip install --upgrade pip setuptools wheel
 
@@ -213,6 +223,9 @@ python -m nuitka \
     --include-package-data=pygame_gui \
     --output-dir="$BUILD_DIR" \
     --product-name="$APP_NAME" \
+    --product-version="$SYSTEM_VERSION" \
+    --file-version="$SYSTEM_VERSION" \
+    --macos-app-version="$MACOS_VERSION" \
     "${ICON_ARGS[@]}" \
     "${DATA_ARGS[@]}" \
     LinSoTracker.py
@@ -241,7 +254,7 @@ copy_file_to_app_resources "settings.json" "$APP_MACOS_PATH"
 log "App MacOS dir content:"
 find "$APP_MACOS_PATH" -maxdepth 2 -print >&2 || true
 
-PACKAGE_NAME="${APP_NAME}-macos-arm64"
+PACKAGE_NAME="${APP_NAME}-${PACKAGE_VERSION}-macos-arm64"
 OUTPUT_PATH="${DIST_DIR}/${PACKAGE_NAME}"
 
 log "Packaging ${PACKAGE_NAME}"

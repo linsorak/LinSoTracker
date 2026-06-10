@@ -2,6 +2,7 @@ import os
 
 import pygame
 
+from Entities.CheckItem import CheckItem
 from Entities.Item import Item
 from Tools.Bank import Bank
 
@@ -9,6 +10,7 @@ from Tools.Bank import Bank
 class MultipleChoiceItem(Item):
     def __init__(self, id, name, image, position, enable, opacity_disable, hint, background_image, resources_path,
                  tracker, items_list, active_on_selection=False, background_offset=None, close_on_selection=False,
+                 dimensions=None, show_numbers_items_active=False, show_numbers_checked_items=False,
                  always_enable=False):
         self.background_image_name = background_image
         self.background_image = None
@@ -20,6 +22,11 @@ class MultipleChoiceItem(Item):
         self.tracker = tracker
         self.items_list = items_list
         self.close_on_selection = close_on_selection
+        self.dimensions = dimensions
+        self.show_numbers_items_active = show_numbers_items_active
+        self.show_numbers_checked_items = show_numbers_checked_items
+        self.counter_enable = 0
+        self.counter_check = 0
         self.background_x = 0
         self.background_y = 0
         if background_offset:
@@ -42,27 +49,46 @@ class MultipleChoiceItem(Item):
         Item.update(self)
 
         active_item = self.get_active_choice()
-        if active_item is None:
-            return
+        if active_item is not None:
+            if self.enable or self.active_on_selection:
+                self.image = active_item.colored_image
+            else:
+                self.image = self.alpha_image(active_item.grey_image)
 
-        if self.enable or self.active_on_selection:
-            self.image = active_item.colored_image
-        else:
-            self.image = self.alpha_image(active_item.grey_image)
+            if hasattr(active_item, "label_list"):
+                font = self.core_service.get_font("labelItemFont")
+                font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
+                self.image = self.get_drawing_text(
+                    font=font,
+                    color_category="Normal",
+                    text=active_item.label_list[active_item.label_count],
+                    font_path=font_path,
+                    base_image=self.image,
+                    image_surface=self.image,
+                    text_position="label",
+                    offset=active_item.label_offset,
+                )
 
-        if hasattr(active_item, "label_list"):
-            font = self.core_service.get_font("labelItemFont")
+        if self.show_numbers_items_active:
+            self.counter_enable = sum(1 for item in self.items if item.enable)
+            self.counter_check = sum(1 for item in self.items if isinstance(item, CheckItem) and item.check)
+
+            font = self.core_service.get_font("subMenuItemFont")
             font_path = os.path.join(self.core_service.get_tracker_temp_path(), font["Name"])
-            self.image = self.get_drawing_text(
-                font=font,
-                color_category="Normal",
-                text=active_item.label_list[active_item.label_count],
-                font_path=font_path,
-                base_image=self.image,
-                image_surface=self.image,
-                text_position="label",
-                offset=active_item.label_offset,
-            )
+            color_category = "Normal" if self.counter_enable != len(self.items) else "Max"
+            if self.show_numbers_checked_items:
+                text_draw = "{}/{}".format(self.counter_check, self.counter_enable)
+            else:
+                text_draw = "{}/{}".format(self.counter_enable, len(self.items))
+
+            self.image = self.get_drawing_text(font=font,
+                                               color_category=color_category,
+                                               text=text_draw,
+                                               font_path=font_path,
+                                               base_image=self.image,
+                                               image_surface=self.image,
+                                               text_position="right",
+                                               offset=10)
 
     def get_active_choice(self):
         return next((item for item in self.items if item.enable), None)
@@ -105,19 +131,25 @@ class MultipleChoiceItem(Item):
     def layout_menu(self, screen=None):
         surface = screen or pygame.display.get_surface()
         screen_rect = surface.get_rect() if surface else pygame.Rect(0, 0, 0, 0)
+        bounds = None
+        for item in self.items:
+            base_pos = self._choice_base_positions.get(item, item.position)
+            rect = item.base_rect.copy()
+            rect.topleft = base_pos
+            bounds = rect if bounds is None else bounds.union(rect)
         if self.background_image:
             menu_rect = self.background_image.get_rect()
+            if self.dimensions and self.dimensions[0] and self.dimensions[1]:
+                menu_rect.size = (int(self.dimensions[0]), int(self.dimensions[1]))
             menu_rect.center = screen_rect.center
             delta_x = menu_rect.x - self.background_x
             delta_y = menu_rect.y - self.background_y
+            if bounds is not None and not menu_rect.contains(bounds.move(delta_x, delta_y)):
+                # Authored origin puts the choices outside the frame: re-center them in it.
+                delta_x = menu_rect.centerx - bounds.centerx
+                delta_y = menu_rect.centery - bounds.centery
             menu_pos = menu_rect.topleft
         else:
-            bounds = None
-            for item in self.items:
-                base_pos = self._choice_base_positions.get(item, item.position)
-                rect = item.base_rect.copy()
-                rect.topleft = base_pos
-                bounds = rect if bounds is None else bounds.union(rect)
             if bounds is None:
                 return 0, 0
             centered = bounds.copy()

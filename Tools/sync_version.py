@@ -27,6 +27,14 @@ def version_tuple(version):
     return tuple(numbers)
 
 
+def windows_version(version):
+    return ".".join(str(part) for part in version_tuple(version))
+
+
+def macos_version(version):
+    return ".".join(str(part) for part in version_tuple(version)[:3])
+
+
 def update_properties(version):
     content = PROPERTIES.read_text(encoding="utf-8")
     fixed = ", ".join(str(part) for part in version_tuple(version))
@@ -48,11 +56,20 @@ def update_properties(version):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--print-version", action="store_true")
+    parser.add_argument("--print-windows-version", action="store_true")
+    parser.add_argument("--print-system-version", action="store_true")
+    parser.add_argument("--print-macos-version", action="store_true")
     args = parser.parse_args()
 
     version = read_core_version()
     if args.print_version:
         print(version)
+        return
+    if args.print_windows_version or args.print_system_version:
+        print(windows_version(version))
+        return
+    if args.print_macos_version:
+        print(macos_version(version))
         return
 
     update_properties(version)

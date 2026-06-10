@@ -468,12 +468,23 @@ class Tracker:
         item_image = None
         items_sheet_dict = None
         item_sheet_name = None
-        bypass = item["Kind"] == "EditableBox"
+        bypass = item["Kind"] in ("EditableBox", "ImageItem")
         if not bypass:
             items_sheet_dict = {sheet["Name"]: sheet for sheet in self.list_items_sheets}
             item_sheet_name = item["SheetInformation"]["SpriteSheet"]
         if bypass or item_sheet_name in items_sheet_dict:
-            if not bypass:
+            if item["Kind"] == "ImageItem":
+                image_name = item.get("Image")
+                image_path = os.path.join(self.resources_path, image_name) if image_name else None
+                if image_path and os.path.exists(image_path):
+                    item_image = self.bank.addZoomImage(image_path)
+                else:
+                    sizes = item.get("Sizes") or {}
+                    item_image = pygame.Surface((
+                        max(1, int(sizes.get("w", 64) * self.core_service.zoom)),
+                        max(1, int(sizes.get("h", 64) * self.core_service.zoom))
+                    ), pygame.SRCALPHA)
+            elif not bypass:
                 sheet = items_sheet_dict[item_sheet_name]
                 item_image = self.core_service.zoom_image(
                     sheet["ImageSheet"].getImageWithRowAndColumn(
@@ -620,11 +631,19 @@ class Tracker:
                         extra_args["background_offset"] = get_position(item, "BackgroundOffset")
                     if "CloseOnSelection" in item:
                         extra_args["close_on_selection"] = item["CloseOnSelection"]
+                    if "Dimensions" in item:
+                        dimensions = item.get("Dimensions") or {}
+                        extra_args["dimensions"] = (
+                            dimensions.get("w", dimensions.get("width", 0)) * self.core_service.zoom,
+                            dimensions.get("h", dimensions.get("height", 0)) * self.core_service.zoom
+                        )
                     _item = create_base_item(item, item_class,
                                              background_image=item.get("Background"),
                                              resources_path=self.resources_path,
                                              tracker=self,
                                              items_list=item.get("ItemsList", []),
+                                             show_numbers_items_active=item.get("ShowNumbersOfItemsActive", False),
+                                             show_numbers_checked_items=item.get("ShowNumberOfCheckedItems", False),
                                              **extra_args)
                 elif item["Kind"] == "SubMenuItem":
                     _item = create_base_item(item, item_class,
@@ -1221,17 +1240,22 @@ class Tracker:
                 items_to_check = [item for submenu in self.submenus if submenu.show for item in submenu.items]
 
             for item in items_to_check:
+                if not self._is_hoverable_item(item):
+                    continue
                 if self.core_service.is_on_element(
                         mouse_positions=mouse_position,
                         element_positons=item.get_position(),
                         element_dimension=(item.get_rect().w, item.get_rect().h)
-                ) and not isinstance(item, ImageItem):
+                ):
                     if self.current_item_on_mouse is not item:
                         self.surface_check_hint, self.position_check_hint = self.update_hint(item, "labelItemFont", False)
                     self.current_item_on_mouse = item
                     break
             else:
                 self.current_item_on_mouse = None
+
+    def _is_hoverable_item(self, item):
+        return bool(getattr(item, "show_item", True)) and not isinstance(item, ImageItem)
 
     def update_hint(self, item, font_session, top, zone=False, attached_item=None):
         if item:

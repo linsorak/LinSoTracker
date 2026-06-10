@@ -165,6 +165,7 @@ class StartMixin:
         self.submenu_parent = None
         self.submenu_parent_index = None
         self.selected_item_index = None
+        self.selected_item_indices = set()
         self.item_modal_open = False
         self.template_size = (800, 600)
         self.mode = "editor"

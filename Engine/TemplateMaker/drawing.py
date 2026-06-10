@@ -174,6 +174,11 @@ class DrawingMixin:
             dims = self._current_map()["data"]["Datas"].get("Dimensions", {})
             return (dims.get("width") or self.template_size[0], dims.get("height") or self.template_size[1])
         if getattr(self, "canvas_context", "main") == "submenu":
+            parent = getattr(self, "submenu_parent", None) or {}
+            if parent.get("kind") == "MultipleChoiceItem":
+                dims = parent.get("Dimensions") or {}
+                if dims.get("w") and dims.get("h"):
+                    return (max(1, int(dims.get("w"))), max(1, int(dims.get("h"))))
             background = self._submenu_background_surface()
             if background:
                 return background.get_size()

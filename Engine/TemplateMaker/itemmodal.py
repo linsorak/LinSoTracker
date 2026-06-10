@@ -67,7 +67,9 @@ class ItemModalMixin:
             ("Name", item["name"]),
             ("Type", item.get("kind", "Item")),
             ("Position", f"x {item['x']} / y {item['y']}"),
-            ("Sprite", "optional" if item.get("kind") in self.SPRITE_OPTIONAL_KINDS and not item.get("sheet")
+            ("Image" if item.get("kind") == "ImageItem" else "Sprite",
+             item.get("Image") or "None" if item.get("kind") == "ImageItem" else
+             "optional" if item.get("kind") in self.SPRITE_OPTIONAL_KINDS and not item.get("sheet")
              else f"row {item['row']} / column {item['column']}"),
             ("Active", item.get("isActive", False)),
             ("Opacity", item.get("opacity", 0.5)),
@@ -690,9 +692,38 @@ class ItemModalMixin:
                 return path
         return None
 
+    def _selected_indices(self):
+        indices = set(getattr(self, "selected_item_indices", set()) or set())
+        if self.selected_item_index is not None:
+            indices.add(self.selected_item_index)
+        return {index for index in indices if 0 <= index < len(self.placed_items)}
+
+    def _set_single_item_selection(self, index):
+        self.selected_item_index = index
+        self.selected_linked_path = None
+        self.selected_item_indices = {index} if index is not None else set()
+
+    def _clear_multi_selection(self):
+        self.selected_item_indices = set()
+
+    def _toggle_item_selection(self, index):
+        selected = set(getattr(self, "selected_item_indices", set()) or set())
+        if index in selected:
+            selected.remove(index)
+        else:
+            selected.add(index)
+        self.selected_item_indices = selected
+        self.selected_item_index = index if index in selected else (next(iter(selected)) if selected else None)
+        self.selected_linked_path = None
+        return selected
+
     def _open_item_modal(self, index, path=None):
         self.selected_item_index = index
         self.selected_linked_path = path
+        if path is None:
+            self.selected_item_indices = {index}
+        else:
+            self._clear_multi_selection()
         self.modal_item_index = index
         self.modal_item_path = path
         source = self._get_linked_item_by_path(path) if path is not None else self.placed_items[index]
@@ -765,6 +796,14 @@ class ItemModalMixin:
                 self.message = f"{item.get('name', 'item')} at {item['x']}, {item['y']}."
                 return True
             return False
+        selected = self._selected_indices()
+        if len(selected) > 1:
+            for index in selected:
+                item = self.placed_items[index]
+                item["x"] = max(0, item.get("x", 0) + dx)
+                item["y"] = max(0, item.get("y", 0) + dy)
+            self.message = f"Moved {len(selected)} item(s)."
+            return True
         # Top-level item selected
         if self.selected_item_index is not None and 0 <= self.selected_item_index < len(self.placed_items):
             item = self.placed_items[self.selected_item_index]
@@ -784,13 +823,37 @@ class ItemModalMixin:
             return float(sheet["cell_w"]), float(sheet["cell_h"])
         return 32.0, 32.0
 
-    def _snap_xy(self, moving, x, y):
+    def _spacing_snap_delta(self, moving_center, centers, threshold):
+        centers = sorted({round(center, 3) for center in centers})
+        if len(centers) < 2:
+            return None, None
+        best = None
+        guide = None
+        candidates = []
+        for index in range(len(centers) - 1):
+            left = centers[index]
+            right = centers[index + 1]
+            gap = right - left
+            if gap <= 0:
+                continue
+            candidates.append((left + gap / 2, "mid"))
+            candidates.append((left - gap, "space"))
+            candidates.append((right + gap, "space"))
+        for candidate, _kind in candidates:
+            delta = candidate - moving_center
+            if abs(delta) <= threshold and (best is None or abs(delta) < abs(best)):
+                best = delta
+                guide = candidate
+        return best, guide
+
+    def _snap_xy(self, moving, x, y, ignore_indices=None):
         """Snap a top-left position (canvas px) to nearby items' left/center/right
         and top/center/bottom anchors. Grid snap only when the grid is shown.
         Sets self.snap_guides."""
         self.snap_guides = []
         if not (self.snap_enabled or self.grid_shown):
             return int(x), int(y)
+        ignore_indices = set(ignore_indices or [])
         scale = self._canvas_size()[0] / self.last_bg_rect.w if self.last_bg_rect.w else 1
         thr = max(3.0, 8 * scale)            # snap threshold (canvas px ~ constant on screen)
         w, h = self._item_canvas_size(moving)
@@ -800,11 +863,17 @@ class ItemModalMixin:
         if self.snap_enabled:
             moving_x = (x, x + w / 2, x + w)
             moving_y = (y, y + h / 2, y + h)
-            for other in self.placed_items:
+            other_centers_x = []
+            other_centers_y = []
+            for other_index, other in enumerate(self.placed_items):
+                if other_index in ignore_indices:
+                    continue
                 if other is moving:
                     continue
                 ow, oh = self._item_canvas_size(other)
                 ox, oy = other.get("x", 0), other.get("y", 0)
+                other_centers_x.append(ox + ow / 2)
+                other_centers_y.append(oy + oh / 2)
                 for mv in moving_x:
                     for ov in (ox, ox + ow / 2, ox + ow):
                         d = ov - mv
@@ -815,6 +884,12 @@ class ItemModalMixin:
                         d = ov - mv
                         if abs(d) <= thr and (best_dy is None or abs(d) < abs(best_dy)):
                             best_dy, guide_y = d, ov
+            space_dx, space_guide_x = self._spacing_snap_delta(x + w / 2, other_centers_x, thr)
+            if space_dx is not None and (best_dx is None or abs(space_dx) < abs(best_dx)):
+                best_dx, guide_x = space_dx, space_guide_x
+            space_dy, space_guide_y = self._spacing_snap_delta(y + h / 2, other_centers_y, thr)
+            if space_dy is not None and (best_dy is None or abs(space_dy) < abs(best_dy)):
+                best_dy, guide_y = space_dy, space_guide_y
         if best_dx is not None:
             x += best_dx
             self.snap_guides.append(("v", guide_x))
@@ -835,8 +910,25 @@ class ItemModalMixin:
         x = max(self.last_bg_rect.x, min(x, self.last_bg_rect.right - 1))
         y = max(self.last_bg_rect.y, min(y, self.last_bg_rect.bottom - 1))
         scale = self._canvas_size()[0] / self.last_bg_rect.w
+        selected = self._selected_indices()
+        if index not in selected:
+            selected = {index}
         cx, cy = self._snap_xy(self.placed_items[index],
-                               (x - self.last_bg_rect.x) * scale, (y - self.last_bg_rect.y) * scale)
+                               (x - self.last_bg_rect.x) * scale, (y - self.last_bg_rect.y) * scale,
+                               ignore_indices=selected)
+        if len(selected) > 1:
+            offsets = getattr(self, "group_drag_offsets", {}) or {}
+            leader_origin = offsets.get(index, (self.placed_items[index].get("x", 0),
+                                                self.placed_items[index].get("y", 0)))
+            dx = cx - leader_origin[0]
+            dy = cy - leader_origin[1]
+            canvas_w, canvas_h = self._canvas_size()
+            for selected_index in selected:
+                item = self.placed_items[selected_index]
+                ox, oy = offsets.get(selected_index, (item.get("x", 0), item.get("y", 0)))
+                item["x"] = max(0, min(int(ox + dx), canvas_w - 1))
+                item["y"] = max(0, min(int(oy + dy), canvas_h - 1))
+            return
         self.placed_items[index]["x"] = cx
         self.placed_items[index]["y"] = cy
 
@@ -1288,6 +1380,8 @@ class ItemModalMixin:
         # Property category sub-window takes priority while open
         if self.prop_category:
             for key, rect in self.modal_buttons.items():
+                if key != "propcat_close" and not key.startswith("field_"):
+                    continue
                 if not rect.collidepoint(mouse_position):
                     continue
                 if key == "propcat_close":
@@ -1301,6 +1395,8 @@ class ItemModalMixin:
         if self.child_edit_index is not None:
             idx = self.child_edit_index
             for key, rect in self.modal_buttons.items():
+                if key != "ce_close" and key != "ce_sprite" and not key.startswith("ce_"):
+                    continue
                 if not rect.collidepoint(mouse_position):
                     continue
                 if key == "ce_close":
@@ -1442,6 +1538,9 @@ class ItemModalMixin:
                 return
         item["kind"] = kind
         self._ensure_kind_defaults(item)
+        if kind == "ImageItem":
+            item["isActive"] = True
+            item["sheet"] = None
         if kind not in self.SPRITE_OPTIONAL_KINDS:
             self._ensure_item_sprite(item)
         self.property_scroll = 0
@@ -1676,6 +1775,9 @@ class ItemModalMixin:
             index = 0
         item["kind"] = kinds[(index + 1) % len(kinds)]
         self._ensure_kind_defaults(item)
+        if item["kind"] == "ImageItem":
+            item["isActive"] = True
+            item["sheet"] = None
         if item["kind"] not in self.SPRITE_OPTIONAL_KINDS:
             self._ensure_item_sprite(item)
         self.property_scroll = 0
@@ -1825,6 +1927,22 @@ class ItemModalMixin:
             if deleted:
                 self.message = f"Deleted linked {deleted['name']}."
             self.selected_linked_path = None
+            self._clear_multi_selection()
+            return
+        selected = sorted(self._selected_indices(), reverse=True)
+        if len(selected) > 1:
+            freed_count = 0
+            deleted_count = 0
+            for index in selected:
+                if 0 <= index < len(self.placed_items):
+                    deleted = self.placed_items.pop(index)
+                    freed_count += len(self._release_linked_items(deleted))
+                    deleted_count += 1
+            self.selected_item_index = None
+            self.dragging_item_index = None
+            self._clear_multi_selection()
+            extra = f" ({freed_count} linked item(s) kept)" if freed_count else ""
+            self.message = f"Deleted {deleted_count} item(s).{extra}"
             return
         if self.selected_item_index is None:
             return
@@ -1833,6 +1951,7 @@ class ItemModalMixin:
             freed = self._release_linked_items(deleted)
             self.selected_item_index = None
             self.dragging_item_index = None
+            self._clear_multi_selection()
             extra = f" ({len(freed)} linked item(s) kept)" if freed else ""
             self.message = f"Deleted {deleted['name']}.{extra}"
 
@@ -1849,7 +1968,7 @@ class ItemModalMixin:
         clone["y"] = clone.get("y", 0) + 16
         # A duplicate must not keep links pointing it as a hidden ref twin
         self.placed_items.append(clone)
-        self.selected_item_index = len(self.placed_items) - 1
+        self._set_single_item_selection(len(self.placed_items) - 1)
         self.message = f"Duplicated {clone.get('name', 'item')}."
 
     def _context_edit_target(self):
@@ -1857,12 +1976,12 @@ class ItemModalMixin:
         if not path:
             return
         if len(path) == 1:
-            self.selected_item_index = path[0]
-            self.selected_linked_path = None
+            self._set_single_item_selection(path[0])
             self._open_item_modal(path[0])
         else:
             self.selected_item_index = None
             self.selected_linked_path = path
+            self._clear_multi_selection()
             self._open_item_modal(path[0], path)
 
     def _context_unlink_target(self):
@@ -1877,6 +1996,7 @@ class ItemModalMixin:
         self._delete_linked_item_by_path(path)
         self.placed_items.append(freed)
         self.selected_linked_path = None
+        self._set_single_item_selection(len(self.placed_items) - 1)
         self.message = f"Unlinked {freed.get('name', 'item')}."
 
     def _context_delete_target(self):
@@ -1916,5 +2036,6 @@ class ItemModalMixin:
         freed = self._release_linked_items(deleted)
         self.selected_item_index = None
         self.dragging_item_index = None
+        self._clear_multi_selection()
         extra = f" ({len(freed)} linked item(s) kept)" if freed else ""
         self.message = f"Deleted {deleted.get('name', 'item')}.{extra}"

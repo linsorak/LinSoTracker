@@ -679,7 +679,7 @@ class MainMenu:
 
     def draw_info_text(self, screen):
         surf_title, pos_title = self.draw_text(
-            text="{} v{} - Developed by LinSoraK#7235".format(self.core_service.app_name,
+            text="{} v{} - Developed by LinSoraK".format(self.core_service.app_name,
                                                               self.core_service.version),
             font_name=self.font_data["path"],
             color=self.font_data["color_normal"],

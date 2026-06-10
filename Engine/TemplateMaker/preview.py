@@ -57,7 +57,7 @@ class PreviewMixin:
             item.get("valueStart"), item.get("maxValue"), item.get("maxValueAlternate"),
             item.get("Background"), item.get("ShowNumbersOfItemsActive"),
             item.get("ShowNumberOfCheckedItems"),
-            item.get("BackgroundGlow"),
+            item.get("BackgroundGlow"), item.get("Image"),
             json.dumps(item.get("_submenu_items") or item.get("ItemsList") or [], sort_keys=True, default=str),
         )
 
@@ -138,6 +138,9 @@ class PreviewMixin:
             return
         if item.get("kind") == "GoModeItem":
             self._draw_gomode_item_preview(screen, rect, item)
+            return
+        if item.get("kind") == "ImageItem":
+            self._draw_image_item_preview(screen, rect, item)
             return
         comp = self._preview_component(item)
         if comp is not None:
@@ -467,6 +470,16 @@ class PreviewMixin:
         screen.set_clip(prev_clip)
         if not glow:
             self._text(screen, "missing glow", (rect.x + 8, rect.bottom - 18), 11, self.COLORS["muted"])
+
+    def _draw_image_item_preview(self, screen, rect, item):
+        image = self._load_item_image_asset(item, "Image")
+        if not image:
+            self._text_center(screen, "No image", rect, 16, self.COLORS["muted"])
+            return
+        scale = min(rect.w / max(1, image.get_width()), rect.h / max(1, image.get_height()), 1.0)
+        size = (max(1, int(image.get_width() * scale)), max(1, int(image.get_height() * scale)))
+        scaled = pygame.transform.smoothscale(image, size) if size != image.get_size() else image
+        screen.blit(scaled, (rect.centerx - size[0] // 2, rect.centery - size[1] // 2))
 
     def _advance_preview(self, item):
         self._preview_action(item, "left")

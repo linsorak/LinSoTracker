@@ -277,15 +277,17 @@ class SheetsMixin:
             "row": row,
             "column": column,
             "sheet": sheet_name,
-            "isActive": False,
+            "isActive": kind == "ImageItem",
             "opacity": 0.5,
             "hint": None,
             "children": [],
             "uid": self._new_uid(),
         }
         self._ensure_kind_defaults(item)
+        if self.snap_enabled or self.grid_shown:
+            item["x"], item["y"] = self._snap_xy(item, item["x"], item["y"])
         self.placed_items.append(item)
-        self.selected_item_index = len(self.placed_items) - 1
+        self._set_single_item_selection(len(self.placed_items) - 1)
         self.selected_cell = None
         self.placement_kind = None
         self.message = f"{kind} placed. Double-click it to edit. Delete key removes it."
