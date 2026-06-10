@@ -5,6 +5,7 @@ cd /d "%~dp0"
 
 set "PYTHON=.venv\Scripts\python.exe"
 set "OUT_DIR=dist-nuitka-onefile"
+set "DIST_DIR=dist"
 set "APP_NAME=LinSoTracker"
 set "APP_VERSION="
 set "WINDOWS_VERSION="
@@ -17,6 +18,7 @@ if not exist "%PYTHON%" (
 )
 
 if exist "%OUT_DIR%" rmdir /s /q "%OUT_DIR%"
+if not exist "%DIST_DIR%" mkdir "%DIST_DIR%"
 if exist "%APP_NAME%.build" rmdir /s /q "%APP_NAME%.build"
 if exist "%APP_NAME%.dist" rmdir /s /q "%APP_NAME%.dist"
 if exist "%APP_NAME%.onefile-build" rmdir /s /q "%APP_NAME%.onefile-build"
@@ -77,9 +79,23 @@ if %ERRORLEVEL% GEQ 8 goto error
 if exist "devtemplates" robocopy "devtemplates" "%OUT_DIR%\devtemplates" /E /NFL /NDL /NJH /NJS /NC /NS /NP
 if %ERRORLEVEL% GEQ 8 goto error
 
+set "PACKAGE_NAME=%APP_NAME%-%APP_VERSION%-win"
+set "PACKAGE_DIR=%DIST_DIR%\%PACKAGE_NAME%"
+set "PACKAGE_ZIP=%DIST_DIR%\%PACKAGE_NAME%.zip"
+
+echo Packaging %PACKAGE_NAME%...
+if exist "%PACKAGE_DIR%" rmdir /s /q "%PACKAGE_DIR%"
+if exist "%PACKAGE_ZIP%" del /q "%PACKAGE_ZIP%"
+mkdir "%PACKAGE_DIR%"
+robocopy "%OUT_DIR%" "%PACKAGE_DIR%" /E /NFL /NDL /NJH /NJS /NC /NS /NP
+if %ERRORLEVEL% GEQ 8 goto error
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Compress-Archive -Path '%PACKAGE_DIR%\*' -DestinationPath '%PACKAGE_ZIP%' -Force"
+if %ERRORLEVEL% NEQ 0 goto error
+
 echo.
 echo Build complete:
 echo %CD%\%OUT_DIR%\%APP_NAME%.exe
+echo %CD%\%PACKAGE_ZIP%
 echo.
 pause
 exit /b 0

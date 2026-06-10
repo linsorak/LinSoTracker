@@ -4,6 +4,7 @@ import os
 import platform
 import shlex
 import shutil
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -245,7 +246,7 @@ class CoreService(metaclass=Singleton):
         url = "https://linsotracker.com/tracker/update.json"
         self.load_cached_beta_configuration()
         try:
-            response = urlopen(url)
+            response = self.safe_urlopen(url, timeout=15)
             data_json = json.loads(response.read())
             self.read_beta_configuration(data_json)
 
@@ -284,8 +285,21 @@ class CoreService(metaclass=Singleton):
             if "official_template" in data_json:
                 self.official_template = data_json["official_template"]
 
-        except URLError:
-            pass
+        except Exception as exc:
+            print(f"Update checker failed: {type(exc).__name__}: {exc}")
+
+    @staticmethod
+    def safe_urlopen(url, timeout=15):
+        try:
+            import certifi
+            context = ssl.create_default_context(cafile=certifi.where())
+            return urlopen(url, timeout=timeout, context=context)
+        except Exception as https_error:
+            if url.startswith("https://"):
+                fallback_url = "http://" + url[len("https://"):]
+                print(f"HTTPS request failed, retrying without SSL: {type(https_error).__name__}: {https_error}")
+                return urlopen(fallback_url, timeout=timeout)
+            raise
 
     def read_beta_configuration(self, data_json):
         beta_data = data_json.get("beta", {})
