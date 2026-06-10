@@ -46,6 +46,7 @@ class CoreService(metaclass=Singleton):
         self.sound_active = False
         self.draw_esc_menu_label = True
         self.show_timer = True
+        self.go_mode_glow_clockwise = True
         self.current_tracker = None
         self.current_tracker_name = None
         self.app_path = self.resolve_app_path()
@@ -157,7 +158,14 @@ class CoreService(metaclass=Singleton):
     def load_default_configuration(self):
         user_configuration = os.path.join(self.temp_path_fixe, "user.conf")
         if not os.path.exists(user_configuration):
-            data = {"defaultZoom": 0, "soundWhenItemActive": False, "showESCLabel": True, "showHint": True}
+            data = {
+                "defaultZoom": 0,
+                "soundWhenItemActive": False,
+                "showESCLabel": True,
+                "showHint": True,
+                "showTimer": True,
+                "goModeGlowClockwise": True
+            }
 
             with open(user_configuration, 'w') as f:
                 json.dump(data, f, indent=2)
@@ -166,7 +174,8 @@ class CoreService(metaclass=Singleton):
             self.sound_active = data["soundWhenItemActive"]
             self.draw_esc_menu_label = data["showESCLabel"]
             self.show_hint_on_item = data["showHint"]
-            self.show_timer = True
+            self.show_timer = data["showTimer"]
+            self.go_mode_glow_clockwise = data["goModeGlowClockwise"]
         else:
             with open(user_configuration) as f:
                 data = json.load(f)
@@ -195,6 +204,11 @@ class CoreService(metaclass=Singleton):
                     self.show_timer = data["showTimer"]
                 else:
                     self.show_timer = True
+
+                if "goModeGlowClockwise" in data:
+                    self.go_mode_glow_clockwise = data["goModeGlowClockwise"]
+                else:
+                    self.go_mode_glow_clockwise = True
 
     def read_checker(self):
         url = "https://linsotracker.com/tracker/update.json"

@@ -127,7 +127,7 @@ class LayoutMixin:
         if map_view:
             title = f"Map: {self._current_map()['name']}"
         elif self.canvas_context == "submenu":
-            title = "Submenu canvas"
+            title = "Choices canvas" if (self.submenu_parent or {}).get("kind") == "MultipleChoiceItem" else "Submenu canvas"
         else:
             title = "Canvas"
         self._text(screen, title, title_rect.topleft, 24, self.COLORS["gold"])
@@ -184,8 +184,18 @@ class LayoutMixin:
                                   inner.centery + self.map_pan[1] - zh // 2, zw, zh)
             self.map_view_rect = inner
             clip_rect = inner
+        elif self.canvas_context == "main":
+            fit = self._get_template_rect(inner)
+            zoom = max(0.2, float(getattr(self, "canvas_zoom", 1.0)))
+            zw = max(1, int(fit.w * zoom))
+            zh = max(1, int(fit.h * zoom))
+            bg_rect = pygame.Rect(inner.centerx + self.canvas_pan[0] - zw // 2,
+                                  inner.centery + self.canvas_pan[1] - zh // 2, zw, zh)
+            self.canvas_view_rect = inner
+            clip_rect = inner
         else:
             bg_rect = self._get_template_rect(inner)
+            self.canvas_view_rect = pygame.Rect(0, 0, 1, 1)
             clip_rect = bg_rect
         self.last_bg_rect = bg_rect
         bg_color = self._canvas_background_color()
@@ -203,8 +213,6 @@ class LayoutMixin:
                 bg_rect.x + int(bg_pos.get("x", 0) * scale),
                 bg_rect.y + int(bg_pos.get("y", 0) * scale),
             ))
-        elif not map_view:
-            self._draw_empty_canvas(screen, bg_rect)
         screen.set_clip(prev_clip)
 
         # Grid overlay (item canvas) - enables grid snapping
@@ -227,18 +235,26 @@ class LayoutMixin:
             self._text(screen, f"Zoom {self.map_zoom:.1f}x  (wheel=zoom, drag empty=pan)",
                        (inner.right - 290, inner.y + 4), 13, self.COLORS["muted"])
             return
+        if self.canvas_context == "main":
+            self._text(screen, f"Zoom {self.canvas_zoom:.1f}x  (wheel=zoom, drag empty=pan)",
+                       (inner.right - 310, inner.y + 4), 13, self.COLORS["muted"])
 
         # Clip items to the template so off-canvas items (e.g. invisible helpers) don't spill out
+        item_clip = bg_rect.clip(clip_rect)
         prev_clip = screen.get_clip()
-        screen.set_clip(bg_rect)
+        screen.set_clip(item_clip)
         self.linked_item_targets = []
         hidden = self._linked_identities()
         for index, item in enumerate(self.placed_items):
             # Items owned as Hint/Active/Inactive refs are drawn by their parent, not standalone
-            if self._item_ref_identity(item) in hidden:
+            if self._item_ref_aliases(item).intersection(hidden):
                 item["screen_rect"] = pygame.Rect(0, 0, 0, 0)
                 continue
             rect = self._draw_item(screen, item, index, bg_rect)
+            if not rect.colliderect(item_clip):
+                item["screen_rect"] = pygame.Rect(0, 0, 0, 0)
+                continue
+            item["screen_rect"] = rect.clip(item_clip)
             if index == self.selected_item_index:
                 pygame.draw.rect(screen, self.COLORS["gold"], rect.inflate(8, 8), 3)
             self._draw_linked_items(screen, item, bg_rect, parent_path=(index,))
@@ -496,10 +512,15 @@ class LayoutMixin:
             for linked_index, linked in enumerate(item.get(field) or []):
                 path = parent_path + (field, linked_index)
                 rect = self._draw_item(screen, linked, None, bg_rect, linked=True)
+                visible_rect = rect.clip(screen.get_clip() or rect)
+                if visible_rect.w <= 0 or visible_rect.h <= 0:
+                    linked["screen_rect"] = pygame.Rect(0, 0, 0, 0)
+                    continue
+                linked["screen_rect"] = visible_rect
                 if self.show_links and parent_rect and parent_rect.w > 0:
                     self._draw_link_elbow(screen, parent_rect, rect, color)
                 linked["_linked_path"] = path
-                self.linked_item_targets.append((path, rect))
+                self.linked_item_targets.append((path, visible_rect))
                 pygame.draw.rect(screen, color, rect.inflate(5, 5), 2)
                 if path == self.selected_linked_path:
                     pygame.draw.rect(screen, self.COLORS["gold"], rect.inflate(9, 9), 3)
@@ -877,7 +898,11 @@ class LayoutMixin:
         pad = 14
         x = panel.x + pad
         y = panel.y + 14
-        self._text(screen, "Submenu" if self.canvas_context == "submenu" else "Template", (x, y), 22, self.COLORS["gold"])
+        if self.canvas_context == "submenu":
+            header = "Choices" if (self.submenu_parent or {}).get("kind") == "MultipleChoiceItem" else "Submenu"
+        else:
+            header = "Template"
+        self._text(screen, header, (x, y), 22, self.COLORS["gold"])
         y += 40
         self.info_buttons = {}
 
@@ -1039,9 +1064,15 @@ class LayoutMixin:
             else:
                 items.append(("ctx_unlink", "Unlink"))
             items.append(("ctx_delete", "Delete"))
-        # "Add item" only from the canvas (needs a drop position)
-        on_canvas = self.last_bg_rect.collidepoint(self.context_menu_pos)
-        if on_canvas:
+        # Reset is a view action, so it is available on the visible main canvas.
+        # Adding still needs a valid template coordinate under the cursor.
+        on_template = self.last_bg_rect.collidepoint(self.context_menu_pos)
+        on_canvas_view = on_template
+        if self.canvas_context == "main":
+            on_canvas_view = self.canvas_view_rect.collidepoint(self.context_menu_pos)
+        if on_canvas_view and self.canvas_context == "main":
+            items.append(("ctx_reset_view", "Reset view"))
+        if on_template:
             items.append(("ctx_add", "Add item  >"))
         w, rh = 160, 30
         mx, my = self.context_menu_pos
@@ -1112,7 +1143,7 @@ class LayoutMixin:
         name_rect = pygame.Rect(x, y, panel.w - pad * 2, 58)
         self._draw_card(screen, name_rect, self.COLORS["panel_alt"], border_color=(56, 62, 76), radius=8)
         self._text(screen, "EDITING", (name_rect.x + 10, name_rect.y + 6), 12, self.COLORS["gold"])
-        display = item.get("name", "SubMenuItem")
+        display = item.get("name", item.get("kind", "Item"))
         if len(display) > 22:
             display = display[:19] + "..."
         self._text(screen, display, (name_rect.x + 10, name_rect.y + 25), 18, self.COLORS["line_light"])
@@ -1139,7 +1170,7 @@ class LayoutMixin:
         size = self._canvas_size()
         infos = [
             ("Dimensions", f"{size[0]} x {size[1]}"),
-            ("Items inside", str(len(self.placed_items))),
+            ("Choices inside" if item.get("kind") == "MultipleChoiceItem" else "Items inside", str(len(self.placed_items))),
             ("Counter", "active" if item.get("ShowNumbersOfItemsActive") else "off"),
         ]
         value_x = x + 112

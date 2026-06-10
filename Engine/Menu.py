@@ -57,6 +57,9 @@ class Menu:
         self.esc_menu_check = self.menu.add.toggle_switch('ESC Label', True, onchange=self.onchange_esc)
         self.show_hint_menu_check = self.menu.add.toggle_switch('Show Hint', True, onchange=self.onchange_show_hint)
         self.show_timer_menu_check = self.menu.add.toggle_switch('Show Timer', True, onchange=self.onchange_show_timer)
+        self.gomode_glow_clockwise_check = self.menu.add.toggle_switch(
+            'Go Mode glow clockwise', True, onchange=self.onchange_gomode_glow_clockwise
+        )
         self.menu.add.button('Back to main menu', self.back_menu)
         self.menu.add.button('Discord', self.open_discord)
         self.menu.add.button('Pay me a coffee ? :)', self.open_paypal)
@@ -83,6 +86,10 @@ class Menu:
         self.core_service.save_configuration("showTimer", current_state_value)
         self.tracker.set_timer_visible(current_state_value)
 
+    def onchange_gomode_glow_clockwise(self, current_state_value, **kwargs):
+        self.core_service.go_mode_glow_clockwise = current_state_value
+        self.core_service.save_configuration("goModeGlowClockwise", current_state_value)
+
     def set_zoom_index(self, zoom_index):
         self.zoom_selector.set_value(zoom_index)
         value, index = self.zoom_selector.get_value()
@@ -103,6 +110,9 @@ class Menu:
             self.show_timer_menu_check.set_value(value)
         finally:
             self.syncing_timer_check = False
+
+    def set_gomode_glow_clockwise_check(self, value):
+        self.gomode_glow_clockwise_check.set_value(value)
 
     def active(self, screen):
         self.menu.resize(width=screen.get_rect().w, height=screen.get_rect().h)

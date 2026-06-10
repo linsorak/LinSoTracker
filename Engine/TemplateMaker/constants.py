@@ -15,7 +15,7 @@ class TemplateMakerConstants:
     ITEM_KINDS = [
         "Item", "ImageItem", "CountItem", "AlternateCountItem", "IncrementalItem",
         "LabelItem", "EvolutionItem", "DraggableEvolutionItem", "AlternateEvolutionItem",
-        "CheckItem", "OpenLinkItem", "GoModeItem", "SubMenuItem", "TimerItem", "EditableBox",
+        "CheckItem", "OpenLinkItem", "GoModeItem", "SubMenuItem", "MultipleChoiceItem", "TimerItem", "EditableBox",
     ]
 
     SPRITE_OPTIONAL_KINDS = {"TimerItem", "EditableBox"}
@@ -24,8 +24,10 @@ class TemplateMakerConstants:
     # (not all are editable in the UI, but they keep the item valid for the tracker).
     KIND_REQUIRED = {
         "SubMenuItem": {
-            "Background": "background.png", "ItemsList": [],
-            "ShowNumbersOfItemsActive": False, "ShowNumberOfCheckedItems": False,
+            "ItemsList": [], "ShowNumbersOfItemsActive": False, "ShowNumberOfCheckedItems": False,
+        },
+        "MultipleChoiceItem": {
+            "ItemsList": [],
         },
         "TimerItem": {
             "Timer": {
@@ -105,6 +107,13 @@ class TemplateMakerConstants:
         "SubMenuItem": [
             {"key": "ShowNumbersOfItemsActive", "type": "bool", "label": "Show active count", "default": False},
             {"key": "ShowNumberOfCheckedItems", "type": "bool", "label": "Show checked count", "default": False},
+        ],
+        "MultipleChoiceItem": [
+            {"key": "Background", "type": "image", "label": "Choice background", "default": None},
+            {"key": "BackgroundOffset", "type": "rect", "label": "Background offset",
+             "default": {"x": 0, "y": 0}, "keys": ["x", "y"], "min": {"x": None, "y": None}},
+            {"key": "ActiveOnSelection", "type": "bool", "label": "Active on selection", "default": False},
+            {"key": "CloseOnSelection", "type": "bool", "label": "Close on selection", "default": False},
         ],
         "TimerItem": [
             {"key": "Timer.StartValue", "type": "int", "label": "Start value (s)", "default": 0},
@@ -231,4 +240,3 @@ class TemplateMakerConstants:
         "LabelItem", "EvolutionItem", "AlternateEvolutionItem",
         "DraggableEvolutionItem", "CheckItem",
     }
-

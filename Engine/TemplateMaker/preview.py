@@ -58,7 +58,7 @@ class PreviewMixin:
             item.get("Background"), item.get("ShowNumbersOfItemsActive"),
             item.get("ShowNumberOfCheckedItems"),
             item.get("BackgroundGlow"),
-            json.dumps(item.get("ItemsList") or [], sort_keys=True, default=str),
+            json.dumps(item.get("_submenu_items") or item.get("ItemsList") or [], sort_keys=True, default=str),
         )
 
     def _zoom_cell(self, sheet, row, column):
@@ -133,7 +133,7 @@ class PreviewMixin:
         if item.get("kind") == "TimerItem":
             self._draw_timer_item_preview(screen, rect, item)
             return
-        if item.get("kind") == "SubMenuItem":
+        if item.get("kind") in ("SubMenuItem", "MultipleChoiceItem"):
             self._draw_submenu_item_preview(screen, rect, item)
             return
         if item.get("kind") == "GoModeItem":
@@ -295,7 +295,7 @@ class PreviewMixin:
 
         counter_text = None
         if item.get("ShowNumbersOfItemsActive"):
-            items = item.get("ItemsList") or []
+            items = item.get("_submenu_items") or item.get("ItemsList") or []
             active = sum(1 for subitem in items if subitem.get("isActive", False))
             if item.get("ShowNumberOfCheckedItems"):
                 checked = sum(1 for subitem in items
@@ -344,7 +344,7 @@ class PreviewMixin:
 
     def _draw_submenu_open_preview(self, screen, rect, item):
         bg = self._load_submenu_background(item.get("Background"))
-        items = item.get("ItemsList") or []
+        items = item.get("_submenu_items") or item.get("ItemsList") or []
 
         prev_clip = screen.get_clip()
         screen.set_clip(rect.inflate(-2, -2))

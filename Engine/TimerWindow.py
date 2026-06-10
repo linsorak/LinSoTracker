@@ -505,7 +505,11 @@ class TimerWindow:
     @staticmethod
     def is_loggable_item(item):
         ignored = {"SubMenuItem", "EditableBox", "ImageItem", "OpenLinkItem", "TimerItem"}
-        return item.__class__.__name__ not in ignored and getattr(item, "show_item", True)
+        return (
+            item.__class__.__name__ not in ignored
+            and not getattr(item, "ignore_timer_log", False)
+            and getattr(item, "show_item", True)
+        )
 
     @staticmethod
     def is_loggable_check(check):
@@ -664,6 +668,10 @@ class TimerWindow:
 
     @staticmethod
     def get_current_plain_item_image_for_index(item, index):
+        if hasattr(item, "get_timer_icon_image"):
+            image = item.get_timer_icon_image()
+            if isinstance(image, pygame.Surface):
+                return image
         next_items = getattr(item, "next_items", None)
         if next_items and index is not None and index >= 0:
             try:

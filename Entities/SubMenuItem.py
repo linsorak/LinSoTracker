@@ -59,7 +59,13 @@ class SubMenuItem(Item):
                                            offset=10)
 
     def update_background(self):
-        self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, self.background_image_name))
+        self.background_image = None
+        if not self.background_image_name:
+            return
+        background_path = os.path.join(self.resources_path, self.background_image_name)
+        if not os.path.exists(background_path):
+            return
+        self.background_image = self.bank.addZoomImage(background_path)
 
     def draw_submenu(self, screen, time_delta):
         if self.show:
@@ -68,7 +74,8 @@ class SubMenuItem(Item):
             s.fill((0, 0, 0, 209))  # notice the alpha value in the color
             screen.blit(s, (0, 0))
 
-            screen.blit(self.background_image, (0, 0))
+            if self.background_image:
+                screen.blit(self.background_image, (0, 0))
             self.items.draw(screen)
             for item in self.items:
                 if hasattr(item, "draw_box"):

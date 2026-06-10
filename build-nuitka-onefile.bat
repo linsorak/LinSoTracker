@@ -21,7 +21,11 @@ if exist "%APP_NAME%.dist" rmdir /s /q "%APP_NAME%.dist"
 if exist "%APP_NAME%.onefile-build" rmdir /s /q "%APP_NAME%.onefile-build"
 
 echo Installing/updating Nuitka build dependencies...
-powershell -NoProfile -ExecutionPolicy Bypass -File install-requirements.ps1 -Python "%PYTHON%"
+"%PYTHON%" -m pip install --upgrade pip
+if %ERRORLEVEL% NEQ 0 goto error
+"%PYTHON%" -m pip install --upgrade -r requirements.txt
+if %ERRORLEVEL% NEQ 0 goto error
+"%PYTHON%" -m pip install --upgrade --no-deps "pygame-menu==4.5.2"
 if %ERRORLEVEL% NEQ 0 goto error
 "%PYTHON%" -m pip install --upgrade --force-reinstall "https://github.com/Nuitka/Nuitka/archive/develop.zip"
 if %ERRORLEVEL% NEQ 0 goto error

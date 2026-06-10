@@ -257,9 +257,9 @@ class SheetsMixin:
         x = int((mouse_position[0] - bg_rect.x) * scale)
         y = int((mouse_position[1] - bg_rect.y) * scale)
         kind = self.placement_kind or "Item"
-        if getattr(self, "canvas_context", "main") == "submenu" and kind == "SubMenuItem":
+        if getattr(self, "canvas_context", "main") == "submenu" and kind in ("SubMenuItem", "MultipleChoiceItem"):
             self.placement_kind = None
-            self.message = "Submenus cannot contain other submenus."
+            self.message = "Item-list containers cannot contain another item-list container."
             return
         if kind in self.SPRITE_OPTIONAL_KINDS and not self.selected_cell:
             sheet_name, row, column = (None, 1, 1)
@@ -292,7 +292,7 @@ class SheetsMixin:
 
     def _add_item_kind_at(self, kind, mouse_position):
         if kind not in self._available_item_kinds():
-            self.message = "Submenus cannot contain other submenus."
+            self.message = "Item-list containers cannot contain another item-list container."
             return
         self.placement_kind = kind
         self._place_item(mouse_position)

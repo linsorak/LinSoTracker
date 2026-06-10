@@ -203,6 +203,10 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.map_pan = [0, 0]
         self.map_view_rect = pygame.Rect(0, 0, 1, 1)
         self.panning_map = False
+        self.canvas_pan = [0, 0]
+        self.canvas_zoom = 1.0
+        self.canvas_view_rect = pygame.Rect(0, 0, 1, 1)
+        self.panning_canvas = False
         self.pan_start = (0, 0)
         self.pan_origin = [0, 0]
         self._scrollbars = {}

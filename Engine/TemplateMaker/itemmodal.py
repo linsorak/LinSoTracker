@@ -51,7 +51,7 @@ class ItemModalMixin:
         self._draw_card(screen, det_rect, (12, 15, 22), border_color=(56, 62, 76))
 
         # Interactive live preview (click to simulate in-tracker behaviour)
-        large_preview = item.get("kind") in ("EditableBox", "TimerItem", "SubMenuItem", "GoModeItem")
+        large_preview = item.get("kind") in ("EditableBox", "TimerItem", "SubMenuItem", "MultipleChoiceItem", "GoModeItem")
         wide_preview = item.get("kind") in ("CountItem", "AlternateCountItem", "LabelItem")
         preview_w = 238 if large_preview else (192 if wide_preview else 96)
         preview_h = 178 if large_preview else 96
@@ -97,7 +97,7 @@ class ItemModalMixin:
             ("opacity", "Opacity"),
             ("delete", "Delete"),
         ]
-        if item.get("kind") == "SubMenuItem":
+        if item.get("kind") in ("SubMenuItem", "MultipleChoiceItem"):
             actions.insert(-1, ("edit_submenu", "Edit items"))
         btn_w = 104
         btn_h = 34
@@ -405,7 +405,14 @@ class ItemModalMixin:
         parts = self._field_editor_parts()
         list_mode = spec["type"] == "list_editor"
         rows_to_draw = parts[:6] if list_mode else parts
-        popup_h = 98 + len(rows_to_draw) * 44 + (34 if list_mode else 0)
+        actions = []
+        for action in spec.get("actions", []):
+            visible = action.get("visible", True)
+            if callable(visible):
+                visible = visible()
+            if visible:
+                actions.append(action)
+        popup_h = 98 + len(rows_to_draw) * 44 + (34 if list_mode else 0) + (42 if actions else 0)
         popup = pygame.Rect(parent_rect.centerx - 210 if list_mode else parent_rect.centerx - 180,
                             parent_rect.y + 96, 420 if list_mode else 360, popup_h)
         self._draw_popup(screen, popup, radius=10)
@@ -451,6 +458,18 @@ class ItemModalMixin:
         if list_mode and len(parts) > len(rows_to_draw):
             self._text(screen, f"+ {len(parts) - len(rows_to_draw)} more entries", (popup.x + 16, y + 4),
                        13, self.COLORS["muted"])
+            y += 28
+        if actions:
+            y += 2
+            action_w = min(150, popup.w - 32)
+            x = popup.x + 16
+            for action in actions:
+                key = f"fe_action_{action['key']}"
+                rect = pygame.Rect(x, y, action_w, 30)
+                self.modal_buttons[key] = rect
+                self._draw_button(screen, rect, action.get("label", action["key"]), (36, 124, 87),
+                                  hover=(self.hover_modal_key == key))
+                x += action_w + 10
 
     def _open_color_picker(self, title, initial, callback):
         initial = initial or {}
@@ -849,7 +868,7 @@ class ItemModalMixin:
     def _available_item_kinds(self):
         kinds = list(self.ITEM_KINDS)
         if getattr(self, "canvas_context", "main") == "submenu":
-            kinds = [kind for kind in kinds if kind != "SubMenuItem"]
+            kinds = [kind for kind in kinds if kind not in ("SubMenuItem", "MultipleChoiceItem")]
         return kinds
 
     def _scroll_child_list(self, wheel_y):
@@ -932,11 +951,35 @@ class ItemModalMixin:
         def walk(it):
             for field in ("HintItems", "ActiveItems", "InactiveItems"):
                 for ref in it.get(field) or []:
-                    ids.add(self._item_ref_identity(ref))
+                    ids.update(self._item_ref_aliases(ref))
                     walk(ref)
-        for it in self.placed_items:
+        for index, it in enumerate(self.placed_items):
+            if self.item_modal_open and self.modal_item is not None and index == self.modal_item_index:
+                continue
             walk(it)
+        if self.item_modal_open and self.modal_item is not None:
+            walk(self.modal_item)
         return ids
+
+    def _item_ref_aliases(self, item):
+        if not isinstance(item, dict):
+            return {str(item)}
+        aliases = {self._item_ref_identity(item)}
+        name = str(item.get("Name") or item.get("name") or "")
+        item_id = item.get("Id", item.get("id"))
+        if item_id is not None or name:
+            aliases.add(f"legacy:{item_id}:{name}")
+        aliases.add("struct:{}:{}:{}:{}:{}:{}:{}:{}".format(
+            item_id,
+            item.get("Kind") or item.get("kind") or "",
+            name,
+            item.get("x", item.get("Positions", {}).get("x", 0)),
+            item.get("y", item.get("Positions", {}).get("y", 0)),
+            item.get("row", item.get("SheetInformation", {}).get("row", 1)),
+            item.get("column", item.get("SheetInformation", {}).get("column", 1)),
+            item.get("sheet", item.get("SheetInformation", {}).get("SpriteSheet", "")),
+        ))
+        return {alias for alias in aliases if alias}
 
     def _item_ref_identity(self, item):
         if not isinstance(item, dict):
@@ -972,7 +1015,10 @@ class ItemModalMixin:
             value = [value]
         if not isinstance(value, list):
             return {str(value)}
-        return {self._item_ref_identity(ref) for ref in value if self._item_ref_identity(ref)}
+        identities = set()
+        for ref in value:
+            identities.update(self._item_ref_aliases(ref))
+        return identities
 
     def _item_ref_candidates(self):
         candidates = []
@@ -984,9 +1030,10 @@ class ItemModalMixin:
             current_ids = self._item_ref_identities(self._get_field_value(editor_item, spec))
             for linked in self._get_field_value(editor_item, spec) or []:
                 identity = self._item_ref_identity(linked)
-                if not identity or identity in seen:
+                aliases = self._item_ref_aliases(linked)
+                if not identity or aliases.intersection(seen):
                     continue
-                seen.add(identity)
+                seen.update(aliases)
                 name = linked.get("name") or linked.get("Name") or identity
                 candidates.append((len(candidates), linked, str(name)))
         # Items already assigned to another category/parent are not selectable here
@@ -995,9 +1042,10 @@ class ItemModalMixin:
             if index == self.modal_item_index:
                 continue
             identity = self._item_ref_identity(item)
-            if identity in seen or identity in linked_elsewhere:
+            aliases = self._item_ref_aliases(item)
+            if identity in seen or aliases.intersection(seen) or aliases.intersection(linked_elsewhere):
                 continue
-            seen.add(identity)
+            seen.update(aliases)
             name = item.get("name") or f"Item {index + 1}"
             candidates.append((len(candidates), item, str(name)))
         return candidates
@@ -1059,7 +1107,10 @@ class ItemModalMixin:
         self._draw_button(screen, close_rect, "X", self.COLORS["red"], hover=(self.hover_modal_key == "refs_close"))
 
         candidates = self._item_ref_candidates()
-        selected_count = len(self.item_refs_selected)
+        selected_count = sum(
+            1 for _, candidate, _ in candidates
+            if self._item_ref_aliases(candidate).intersection(self.item_refs_selected)
+        )
         count_text = f"{selected_count} selected / {len(candidates)} items"
         self._text(screen, count_text, (popup.x + 18, popup.y + 62), 13, self.COLORS["muted"])
 
@@ -1079,7 +1130,8 @@ class ItemModalMixin:
             row = pygame.Rect(list_rect.x, y, list_rect.w, row_h - 4)
             key = f"refs_toggle_{candidate_index}"
             identity = self._item_ref_identity(candidate)
-            selected = identity in self.item_refs_selected
+            aliases = self._item_ref_aliases(candidate)
+            selected = bool(aliases.intersection(self.item_refs_selected))
             hovered = self.hover_modal_key == key
             pygame.draw.rect(screen, (34, 48, 42) if selected else (12, 15, 22), row)
             pygame.draw.rect(screen, self.COLORS["gold"] if selected else (56, 62, 76), row, 1)
@@ -1122,25 +1174,30 @@ class ItemModalMixin:
         selected = []
         selected_ids = set()
         for _, candidate, _ in self._item_ref_candidates():
-            if self._item_ref_identity(candidate) in self.item_refs_selected:
+            if self._item_ref_aliases(candidate).intersection(self.item_refs_selected):
                 selected.append(self._clean_item_transients(copy.deepcopy(candidate)))
-                selected_ids.add(self._item_ref_identity(candidate))
+                selected_ids.update(self._item_ref_aliases(candidate))
         self._set_field_value(item, spec["key"], selected or None)
 
         # Items removed from this category go back to the canvas as classic items
         # (deferred to modal save so a cancel undoes everything consistently).
-        existing_top = {self._item_ref_identity(it) for it in self.placed_items}
+        existing_top = set()
+        for it in self.placed_items:
+            existing_top.update(self._item_ref_aliases(it))
         pending = item.setdefault("_returned_items", [])
-        pending_ids = {self._item_ref_identity(p) for p in pending}
+        pending_ids = set()
+        for pending_item in pending:
+            pending_ids.update(self._item_ref_aliases(pending_item))
         for old in old_refs:
-            oid = self._item_ref_identity(old)
-            if oid not in selected_ids and oid not in existing_top and oid not in pending_ids:
+            old_ids = self._item_ref_aliases(old)
+            if not old_ids.intersection(selected_ids) and not old_ids.intersection(existing_top) \
+                    and not old_ids.intersection(pending_ids):
                 returned = self._clean_item_transients(copy.deepcopy(old))
                 returned["uid"] = self._new_uid()
                 pending.append(returned)
         # A re-selected item is no longer "returned"
         item["_returned_items"] = [p for p in pending
-                                   if self._item_ref_identity(p) not in selected_ids]
+                                   if not self._item_ref_aliases(p).intersection(selected_ids)]
 
         self.message = f"{spec['label']} updated."
         self._close_item_refs_editor()
@@ -1161,10 +1218,11 @@ class ItemModalMixin:
                     if candidate_index != selected_index:
                         continue
                     identity = self._item_ref_identity(candidate)
-                    if identity in self.item_refs_selected:
-                        self.item_refs_selected.remove(identity)
+                    aliases = self._item_ref_aliases(candidate)
+                    if aliases.intersection(self.item_refs_selected):
+                        self.item_refs_selected.difference_update(aliases)
                     else:
-                        self.item_refs_selected.add(identity)
+                        self.item_refs_selected.update(aliases)
                     break
             return True
         self._close_item_refs_editor()
@@ -1196,6 +1254,13 @@ class ItemModalMixin:
                     return True
                 if key.startswith("fe_del_"):
                     self._delete_list_editor_value(int(key.rsplit("_", 1)[1]))
+                    return True
+                if key.startswith("fe_action_"):
+                    action_key = key[len("fe_action_"):]
+                    for action in (self.field_editor_spec or {}).get("actions", []):
+                        if action.get("key") == action_key and callable(action.get("callback")):
+                            action["callback"]()
+                            return True
                     return True
                 if key.startswith("fe_"):
                     self._edit_field_editor_part(key[len("fe_"):])
@@ -1372,9 +1437,9 @@ class ItemModalMixin:
     def _set_selected_kind(self, kind):
         item = self._selected_item()
         if not item or kind not in self._available_item_kinds():
-            if kind == "SubMenuItem":
-                self.message = "Submenus cannot contain other submenus."
-            return
+            if kind in ("SubMenuItem", "MultipleChoiceItem"):
+                self.message = "Item-list containers cannot contain another item-list container."
+                return
         item["kind"] = kind
         self._ensure_kind_defaults(item)
         if kind not in self.SPRITE_OPTIONAL_KINDS:

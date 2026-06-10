@@ -151,6 +151,9 @@ class StartMixin:
         self.selected_map_index = 0
         self.background_color = {"r": 0, "g": 0, "b": 0}
         self.background_position = {"x": 0, "y": 0}
+        self.canvas_pan = [0, 0]
+        self.canvas_zoom = 1.0
+        self.panning_canvas = False
         self.sheets = []
         self.active_sheet_index = 0
         self.sheet_scroll = 0
@@ -236,6 +239,15 @@ class StartMixin:
             )
             self.message = f"Template dimensions set to {self.template_size[0]} x {self.template_size[1]}."
 
+        def fit_background():
+            if not self.background:
+                self.message = "No background loaded."
+                return
+            bw, bh = self.background.get_size()
+            data["Dimensions"]["w"] = bw
+            data["Dimensions"]["h"] = bh
+            apply()
+
         self.field_editor_open = True
         self.field_editor_spec = {
             "key": "Dimensions",
@@ -243,6 +255,14 @@ class StartMixin:
             "label": "Template dimensions",
             "default": {"w": width, "h": height},
             "keys": ["w", "h"],
+            "actions": [
+                {
+                    "key": "fit_background",
+                    "label": "Fit background",
+                    "visible": lambda: self.background is not None,
+                    "callback": fit_background,
+                }
+            ],
         }
         self.field_editor_item = data
         self.field_editor_callback = apply

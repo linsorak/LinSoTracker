@@ -29,6 +29,7 @@ from Entities.Maps.Map import Map
 from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
 from Entities.OpenLinkItem import OpenLinkItem
+from Entities.MultipleChoiceItem import MultipleChoiceItem
 from Entities.SubMenuItem import SubMenuItem
 from Entities.TimerItem import TimerItem
 from Tools.Bank import Bank
@@ -135,6 +136,7 @@ class Tracker:
         self.menu.set_sound_check(self.core_service.sound_active)
         self.menu.set_esc_check(self.core_service.draw_esc_menu_label)
         self.menu.set_show_hint_check(self.core_service.show_hint_on_item)
+        self.menu.set_gomode_glow_clockwise_check(self.core_service.go_mode_glow_clockwise)
         self.sound_select = pygame.mixer.Sound(os.path.join(self.resources_base_path, "select.wav"))
         self.sound_cancel = pygame.mixer.Sound(os.path.join(self.resources_base_path, "cancel.wav"))
         pygame.mixer.Sound.set_volume(self.sound_select, 0.3)
@@ -219,14 +221,18 @@ class Tracker:
             if os.path.isfile(filename):
                 with open(filename, 'r') as file:
                     self.tracker_json_data = json.load(file)
-            json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
+            json_data_background = self.tracker_json_data[1]["Datas"].get("Background")
             zoom = self.core_service.zoom
             w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * zoom
             h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * zoom
             pygame.display.set_mode((w, h), pygame.RESIZABLE)
             self._report_loading(0.32, "Resizing window")
             self.core_service.setgamewindowcenter(w, h)
-            self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
+            if json_data_background:
+                background_path = os.path.join(self.resources_path, json_data_background)
+                self.background_image = self.bank.addZoomImage(background_path) if os.path.exists(background_path) else None
+            else:
+                self.background_image = None
             bg_pos = self.tracker_json_data[1]["Datas"].get("BackgroundPosition", {"x": 0, "y": 0})
             self.background_position = (
                 int(bg_pos.get("x", 0) * zoom),
@@ -256,6 +262,12 @@ class Tracker:
     def init_maps_datas(self):
         self.map_name_items_list = []
         self.rules_options_items_list = []
+        background_rect = self.background_image.get_rect() if self.background_image else pygame.Rect(
+            0,
+            0,
+            self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom,
+            self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom,
+        )
         if len(self.tracker_json_data) > 4:
             if "Maps" in self.tracker_json_data[4]:
                 self.maps_names = []
@@ -267,8 +279,8 @@ class Tracker:
                         with open(filename, 'r') as file:
                             json_datas = json.load(file)
                             positions = {
-                                "x": self.background_image.get_rect().right,
-                                "y": self.background_image.get_rect().y
+                                "x": background_rect.right,
+                                "y": background_rect.y
                             }
                             temp_map = Map(json_datas, positions, self, False)
                             self.maps_list.append(temp_map)
@@ -299,8 +311,8 @@ class Tracker:
                         rules_list = []
                         rules = self.tracker_json_data[4]["RulesOptions"]
                         positions = {
-                            "x": self.background_image.get_rect().right,
-                            "y": self.background_image.get_rect().y
+                            "x": background_rect.right,
+                            "y": background_rect.y
                         }
                         for i, rule in enumerate(rules):
                             if "ParentListName" in rule and rule["ParentListName"] == rules_options_data["Name"]:
@@ -470,9 +482,11 @@ class Tracker:
                     )
                 )
 
-            def get_position(item):
+            def get_position(item, key="Positions"):
                 return (
-                item["Positions"]["x"] * self.core_service.zoom, item["Positions"]["y"] * self.core_service.zoom)
+                    item[key]["x"] * self.core_service.zoom,
+                    item[key]["y"] * self.core_service.zoom
+                )
 
             def get_size(item):
                 return (item["Sizes"]["w"] * self.core_service.zoom, item["Sizes"]["h"] * self.core_service.zoom)
@@ -529,6 +543,7 @@ class Tracker:
                 "EvolutionItem": EvolutionItem,
                 "AlternateEvolutionItem": AlternateEvolutionItem,
                 "IncrementalItem": IncrementalItem,
+                "MultipleChoiceItem": MultipleChoiceItem,
                 "SubMenuItem": SubMenuItem,
                 "EditableBox": EditableBox,
                 "DraggableEvolutionItem": DraggableEvolutionItem,
@@ -597,14 +612,28 @@ class Tracker:
                     _item = create_base_item(item, item_class,
                                              increments=item["Increment"],
                                              start_increment_index=item.get("StartIncrementIndex"))
-                elif item["Kind"] == "SubMenuItem":
+                elif item["Kind"] == "MultipleChoiceItem":
+                    extra_args = {}
+                    if "ActiveOnSelection" in item:
+                        extra_args["active_on_selection"] = item["ActiveOnSelection"]
+                    if "BackgroundOffset" in item:
+                        extra_args["background_offset"] = get_position(item, "BackgroundOffset")
+                    if "CloseOnSelection" in item:
+                        extra_args["close_on_selection"] = item["CloseOnSelection"]
                     _item = create_base_item(item, item_class,
-                                             background_image=item["Background"],
+                                             background_image=item.get("Background"),
                                              resources_path=self.resources_path,
                                              tracker=self,
-                                             items_list=item["ItemsList"],
-                                             show_numbers_items_active=item["ShowNumbersOfItemsActive"],
-                                             show_numbers_checked_items=item["ShowNumberOfCheckedItems"])
+                                             items_list=item.get("ItemsList", []),
+                                             **extra_args)
+                elif item["Kind"] == "SubMenuItem":
+                    _item = create_base_item(item, item_class,
+                                             background_image=item.get("Background"),
+                                             resources_path=self.resources_path,
+                                             tracker=self,
+                                             items_list=item.get("ItemsList", []),
+                                             show_numbers_items_active=item.get("ShowNumbersOfItemsActive", False),
+                                             show_numbers_checked_items=item.get("ShowNumberOfCheckedItems", False))
                 else:
                     _item = create_base_item(item, item_class)
             if item.get("HintItems", False):
@@ -628,6 +657,10 @@ class Tracker:
                                       visibility=item.show_item)
         self.rebuild_item_indexes()
 
+    @staticmethod
+    def _is_submenu_like(item):
+        return isinstance(item, (SubMenuItem, MultipleChoiceItem))
+
     def rebuild_item_indexes(self, clear_missing=True):
         self._items_by_name = {}
         self._items_by_base_name = {}
@@ -643,7 +676,7 @@ class Tracker:
             register(item)
             if isinstance(item, EditableBox):
                 editable_boxes.append(item)
-            if isinstance(item, SubMenuItem):
+            if self._is_submenu_like(item):
                 for sub_item in item.items:
                     register(sub_item)
         self._editable_boxes_cache = editable_boxes
@@ -779,7 +812,7 @@ class Tracker:
                 yield item
             if isinstance(item, SubMenuItem):
                 for sub_item in item.items:
-                    if id(sub_item) not in seen:
+                    if id(sub_item) not in seen and not getattr(sub_item, "ignore_timer_log", False):
                         seen.add(id(sub_item))
                         yield sub_item
 
@@ -941,7 +974,7 @@ class Tracker:
 
     def items_mouse_down(self, mouse_position, button, item_list):
         for item in item_list:
-            if item.check_click(mouse_position) and not item.is_dragging and item.can_drag and item.show_item and not isinstance(item, SubMenuItem):
+            if item.check_click(mouse_position) and not item.is_dragging and item.can_drag and item.show_item and not self._is_submenu_like(item):
                 item.is_dragging = True
                 self.is_moving = item
                 self.selected_items_list = item_list
@@ -1124,7 +1157,7 @@ class Tracker:
             if submenu.show:
                 submenu.submenu_click(mouse_position, button)
                 for item in self.items:
-                    if isinstance(item, SubMenuItem):
+                    if self._is_submenu_like(item):
                         item.update()
 
     def mouse_move(self, mouse_position):
@@ -1327,8 +1360,12 @@ class Tracker:
         self.core_service.zoom = value
         self.items = pygame.sprite.Group()
         self.submenus = pygame.sprite.Group()
-        json_data_background = self.tracker_json_data[1]["Datas"]["Background"]
-        self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
+        json_data_background = self.tracker_json_data[1]["Datas"].get("Background")
+        if json_data_background:
+            background_path = os.path.join(self.resources_path, json_data_background)
+            self.background_image = self.bank.addZoomImage(background_path) if os.path.exists(background_path) else None
+        else:
+            self.background_image = None
         bg_pos = self.tracker_json_data[1]["Datas"].get("BackgroundPosition", {"x": 0, "y": 0})
         self.background_position = (
             int(bg_pos.get("x", 0) * self.core_service.zoom),
@@ -1371,20 +1408,25 @@ class Tracker:
             self.menu.set_show_timer_check(self.timer_window.is_visible())
 
         screen.fill(self.core_service.get_background_color())
-        screen.blit(self.background_image, getattr(self, "background_position", (0, 0)))
+        if self.background_image:
+            screen.blit(self.background_image, getattr(self, "background_position", (0, 0)))
         if self.menu.get_menu().is_enabled():
             self.menu.get_menu().mainloop(screen)
         if self.core_service.draw_esc_menu_label:
             screen.blit(self.esc_menu_image, (2, 2))
         if self.current_map:
             self.current_map.draw_background(screen)
+            go_mode_item = None
             for item in self.items:
-                if isinstance(item, TimerItem):
+                if isinstance(item, (TimerItem, GoModeItem)):
                     item.update()
+                if isinstance(item, GoModeItem) and item.enable:
+                    go_mode_item = item
                 if item != self.is_moving:
                     screen.blit(item.image, item.rect)
-                if isinstance(item, GoModeItem) and item.enable:
-                    item.draw()
+            if go_mode_item and self.is_moving != go_mode_item:
+                go_mode_item.draw_glow(screen)
+                screen.blit(go_mode_item.image, go_mode_item.rect)
 
             self.current_map.draw(screen)
             if self.surface_label_map_name:
@@ -1442,12 +1484,13 @@ class Tracker:
 
         else:
             for item in self.items:
-                if isinstance(item, TimerItem):
+                if isinstance(item, (TimerItem, GoModeItem)):
                     item.update()
             self.items.draw(screen)
             for item in self.items:
                 if isinstance(item, GoModeItem) and item.enable and self.is_moving != item:
-                    item.draw()
+                    item.draw_glow(screen)
+                    screen.blit(item.image, item.rect)
                     break
         for submenu in self.submenus:
             submenu.draw_submenu(screen, time_delta)

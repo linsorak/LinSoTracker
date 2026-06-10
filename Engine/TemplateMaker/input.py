@@ -173,6 +173,12 @@ class InputMixin:
                             self.context_menu_open = False
                         elif key == "ctx_add":
                             self.context_add_open = not self.context_add_open
+                        elif key == "ctx_reset_view":
+                            self.canvas_zoom = 1.0
+                            self.canvas_pan = [0, 0]
+                            self.context_menu_open = False
+                            self.context_add_open = False
+                            self.message = "Canvas view reset."
                         elif key.startswith("ctxkind_"):
                             self._add_item_kind_at(key[len("ctxkind_"):], self.context_menu_pos)
                             self.context_menu_open = False
@@ -181,7 +187,10 @@ class InputMixin:
             self.context_menu_open = False
             self.context_add_open = False
             return True
-        if button == 3 and no_overlay and self.last_bg_rect.collidepoint(mouse_position):
+        canvas_menu_hit = self.last_bg_rect.collidepoint(mouse_position)
+        if self.canvas_context == "main" and self.canvas_view_rect.collidepoint(mouse_position):
+            canvas_menu_hit = True
+        if button == 3 and no_overlay and canvas_menu_hit:
             linked_path = self._find_linked_item_path_at(mouse_position)
             if linked_path is not None:
                 self.selected_linked_path = linked_path
@@ -517,6 +526,12 @@ class InputMixin:
         if self.dragging_item_index is None:
             item_index = self._get_item_index_at(mouse_position)
             if item_index is None:
+                if (self.canvas_context == "main" and self.canvas_view_rect.collidepoint(mouse_position)
+                        and not self.selected_cell and not self.placement_kind):
+                    self.panning_canvas = True
+                    self.pan_start = mouse_position
+                    self.pan_origin = list(self.canvas_pan)
+                    self.suppress_next_click = True
                 return
             self.selected_item_index = item_index
             self.selected_linked_path = None
@@ -538,6 +553,7 @@ class InputMixin:
         self.dragging_check_index = None
         self.dragging_scrollbar = None
         self.panning_map = False
+        self.panning_canvas = False
         self.snap_guides = []
         self.dragging_child_scroll = False
         self.dragging_property_scroll = False
@@ -549,6 +565,11 @@ class InputMixin:
         if self.panning_map:
             self.map_pan[0] = self.pan_origin[0] + (mouse_position[0] - self.pan_start[0])
             self.map_pan[1] = self.pan_origin[1] + (mouse_position[1] - self.pan_start[1])
+            self._set_cursor_safe(pygame.SYSTEM_CURSOR_HAND)
+            return
+        if self.panning_canvas:
+            self.canvas_pan[0] = self.pan_origin[0] + (mouse_position[0] - self.pan_start[0])
+            self.canvas_pan[1] = self.pan_origin[1] + (mouse_position[1] - self.pan_start[1])
             self._set_cursor_safe(pygame.SYSTEM_CURSOR_HAND)
             return
         if self.dragging_scrollbar is not None:
@@ -887,6 +908,11 @@ class InputMixin:
             if (self.mode == "editor" and self._map_view_active() and self.map_view_rect.collidepoint(pos)
                     and not (self.map_options_open or self.map_data_open or self.check_modal_open)):
                 self._zoom_map(event.y, pos)
+                return True
+            if (self.mode == "editor" and self.canvas_context == "main"
+                    and self.canvas_view_rect.collidepoint(pos)
+                    and not (self.item_modal_open or self.fonts_modal_open or self.sprite_picker_open)):
+                self._zoom_canvas(event.y, pos)
                 return True
             if self.mode == "editor" and not self.item_modal_open and not self.fonts_modal_open \
                     and self.info_panel_rect.collidepoint(pos):

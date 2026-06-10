@@ -141,6 +141,24 @@ class DrawingMixin:
                 and getattr(self, "is_map_template", False)
                 and self._current_map() is not None)
 
+    def _zoom_canvas(self, direction, pos):
+        if getattr(self, "canvas_context", "main") != "main":
+            return
+        old = max(0.2, float(getattr(self, "canvas_zoom", 1.0)))
+        factor = 1.2 if direction > 0 else (1 / 1.2)
+        new = max(0.25, min(8.0, old * factor))
+        if abs(new - old) < 1e-6:
+            return
+        inner = getattr(self, "canvas_view_rect", pygame.Rect(0, 0, 1, 1))
+        ratio = new / old
+        ox = pos[0] - inner.centerx
+        oy = pos[1] - inner.centery
+        self.canvas_pan[0] = int((self.canvas_pan[0] - ox) * ratio + ox)
+        self.canvas_pan[1] = int((self.canvas_pan[1] - oy) * ratio + oy)
+        self.canvas_zoom = new
+        if abs(new - 1.0) < 1e-6:
+            self.canvas_pan = [0, 0]
+
     def _current_map(self):
         maps = getattr(self, "maps", None)
         idx = getattr(self, "selected_map_index", 0)

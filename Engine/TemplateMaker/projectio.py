@@ -110,8 +110,9 @@ class ProjectIOMixin:
             self.template_size = (datas["Dimensions"]["width"], datas["Dimensions"]["height"])
             self.background_color = dict(datas.get("BackgroundColor", {"r": 0, "g": 0, "b": 0}))
             self.background_position = dict(datas.get("BackgroundPosition", {"x": 0, "y": 0}))
-            self.background_path = os.path.join(folder, datas["Background"])
-            self.background = pygame.image.load(self.background_path).convert_alpha()
+            background_name = datas.get("Background")
+            self.background_path = os.path.join(folder, background_name) if background_name else None
+            self.background = pygame.image.load(self.background_path).convert_alpha() if self.background_path and os.path.exists(self.background_path) else None
             icon_file = os.path.join(folder, "icon.png")
             self.project_icon = pygame.image.load(icon_file).convert_alpha() if os.path.exists(icon_file) else None
             illu_file = os.path.join(folder, "illustration.png")
@@ -136,6 +137,9 @@ class ProjectIOMixin:
                 self.map_source_dir = None
                 self.maps = []
             self.canvas_context = "main"
+            self.canvas_pan = [0, 0]
+            self.canvas_zoom = 1.0
+            self.panning_canvas = False
             self.submenu_parent = None
             self.submenu_parent_index = None
             self.mode = "editor"
@@ -200,6 +204,8 @@ class ProjectIOMixin:
             for key in self.KIND_REQUIRED.get(kind, {}):
                 if key in item:
                     entry[key] = item[key]
+            if kind in ("SubMenuItem", "MultipleChoiceItem"):
+                entry["_submenu_items"] = self._items_from_tracker_json(item.get("ItemsList") or [])
             self._ensure_kind_defaults(entry)
             entry["uid"] = self._new_uid()
             # Preserve the raw json so complex/unsupported kinds (SubMenuItem, TimerItem,
@@ -228,33 +234,43 @@ class ProjectIOMixin:
     def _enter_submenu_canvas(self, item):
         if self.canvas_context != "main":
             return
-        if not isinstance(item, dict) or item.get("kind") != "SubMenuItem":
+        if not isinstance(item, dict) or item.get("kind") not in ("SubMenuItem", "MultipleChoiceItem"):
             return
         self.main_items = self.placed_items
         self.submenu_parent = item
         self.submenu_parent_index = None
         if "_submenu_items" not in item:
             item["_submenu_items"] = self._items_from_tracker_json(item.get("ItemsList") or [])
+        if item.get("kind") == "MultipleChoiceItem" and not item.get("_multiple_choice_relative"):
+            ox, oy = self._multiple_choice_origin(item)
+            for choice in item.get("_submenu_items") or []:
+                choice["x"] = int(choice.get("x", 0)) - ox
+                choice["y"] = int(choice.get("y", 0)) - oy
+            item["_multiple_choice_relative"] = True
         self.placed_items = item["_submenu_items"]
         self.canvas_context = "submenu"
         self.selected_item_index = None
         self.dragging_item_index = None
         self.last_click_item = None
-        self.message = f"Editing submenu: {item.get('name', 'SubMenuItem')}."
+        label = "choices" if item.get("kind") == "MultipleChoiceItem" else "submenu"
+        self.message = f"Editing {label}: {item.get('name', item.get('kind', 'item'))}."
 
     def _sync_submenu_canvas(self):
         if self.canvas_context != "submenu" or not self.submenu_parent:
             return
-        self.placed_items = [item for item in self.placed_items if item.get("kind") != "SubMenuItem"]
+        self.placed_items = [
+            item for item in self.placed_items
+            if item.get("kind") not in ("SubMenuItem", "MultipleChoiceItem")
+        ]
         for index, item in enumerate(self.placed_items, start=1):
             item["id"] = index
         self.submenu_parent["_submenu_items"] = self.placed_items
-        self.submenu_parent["ItemsList"] = [self._build_item_json(item) for item in self.placed_items]
+        self.submenu_parent["ItemsList"] = self._build_items_list_json(self.submenu_parent, self.placed_items)
 
     def _exit_submenu_canvas(self):
         if self.canvas_context != "submenu":
             return
-        name = self.submenu_parent.get("name", "SubMenuItem") if self.submenu_parent else "SubMenuItem"
+        name = self.submenu_parent.get("name", "Item") if self.submenu_parent else "Item"
         self._sync_submenu_canvas()
         self.placed_items = self.main_items
         self.canvas_context = "main"
@@ -263,12 +279,33 @@ class ProjectIOMixin:
         self.selected_item_index = None
         self.dragging_item_index = None
         self.last_click_item = None
-        self.message = f"Saved submenu items for {name}."
+        self.message = f"Saved items for {name}."
+
+    def _multiple_choice_origin(self, item):
+        offset = item.get("BackgroundOffset")
+        if not offset:
+            return (0, 0)
+        return (
+            int(item.get("x", 0)) + int(offset.get("x", 0)),
+            int(item.get("y", 0)) + int(offset.get("y", 0)),
+        )
+
+    def _build_items_list_json(self, parent, items):
+        if parent.get("kind") != "MultipleChoiceItem":
+            return [self._build_item_json(item) for item in items]
+        ox, oy = self._multiple_choice_origin(parent)
+        exported = []
+        for item in items:
+            copy_item = copy.deepcopy(item)
+            copy_item["x"] = int(copy_item.get("x", 0)) + ox
+            copy_item["y"] = int(copy_item.get("y", 0)) + oy
+            exported.append(self._build_item_json(copy_item))
+        return exported
 
     def _import_submenu_background(self, item=None):
         item = item or self.submenu_parent
-        if not item or item.get("kind") != "SubMenuItem":
-            self.message = "Select a SubMenuItem first."
+        if not item or item.get("kind") not in ("SubMenuItem", "MultipleChoiceItem"):
+            self.message = "Select a SubMenuItem or MultipleChoiceItem first."
             return
         path = filedialog.askopenfilename(
             title="Select submenu background",
@@ -284,7 +321,8 @@ class ProjectIOMixin:
             item["Background"] = file_name
             item["_submenu_background_path"] = path
             item["_submenu_background_surface"] = surface
-            self.message = f"Submenu background imported: {file_name}."
+            label = "Choice" if item.get("kind") == "MultipleChoiceItem" else "Submenu"
+            self.message = f"{label} background imported: {file_name}."
         except Exception as exc:
             self.message = f"Could not import submenu background: {exc}"
 
@@ -415,7 +453,7 @@ class ProjectIOMixin:
                 sheet_files_preview[sheet["name"]] = f"{self._slugify(sheet['name']) or 'sheet'}.png"
         else:
             sheet_files_preview["Normal"] = "items.png"
-        preview_json = self._build_tracker_json(name, "background.png", sheet_files_preview)
+        preview_json = self._build_tracker_json(name, "background.png" if self.background else None, sheet_files_preview)
         checker = TemplateChecker(preview_json)
         if not checker.is_valid():
             errs = checker.errors
@@ -429,16 +467,12 @@ class ProjectIOMixin:
         self.project_dir = template_dir
         os.makedirs(template_dir, exist_ok=True)
 
-        background_name = "background.png"
+        background_name = "background.png" if self.background else None
         icon_name = "icon.png"
         illustration_name = "illustration.png"
 
         if self.background:
             pygame.image.save(self.background, os.path.join(template_dir, background_name))
-        else:
-            surface = pygame.Surface(self.template_size)
-            surface.fill((0, 0, 0))
-            pygame.image.save(surface, os.path.join(template_dir, background_name))
 
         # Save every tileset; build name -> file mapping
         sheet_files = {}
@@ -465,7 +499,9 @@ class ProjectIOMixin:
         elif base is not None:
             pygame.image.save(base, illustration_path)
         else:
-            shutil.copyfile(os.path.join(template_dir, background_name), illustration_path)
+            surface = pygame.Surface((base_size[0], base_size[1]), pygame.SRCALPHA, 32).convert_alpha()
+            surface.fill((0, 0, 0, 0))
+            pygame.image.save(surface, illustration_path)
 
         icon = self.project_icon
         if icon is None and self.selected_cell:
@@ -851,13 +887,14 @@ class ProjectIOMixin:
             yield item
             nested = item.get("_submenu_items")
             if nested is None:
-                nested = self._items_from_tracker_json(item.get("ItemsList") or []) if item.get("kind") == "SubMenuItem" else []
+                nested = self._items_from_tracker_json(item.get("ItemsList") or []) \
+                    if item.get("kind") in ("SubMenuItem", "MultipleChoiceItem") else []
             for child in self._iter_all_items(nested):
                 yield child
 
     def _save_submenu_backgrounds(self, template_dir, source_dir=None):
         for item in self._iter_all_items(self.main_items):
-            if item.get("kind") != "SubMenuItem":
+            if item.get("kind") not in ("SubMenuItem", "MultipleChoiceItem"):
                 continue
             name = item.get("Background")
             if not name:
@@ -945,7 +982,6 @@ class ProjectIOMixin:
             {
                 "Datas": {
                     "Dimensions": {"width": self.template_size[0], "height": self.template_size[1]},
-                    "Background": background_name,
                     "BackgroundColor": dict(self.background_color or {"r": 0, "g": 0, "b": 0}),
                     "BackgroundPosition": dict(self.background_position or {"x": 0, "y": 0}),
                     "Items": items_sheets
@@ -957,11 +993,13 @@ class ProjectIOMixin:
             {
                 "Items": [
                     self._build_item_json(item)
-                    for item in self.main_items
-                    if self._item_ref_identity(item) not in self._referenced_item_identities(self.main_items)
+                    for item in self._export_items_without_linked_refs(self.main_items)
                 ]
             }
         ]
+        if background_name:
+            sections[1]["Datas"]["Background"] = background_name
+
         # Map template: build section 5 (Maps list + preserved extras)
         if self.is_map_template and self.maps:
             section = {"Maps": [{"Id": i, "Datas": m["json_file"]} for i, m in enumerate(self.maps)]}
@@ -970,18 +1008,23 @@ class ProjectIOMixin:
             sections.append(section)
         return sections
 
+    def _export_items_without_linked_refs(self, items):
+        referenced = self._referenced_item_identities(items)
+        return [
+            item for item in items
+            if not self._item_ref_aliases(item).intersection(referenced)
+        ]
+
     def _referenced_item_identities(self, items):
         """Identities of items embedded as Hint/Active/Inactive refs of another item.
         Those must not also appear as top-level items (the tracker spawns them from
         the parent), otherwise they are rendered twice."""
-        if getattr(self, "_ref_identity_cache", None) is not None:
-            return self._ref_identity_cache
         referenced = set()
 
         def walk(item):
             for field in ("HintItems", "ActiveItems", "InactiveItems"):
                 for ref in item.get(field) or []:
-                    referenced.add(self._item_ref_identity(ref))
+                    referenced.update(self._item_ref_aliases(ref))
                     walk(ref)
             for child in item.get("children") or []:
                 walk(child)
@@ -989,7 +1032,6 @@ class ProjectIOMixin:
                 walk(sub)
         for it in items:
             walk(it)
-        self._ref_identity_cache = referenced
         return referenced
 
     def _build_item_json(self, item):
@@ -1087,10 +1129,13 @@ class ProjectIOMixin:
         for key, default in self.KIND_REQUIRED.get(kind, {}).items():
             data[key] = item.get(key, copy.deepcopy(default))
 
-        if kind == "SubMenuItem":
+        if kind in ("SubMenuItem", "MultipleChoiceItem"):
             submenu_items = item.get("_submenu_items")
             if submenu_items is not None:
-                data["ItemsList"] = [self._build_item_json(subitem) for subitem in submenu_items]
+                data["ItemsList"] = self._build_items_list_json(
+                    item,
+                    self._export_items_without_linked_refs(submenu_items)
+                )
 
         # Evolution children -> NextItems
         if kind in self.EVOLUTION_KINDS:
