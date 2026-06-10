@@ -62,15 +62,23 @@ class ItemModalMixin:
         preview_hint = "Actual size preview" if large_preview else "L/R/wheel to test"
         self._text(screen, preview_hint, (icon_rect.x - 2, icon_rect.bottom + 4), 11, self.COLORS["muted"])
 
+        if item.get("kind") == "ImageItem":
+            image_value = item.get("Image") or (
+                f"row {item.get('row', 1)} / column {item.get('column', 1)}"
+                if item.get("sheet") else "None"
+            )
+        else:
+            image_value = (
+                "optional" if item.get("kind") in self.SPRITE_OPTIONAL_KINDS and not item.get("sheet")
+                else f"row {item['row']} / column {item['column']}"
+            )
+
         details = [
             ("Id", item["id"]),
             ("Name", item["name"]),
             ("Type", item.get("kind", "Item")),
             ("Position", f"x {item['x']} / y {item['y']}"),
-            ("Image" if item.get("kind") == "ImageItem" else "Sprite",
-             item.get("Image") or "None" if item.get("kind") == "ImageItem" else
-             "optional" if item.get("kind") in self.SPRITE_OPTIONAL_KINDS and not item.get("sheet")
-             else f"row {item['row']} / column {item['column']}"),
+            ("Image" if item.get("kind") == "ImageItem" else "Sprite", image_value),
             ("Active", item.get("isActive", False)),
             ("Opacity", item.get("opacity", 0.5)),
             ("Hint", item.get("hint") or "None"),
@@ -93,12 +101,22 @@ class ItemModalMixin:
             ("kind", "Type"),
             ("position", "X / Y"),
             ("place", "Place"),
-            ("sprite", "Sprite"),
+        ]
+        if item.get("kind") == "ImageItem":
+            actions.extend([
+                ("image_import", "Import image"),
+                ("image_tile", "From tile"),
+                ("image_clear", "No image"),
+                ("image_size", "Size"),
+            ])
+        else:
+            actions.append(("sprite", "Sprite"))
+        actions.extend([
             ("hint", "Hint"),
             ("active", "Active"),
             ("opacity", "Opacity"),
             ("delete", "Delete"),
-        ]
+        ])
         if item.get("kind") in ("SubMenuItem", "MultipleChoiceItem"):
             actions.insert(-1, ("edit_submenu", "Edit items"))
         btn_w = 104
@@ -1432,6 +1450,16 @@ class ItemModalMixin:
                 self.message = "Click on the canvas to set the item position (Esc to cancel)."
             elif key == "sprite":
                 self._pick_item_sprite()
+            elif key == "image_import":
+                item = self._selected_item()
+                if item:
+                    self._import_item_image_field(item, "Image", "Image file")
+            elif key == "image_tile":
+                self._pick_item_sprite()
+            elif key == "image_clear":
+                self._clear_image_item_source()
+            elif key == "image_size":
+                self._edit_field("Sizes")
             elif key == "hint":
                 self._edit_selected_hint()
             elif key == "active":
@@ -1511,8 +1539,34 @@ class ItemModalMixin:
             it["sheet"] = sheet
             it["row"] = row
             it["column"] = column
-            self.message = f"Sprite set to {sheet} r{row} c{column}."
-        self._open_sprite_picker("Choose item sprite", apply)
+            if it.get("kind") == "ImageItem":
+                it["Image"] = None
+                assets = it.get("_image_assets")
+                if isinstance(assets, dict):
+                    assets.pop("Image", None)
+                self._invalidate_item_visual_cache(it)
+                self.message = f"ImageItem uses sprite {sheet} r{row} c{column}."
+            else:
+                self.message = f"Sprite set to {sheet} r{row} c{column}."
+        title = "Choose ImageItem tile" if item.get("kind") == "ImageItem" else "Choose item sprite"
+        self._open_sprite_picker(title, apply)
+
+    def _clear_image_item_source(self):
+        item = self._selected_item()
+        if not item or item.get("kind") != "ImageItem":
+            return
+        item["Image"] = None
+        item["sheet"] = None
+        assets = item.get("_image_assets")
+        if isinstance(assets, dict):
+            assets.pop("Image", None)
+        self._invalidate_item_visual_cache(item)
+        self.message = "ImageItem source cleared."
+
+    @staticmethod
+    def _invalidate_item_visual_cache(item):
+        for key in ("screen_rect", "_preview", "_component", "_comp_sig"):
+            item.pop(key, None)
 
     def _pick_child_sprite(self, index):
         item = self._selected_item()
@@ -1540,7 +1594,7 @@ class ItemModalMixin:
         self._ensure_kind_defaults(item)
         if kind == "ImageItem":
             item["isActive"] = True
-            item["sheet"] = None
+            item.setdefault("sheet", None)
         if kind not in self.SPRITE_OPTIONAL_KINDS:
             self._ensure_item_sprite(item)
         self.property_scroll = 0
@@ -1629,6 +1683,9 @@ class ItemModalMixin:
             base = self._slugify(os.path.splitext(os.path.basename(path))[0]) or self._slugify(item.get("name", "image"))
             file_name = f"{base}{ext}"
             self._set_field_value(item, field_key, file_name)
+            if item.get("kind") == "ImageItem" and field_key == "Image":
+                item["sheet"] = None
+                self._invalidate_item_visual_cache(item)
             assets = item.setdefault("_image_assets", {})
             assets[field_key] = {"path": path, "surface": surface, "file": file_name}
             self.message = f"{label} imported: {file_name}."
@@ -1777,7 +1834,7 @@ class ItemModalMixin:
         self._ensure_kind_defaults(item)
         if item["kind"] == "ImageItem":
             item["isActive"] = True
-            item["sheet"] = None
+            item.setdefault("sheet", None)
         if item["kind"] not in self.SPRITE_OPTIONAL_KINDS:
             self._ensure_item_sprite(item)
         self.property_scroll = 0

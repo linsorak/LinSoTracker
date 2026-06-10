@@ -181,6 +181,8 @@ class ProjectIOMixin:
                     for child_index, child in enumerate(item.get("NextItems", []))
                 ],
             }
+            if kind == "ImageItem" and not sheet_info:
+                entry["sheet"] = None
             # Kind-specific fields, read from json into the item dict
             for spec in self._kind_fields(kind):
                 key = spec["key"]
@@ -513,11 +515,15 @@ class ProjectIOMixin:
         elif icon is None and self.sheets:
             icon = self._get_icon_surface(1, 1, self.sheets[0]["name"])
         if icon:
-            pygame.image.save(icon, os.path.join(template_dir, icon_name))
+            pygame.image.save(self._normalized_template_icon(icon), os.path.join(template_dir, icon_name))
         elif os.path.exists(os.path.join(self.main_menu.resources_path, "icon.png")):
-            shutil.copyfile(os.path.join(self.main_menu.resources_path, "icon.png"), os.path.join(template_dir, icon_name))
+            try:
+                fallback_icon = pygame.image.load(os.path.join(self.main_menu.resources_path, "icon.png")).convert_alpha()
+            except Exception:
+                fallback_icon = None
+            pygame.image.save(self._normalized_template_icon(fallback_icon), os.path.join(template_dir, icon_name))
         else:
-            pygame.image.save(pygame.Surface((32, 32)), os.path.join(template_dir, icon_name))
+            pygame.image.save(self._normalized_template_icon(None), os.path.join(template_dir, icon_name))
 
         self._save_fonts(template_dir, source_dir)
         self._save_submenu_backgrounds(template_dir, source_dir)
@@ -533,6 +539,25 @@ class ProjectIOMixin:
         self.main_menu.process_templates_list()
         self._scan_projects()
         self._flash_status(f"Saved '{name}'  -  {template_dir}")
+
+    @staticmethod
+    def _normalized_template_icon(icon):
+        target_size = 64
+        surface = pygame.Surface((target_size, target_size), pygame.SRCALPHA).convert_alpha()
+        surface.fill((0, 0, 0, 0))
+        if not icon or icon.get_width() <= 0 or icon.get_height() <= 0:
+            return surface
+        scale = min(target_size / icon.get_width(), target_size / icon.get_height())
+        size = (
+            max(1, int(icon.get_width() * scale)),
+            max(1, int(icon.get_height() * scale)),
+        )
+        image = pygame.transform.smoothscale(icon, size) if size != icon.get_size() else icon
+        surface.blit(image, (
+            (target_size - size[0]) // 2,
+            (target_size - size[1]) // 2,
+        ))
+        return surface
 
     # ---- Maps model ------------------------------------------------------
     def _toggle_map_template(self):
@@ -1063,19 +1088,28 @@ class ProjectIOMixin:
             }
 
         if kind == "ImageItem":
-            data = dict(item.get("_raw", {}))
-            data.update({
+            data = {
                 "Id": assigned_id,
                 "Kind": "ImageItem",
                 "Name": item["name"],
                 "Positions": {"x": item["x"], "y": item["y"]},
-                "Image": item.get("Image"),
                 "Sizes": item.get("Sizes", {"w": 64, "h": 64}),
                 "isActive": item.get("isActive", True),
                 "Hint": item.get("hint"),
                 "OpacityDisable": item.get("opacity", 0.5),
-            })
-            data.pop("SheetInformation", None)
+            }
+            if item.get("Image"):
+                data["Image"] = item.get("Image")
+            else:
+                data.pop("Image", None)
+            if item.get("sheet"):
+                data["SheetInformation"] = {
+                    "row": item.get("row", 1),
+                    "column": item.get("column", 1),
+                    "SpriteSheet": item.get("sheet")
+                }
+            else:
+                data.pop("SheetInformation", None)
             if item.get("visible", True) is not True:
                 data["Visible"] = bool(item.get("visible"))
             else:

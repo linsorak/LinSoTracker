@@ -100,6 +100,8 @@ class TemplateChecker:
             if "Image" in section and section["Image"] is not None and not isinstance(section["Image"], str):
                 self.errors.append(self.ERROR_IS_NOT_IN_EXCEPTED_TYPE.format(
                     "Image.Item ID = {}".format(index), str))
+            if "SheetInformation" in section:
+                self.__sheet_positions_check("SheetInformation", section, "Item ID = {}".format(index))
         else:
             self.__sheet_positions_check("SheetInformation", section, "Item ID = {}".format(index))
         self.__check_element_is_in_section_and_valid("isActive", section, "Item ID = {}".format(index), bool)

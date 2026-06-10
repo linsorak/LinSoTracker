@@ -102,7 +102,7 @@ class TemplateMakerConstants:
         ],
         "ImageItem": [
             {"key": "Image", "type": "image", "label": "Image file", "default": None},
-            {"key": "Sizes", "type": "rect", "label": "Fallback size", "default": {"w": 64, "h": 64},
+            {"key": "Sizes", "type": "rect", "label": "No image size", "default": {"w": 64, "h": 64},
              "keys": ["w", "h"]},
         ],
         "IncrementalItem": [

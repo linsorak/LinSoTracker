@@ -533,7 +533,8 @@ class LayoutMixin:
                 self._draw_linked_items(screen, linked, bg_rect, depth + 1, path)
 
     def _draw_item(self, screen, item, index, bg_rect, linked=False):
-        icon = self._get_icon_surface(item["row"], item["column"], item.get("sheet"))
+        icon = None if item.get("kind") == "ImageItem" and not item.get("sheet") \
+            else self._get_icon_surface(item["row"], item["column"], item.get("sheet"))
         item_sheet = self._sheet_by_name(item.get("sheet")) or self.active_sheet
         cw = item_sheet["cell_w"] if item_sheet else self.cell_width
         ch = item_sheet["cell_h"] if item_sheet else self.cell_height
@@ -547,6 +548,15 @@ class LayoutMixin:
             if external_image:
                 cw = external_image.get_width()
                 ch = external_image.get_height()
+            elif item.get("sheet"):
+                icon = self._get_icon_surface(item.get("row", 1), item.get("column", 1), item.get("sheet"))
+                if icon:
+                    cw = icon.get_width()
+                    ch = icon.get_height()
+                else:
+                    sizes = item.get("Sizes") or {}
+                    cw = int(sizes.get("w", 64))
+                    ch = int(sizes.get("h", 64))
             else:
                 sizes = item.get("Sizes") or {}
                 cw = int(sizes.get("w", 64))
@@ -579,6 +589,12 @@ class LayoutMixin:
         elif item.get("kind") == "ImageItem":
             if external_image:
                 image = pygame.transform.smoothscale(external_image, size)
+                if not item.get("visible", True):
+                    image = image.copy()
+                    image.set_alpha(95)
+                screen.blit(image, rect)
+            elif icon:
+                image = pygame.transform.smoothscale(icon, size)
                 if not item.get("visible", True):
                     image = image.copy()
                     image.set_alpha(95)

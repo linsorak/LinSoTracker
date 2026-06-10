@@ -466,11 +466,10 @@ class Tracker:
     def init_item(self, item, item_list, manager):
         _item = None
         item_image = None
-        items_sheet_dict = None
+        items_sheet_dict = {sheet["Name"]: sheet for sheet in self.list_items_sheets}
         item_sheet_name = None
         bypass = item["Kind"] in ("EditableBox", "ImageItem")
         if not bypass:
-            items_sheet_dict = {sheet["Name"]: sheet for sheet in self.list_items_sheets}
             item_sheet_name = item["SheetInformation"]["SpriteSheet"]
         if bypass or item_sheet_name in items_sheet_dict:
             if item["Kind"] == "ImageItem":
@@ -478,6 +477,15 @@ class Tracker:
                 image_path = os.path.join(self.resources_path, image_name) if image_name else None
                 if image_path and os.path.exists(image_path):
                     item_image = self.bank.addZoomImage(image_path)
+                elif item.get("SheetInformation", {}).get("SpriteSheet") in items_sheet_dict:
+                    sheet_info = item["SheetInformation"]
+                    sheet = items_sheet_dict[sheet_info["SpriteSheet"]]
+                    item_image = self.core_service.zoom_image(
+                        sheet["ImageSheet"].getImageWithRowAndColumn(
+                            row=sheet_info["row"],
+                            column=sheet_info["column"]
+                        )
+                    )
                 else:
                     sizes = item.get("Sizes") or {}
                     item_image = pygame.Surface((

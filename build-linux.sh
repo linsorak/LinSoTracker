@@ -9,6 +9,7 @@ VENV_DIR="${VENV_DIR:-.venv-linux-${ARCH}-${PYTHON_VERSION}}"
 BUILD_BASE_DIR="${BUILD_BASE_DIR:-build}"
 BUILD_DIR="${BUILD_DIR:-${BUILD_BASE_DIR}/nuitka-linux-${ARCH}-$(date +%Y%m%d-%H%M%S)}"
 
+OUT_DIR="${OUT_DIR:-dist-nuitka-onefile}"
 DIST_DIR="${DIST_DIR:-dist}"
 APP_NAME="${APP_NAME:-LinSoTracker}"
 APP_VERSION=""
@@ -28,6 +29,55 @@ fail() {
 
 require_command() {
     command -v "$1" >/dev/null 2>&1 || fail "Missing command: $1"
+}
+
+install_linux_package() {
+    local package="$1"
+
+    if command -v apt-get >/dev/null 2>&1; then
+        log "Installing ${package} with apt-get"
+        sudo apt-get update
+        sudo apt-get install -y "$package"
+        return
+    fi
+
+    if command -v dnf >/dev/null 2>&1; then
+        log "Installing ${package} with dnf"
+        sudo dnf install -y "$package"
+        return
+    fi
+
+    if command -v yum >/dev/null 2>&1; then
+        log "Installing ${package} with yum"
+        sudo yum install -y "$package"
+        return
+    fi
+
+    if command -v pacman >/dev/null 2>&1; then
+        log "Installing ${package} with pacman"
+        sudo pacman -Sy --noconfirm "$package"
+        return
+    fi
+
+    if command -v zypper >/dev/null 2>&1; then
+        log "Installing ${package} with zypper"
+        sudo zypper --non-interactive install "$package"
+        return
+    fi
+
+    fail "Missing ${package}. Install it manually, e.g. sudo apt install ${package}."
+}
+
+ensure_command() {
+    local command_name="$1"
+    local package_name="${2:-$1}"
+
+    if command -v "$command_name" >/dev/null 2>&1; then
+        return
+    fi
+
+    install_linux_package "$package_name"
+    command -v "$command_name" >/dev/null 2>&1 || fail "${command_name} is still missing after installing ${package_name}."
 }
 
 copy_dir_to_dist() {
@@ -88,6 +138,7 @@ resolve_python() {
 }
 
 [[ "$(uname -s)" == "Linux" ]] || fail "This script must run on Linux."
+ensure_command patchelf patchelf
 
 PYTHON="$(resolve_python)"
 
@@ -142,19 +193,22 @@ DATA_ARGS=()
 ICON_ARGS=()
 [[ -f icon.png ]] && ICON_ARGS+=(--linux-icon=icon.png)
 
-log "Building standalone Linux app with Nuitka"
+log "Building onefile Linux executable with Nuitka"
 
 clean_old_builds_safe
 mkdir -p "$BUILD_DIR"
+rm -rf "$OUT_DIR"
+mkdir -p "$OUT_DIR"
 
 python -m nuitka \
-    --standalone \
+    --mode=onefile \
     --assume-yes-for-downloads \
     --remove-output \
     --enable-plugin=tk-inter \
     --include-package-data=pygame_menu \
     --include-package-data=pygame_gui \
-    --output-dir="$BUILD_DIR" \
+    --output-dir="$OUT_DIR" \
+    --output-filename="$APP_NAME" \
     --product-name="$APP_NAME" \
     --product-version="$SYSTEM_VERSION" \
     --file-version="$SYSTEM_VERSION" \
@@ -162,27 +216,21 @@ python -m nuitka \
     "${DATA_ARGS[@]}" \
     LinSoTracker.py
 
-DIST_PATH="${BUILD_DIR}/LinSoTracker.dist"
-[[ -d "$DIST_PATH" ]] || fail "Could not find LinSoTracker.dist in ${BUILD_DIR}"
+BIN_PATH="${OUT_DIR}/${APP_NAME}.bin"
+[[ -f "$BIN_PATH" ]] || BIN_PATH="${OUT_DIR}/${APP_NAME}"
+[[ -f "$BIN_PATH" ]] || fail "Could not find ${APP_NAME} executable in ${OUT_DIR}"
+if [[ "$BIN_PATH" != "${OUT_DIR}/${APP_NAME}" ]]; then
+    mv -f "$BIN_PATH" "${OUT_DIR}/${APP_NAME}"
+fi
+chmod +x "${OUT_DIR}/${APP_NAME}"
 
-log "Forcing project files into dist (alongside binary)"
+log "Copying external runtime files next to the executable"
+copy_dir_to_dist "templates" "$OUT_DIR"
+copy_dir_to_dist "default_saves" "$OUT_DIR"
+copy_dir_to_dist "devtemplates" "$OUT_DIR"
 
-copy_dir_to_dist "templates" "$DIST_PATH"
-copy_dir_to_dist "ressources" "$DIST_PATH"
-copy_dir_to_dist "resources" "$DIST_PATH"
-copy_dir_to_dist "default_saves" "$DIST_PATH"
-copy_dir_to_dist "extensions" "$DIST_PATH"
-copy_dir_to_dist "plugins" "$DIST_PATH"
-copy_dir_to_dist "seeds" "$DIST_PATH"
-
-copy_file_to_dist "tracker.data" "$DIST_PATH"
-copy_file_to_dist ".dev" "$DIST_PATH"
-copy_file_to_dist "config.ini" "$DIST_PATH"
-copy_file_to_dist "settings.ini" "$DIST_PATH"
-copy_file_to_dist "settings.json" "$DIST_PATH"
-
-log "Dist content:"
-find "$DIST_PATH" -maxdepth 2 -print >&2 || true
+copy_file_to_dist "tracker.data" "$OUT_DIR"
+copy_file_to_dist ".dev" "$OUT_DIR"
 
 PACKAGE_NAME="${APP_NAME}-${PACKAGE_VERSION}-linux-${ARCH}"
 OUTPUT_PATH="${DIST_DIR}/${PACKAGE_NAME}"
@@ -192,7 +240,10 @@ log "Packaging ${PACKAGE_NAME}"
 rm -rf "$OUTPUT_PATH"
 mkdir -p "$OUTPUT_PATH"
 
-cp -R "$DIST_PATH" "$OUTPUT_PATH/"
+cp -R "$OUT_DIR"/. "$OUTPUT_PATH/"
+
+log "Package content:"
+find "$OUTPUT_PATH" -maxdepth 2 -print >&2 || true
 
 (
     cd "$DIST_DIR"
@@ -207,4 +258,4 @@ cp -R "$DIST_PATH" "$OUTPUT_PATH/"
     fi
 )
 
-log "App: ${OUTPUT_PATH}/LinSoTracker.dist/LinSoTracker"
+log "App: ${OUT_DIR}/${APP_NAME}"
