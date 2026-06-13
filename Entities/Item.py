@@ -160,17 +160,17 @@ class Item(pygame.sprite.Sprite):
     def wheel_down(self):
         self.right_click()
 
-    def generate_text(self, text, font_name, color, font_size, o_width=2):
+    def generate_text(self, text, font_name, color, font_size, o_width=None):
         temp_surface = pygame.Surface((400, 400)).convert_alpha()
         tsurf, tpos = ptext.draw(str(text), (0, 0), fontname=font_name, antialias=True,
-                                 owidth=o_width, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=temp_surface)
+                                 owidth=0.45, ocolor=(0, 0, 0), color=color, fontsize=font_size, surf=temp_surface)
         return tsurf, tpos
 
     def get_name(self):
         return self.name
 
     def get_drawing_text(self, font, color_category, text, font_path, base_image, image_surface, text_position,
-                         o_width=2, offset=0):
+                         o_width=None, offset=0):
         if text is not None:
 
             if self.is_dragging:

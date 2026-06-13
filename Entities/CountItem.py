@@ -60,10 +60,16 @@ class CountItem(Item):
     def get_data(self):
         data = Item.get_data(self)
         data["value"] = self.value
+        data["min_value"] = self.min_value
+        data["max_value"] = self.max_value
+        data["value_increase"] = self.value_increase
         return data
 
     def set_data(self, datas):
-        self.value = datas["value"]
+        self.min_value = datas.get("min_value", self.min_value)
+        self.max_value = datas.get("max_value", self.max_value)
+        self.value_increase = datas.get("value_increase", self.value_increase)
+        self.value = max(self.min_value, min(datas["value"], self.max_value))
         Item.set_data(self, datas)
 
     def reinitialize(self):

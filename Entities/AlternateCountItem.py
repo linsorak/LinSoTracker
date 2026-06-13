@@ -79,12 +79,20 @@ class AlternateCountItem(Item):
         data = Item.get_data(self)
         data["value"] = self.value
         data["maxUsedValue"] = self.used_max_value
+        data["max_value"] = self.max_value
+        data["max_value_alternate"] = self.max_value_alternate
         return data
 
     def set_data(self, datas):
+        self.max_value = datas.get("max_value", self.max_value)
+        self.max_value_alternate = datas.get("max_value_alternate", self.max_value_alternate)
         self.value = datas["value"]
-        self.used_max_value = datas["maxUsedValue"]
+        self.used_max_value = datas.get("maxUsedValue", self.used_max_value)
         Item.set_data(self, datas)
+        self.used_max_value = self.max_value_alternate if self.hint_show else self.max_value
+        self.value = max(0, min(self.value, self.used_max_value))
+        self.enable = self.value > 0
+        self.update()
 
     def reinitialize(self):
         self.value = 0
