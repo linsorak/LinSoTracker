@@ -112,6 +112,9 @@ class Tracker:
         self._dim_overlay_size = None
         self._editable_boxes_cache = []
         self._pending_timer_data = None
+        self._last_value_edit_click_item = None
+        self._last_value_edit_click_time = 0
+        self.value_edit_modal = None
 
         self._report_loading(0.05, "Preparing template")
         self.extract_data()
@@ -801,6 +804,10 @@ class Tracker:
         for item in item_list:
             if item.check_click(mouse_position) and self.is_moving is None and item.show_item and not isinstance(item,
                                                                                                                  ImageItem):
+                if button == 1 and self._is_value_edit_double_click(item):
+                    self._open_value_edit_modal(item)
+                    return True
+
                 before_states = self._snapshot_item_states()
                 if button == 1:
                     item.left_click()
@@ -830,6 +837,100 @@ class Tracker:
                         self.sound_cancel.play()
                 return True
         return False
+
+    def _is_value_edit_double_click(self, item):
+        if not isinstance(item, (CountItem, AlternateCountItem)):
+            self._last_value_edit_click_item = None
+            self._last_value_edit_click_time = 0
+            return False
+
+        now = pygame.time.get_ticks()
+        is_double_click = (
+            self._last_value_edit_click_item is item and
+            now - self._last_value_edit_click_time <= 350
+        )
+        self._last_value_edit_click_item = item
+        self._last_value_edit_click_time = now
+        return is_double_click
+
+    def _open_value_edit_modal(self, item):
+        self._last_value_edit_click_item = None
+        self._last_value_edit_click_time = 0
+        fields = []
+
+        if isinstance(item, AlternateCountItem):
+            fields.append({"key": "max_value", "label": "Normal max", "value": str(item.max_value), "tab": "normal"})
+            if item.hint:
+                fields.append({
+                    "key": "max_value_alternate",
+                    "label": f"{item.hint} max",
+                    "value": str(item.max_value_alternate),
+                    "tab": "hint"
+                })
+        elif isinstance(item, CountItem):
+            fields.extend([
+                {"key": "min_value", "label": "Min value", "value": str(item.min_value), "tab": "normal"},
+                {"key": "max_value", "label": "Max value", "value": str(item.max_value), "tab": "normal"},
+                {"key": "value_increase", "label": "Step value", "value": str(item.value_increase), "tab": "normal"},
+            ])
+        else:
+            return
+
+        self.value_edit_modal = {
+            "item": item,
+            "fields": fields,
+            "active_field": 0,
+            "active_tab": "normal",
+            "buttons": {},
+            "field_rects": [],
+            "error": "",
+        }
+
+    def _close_value_edit_modal(self):
+        self.value_edit_modal = None
+
+    def _apply_value_edit_modal(self):
+        modal = self.value_edit_modal
+        if not modal:
+            return False
+        item = modal["item"]
+        values = {}
+        try:
+            for field in modal["fields"]:
+                values[field["key"]] = int(field["value"])
+        except ValueError:
+            modal["error"] = "Only integer values are allowed."
+            return False
+
+        if isinstance(item, CountItem):
+            if values["max_value"] < values["min_value"]:
+                modal["error"] = "Max value must be greater than or equal to min value."
+                return False
+            if values["value_increase"] <= 0:
+                modal["error"] = "Step value must be greater than 0."
+                return False
+            item.min_value = values["min_value"]
+            item.max_value = values["max_value"]
+            item.value_increase = values["value_increase"]
+            item.value = max(item.min_value, min(item.value, item.max_value))
+        elif isinstance(item, AlternateCountItem):
+            if values["max_value"] < 0 or values.get("max_value_alternate", 0) < 0:
+                modal["error"] = "Max values must be 0 or greater."
+                return False
+            item.max_value = values["max_value"]
+            if "max_value_alternate" in values:
+                item.max_value_alternate = values["max_value_alternate"]
+            item.used_max_value = item.max_value_alternate if item.hint_show else item.max_value
+            item.value = min(item.value, item.used_max_value)
+            item.enable = item.value > 0
+
+        item.update()
+        self.rebuild_item_indexes()
+        self.current_item_on_mouse = None
+        if self.current_map:
+            self.update_checks_for_changed_items({item.name, item.base_name})
+        self._close_value_edit_modal()
+        return True
 
     def _iter_unique_items(self):
         seen = set()
@@ -1008,6 +1109,8 @@ class Tracker:
                 item.start_drag_time = pygame.time.get_ticks()
 
     def click_down(self, mouse_position, button):
+        if self.value_edit_modal:
+            return
         if self.menu.consume_seed_overlay_click():
             return
         if self.menu.is_seed_overlay_open():
@@ -1026,6 +1129,9 @@ class Tracker:
                     self.items_mouse_down(mouse_position, button, submenu.items)
 
     def click(self, mouse_position, button):
+        if self.value_edit_modal:
+            self._handle_value_edit_modal_click(mouse_position, button)
+            return
         if self.menu.consume_seed_overlay_click():
             return
         if self.menu.is_seed_overlay_open():
@@ -1345,8 +1451,9 @@ class Tracker:
         if datas[0].get("template_name") != self.template_name:
             return
         item_lookup = {(item.base_name, item.id): item for item in self.items}
-        if "items" in datas[1]:
-            for data in datas[1]["items"]:
+        items_data = self.find_object_with_key(datas, "items")
+        if items_data and "items" in items_data:
+            for data in items_data["items"]:
                 item = item_lookup.get((data["name"], data["id"]))
                 if item:
                     item.set_data(data)
@@ -1442,8 +1549,6 @@ class Tracker:
         screen.fill(self.core_service.get_background_color())
         if self.background_image:
             screen.blit(self.background_image, getattr(self, "background_position", (0, 0)))
-        if self.menu.get_menu().is_enabled():
-            self.menu.get_menu().mainloop(screen)
         if self.core_service.draw_esc_menu_label:
             screen.blit(self.esc_menu_image, (2, 2))
         if self.current_map:
@@ -1537,10 +1642,180 @@ class Tracker:
             box.draw_box(screen)
         if self.is_moving:
             screen.blit(self.is_moving.image, self.is_moving.rect)
+        if self.menu.get_menu().is_enabled():
+            self.menu.get_menu().mainloop(screen)
         self.menu.draw_seed_overlay(screen)
+        self._draw_value_edit_modal(screen)
 
+    def _draw_value_edit_modal(self, screen):
+        modal = self.value_edit_modal
+        if not modal:
+            return
+
+        overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 170))
+        screen.blit(overlay, (0, 0))
+
+        item = modal["item"]
+        has_hint_tab = any(field["tab"] == "hint" for field in modal["fields"])
+        modal_w = min(560, screen.get_width() - 60)
+        modal_h = 350 if has_hint_tab else 310
+        rect = pygame.Rect((screen.get_width() - modal_w) // 2, (screen.get_height() - modal_h) // 2, modal_w, modal_h)
+        modal["rect"] = rect
+        modal["buttons"] = {}
+        modal["field_rects"] = []
+
+        pygame.draw.rect(screen, (14, 18, 27), rect, border_radius=10)
+        pygame.draw.rect(screen, (244, 197, 66), rect, 2, border_radius=10)
+
+        menu_font = self.core_service.get_ui_font()
+        title_font = pygame.font.Font(menu_font, 26)
+        small_font = pygame.font.Font(menu_font, 14)
+        label_font = pygame.font.Font(menu_font, 17)
+        input_font = pygame.font.Font(menu_font, 20)
+
+        close_rect = pygame.Rect(rect.right - 56, rect.y + 22, 32, 32)
+        save_rect = pygame.Rect(close_rect.x - 86, rect.y + 22, 74, 32)
+        modal["buttons"]["close"] = close_rect
+        modal["buttons"]["save"] = save_rect
+
+        screen.blit(small_font.render("ITEM VALUES", True, (204, 198, 179)), (rect.x + 24, rect.y + 18))
+        title_text = item.base_name
+        max_title_w = save_rect.x - rect.x - 40
+        while title_text and title_font.size(title_text)[0] > max_title_w:
+            title_text = title_text[:-1]
+        if title_text != item.base_name and len(title_text) > 3:
+            title_text = title_text[:-3] + "..."
+        screen.blit(title_font.render(title_text, True, (244, 197, 66)), (rect.x + 24, rect.y + 38))
+        pygame.draw.line(screen, (68, 72, 88), (rect.x + 24, rect.y + 78), (rect.right - 24, rect.y + 78), 1)
+
+        self._draw_value_modal_button(screen, close_rect, "X", (176, 66, 70), small_font)
+        self._draw_value_modal_button(screen, save_rect, "Save", (36, 124, 87), label_font)
+
+        content_y = rect.y + 98
+        if has_hint_tab:
+            tabs = [("normal", "Normal"), ("hint", item.hint or "Hint")]
+            tab_w = 124
+            for index, (tab_key, label) in enumerate(tabs):
+                tab_rect = pygame.Rect(rect.x + 24 + index * (tab_w + 8), content_y, tab_w, 32)
+                modal["buttons"][f"tab:{tab_key}"] = tab_rect
+                active = modal["active_tab"] == tab_key
+                color = (40, 46, 62) if active else (28, 32, 44)
+                pygame.draw.rect(screen, color, tab_rect)
+                pygame.draw.rect(screen, (244, 197, 66) if active else (68, 72, 88), tab_rect, 1)
+                text = label_font.render(label, True, (244, 197, 66) if active else (204, 198, 179))
+                screen.blit(text, text.get_rect(center=tab_rect.center))
+            content_y += 48
+
+        visible_fields = [field for field in modal["fields"] if field["tab"] == modal["active_tab"]]
+        if not visible_fields and has_hint_tab:
+            visible_fields = [field for field in modal["fields"] if field["tab"] == "normal"]
+            modal["active_tab"] = "normal"
+
+        for field in visible_fields:
+            field_index = modal["fields"].index(field)
+            label_rect = pygame.Rect(rect.x + 34, content_y, 160, 38)
+            input_rect = pygame.Rect(rect.x + 198, content_y, rect.w - 232, 38)
+            modal["field_rects"].append((field_index, input_rect))
+            screen.blit(label_font.render(field["label"], True, (204, 198, 179)), (label_rect.x, label_rect.y + 9))
+            active = modal["active_field"] == field_index
+            pygame.draw.rect(screen, (22, 27, 39), input_rect)
+            pygame.draw.rect(screen, (244, 197, 66) if active else (68, 72, 88), input_rect, 2 if active else 1)
+            value_surface = input_font.render(field["value"], True, (245, 240, 220))
+            screen.blit(value_surface, (input_rect.x + 10, input_rect.y + 8))
+            if active and (pygame.time.get_ticks() // 500) % 2 == 0:
+                cursor_x = input_rect.x + 12 + value_surface.get_width()
+                pygame.draw.line(screen, (245, 240, 220), (cursor_x, input_rect.y + 7),
+                                 (cursor_x, input_rect.bottom - 7), 1)
+            content_y += 50
+
+        if modal["error"]:
+            error = small_font.render(modal["error"], True, (255, 122, 122))
+            screen.blit(error, (rect.x + 34, rect.bottom - 46))
+        help_text = small_font.render("Enter to save, Esc to cancel.", True, (150, 150, 160))
+        screen.blit(help_text, (rect.x + 34, rect.bottom - 24))
+
+    @staticmethod
+    def _draw_value_modal_button(screen, rect, label, color, font):
+        pygame.draw.rect(screen, color, rect)
+        pygame.draw.rect(screen, (255, 255, 255), rect, 1)
+        text = font.render(label, True, (255, 255, 255))
+        screen.blit(text, text.get_rect(center=rect.center))
+
+    def _handle_value_edit_modal_click(self, mouse_position, button):
+        modal = self.value_edit_modal
+        if not modal:
+            return False
+        if button != 1:
+            return True
+        for key, rect in modal.get("buttons", {}).items():
+            if rect.collidepoint(mouse_position):
+                if key == "close":
+                    self._close_value_edit_modal()
+                elif key == "save":
+                    self._apply_value_edit_modal()
+                elif key.startswith("tab:"):
+                    modal["active_tab"] = key.split(":", 1)[1]
+                    for index, field in enumerate(modal["fields"]):
+                        if field["tab"] == modal["active_tab"]:
+                            modal["active_field"] = index
+                            break
+                return True
+        for field_index, rect in modal.get("field_rects", []):
+            if rect.collidepoint(mouse_position):
+                modal["active_field"] = field_index
+                modal["error"] = ""
+                return True
+        return True
+
+    def _handle_value_edit_modal_keydown(self, event):
+        modal = self.value_edit_modal
+        if not modal:
+            return False
+        if event.key == pygame.K_ESCAPE:
+            self._close_value_edit_modal()
+            return True
+        if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+            self._apply_value_edit_modal()
+            return True
+        if event.key == pygame.K_TAB:
+            direction = -1 if pygame.key.get_mods() & pygame.KMOD_SHIFT else 1
+            self._move_value_modal_field(direction)
+            return True
+        field = modal["fields"][modal["active_field"]]
+        if event.key == pygame.K_BACKSPACE:
+            field["value"] = field["value"][:-1]
+            modal["error"] = ""
+            return True
+        if event.key == pygame.K_DELETE:
+            field["value"] = ""
+            modal["error"] = ""
+            return True
+        if event.unicode and (event.unicode.isdigit() or (event.unicode == "-" and not field["value"])):
+            field["value"] += event.unicode
+            modal["error"] = ""
+            return True
+        return True
+
+    def _move_value_modal_field(self, direction):
+        modal = self.value_edit_modal
+        visible_indexes = [
+            index for index, field in enumerate(modal["fields"])
+            if field["tab"] == modal["active_tab"]
+        ]
+        if not visible_indexes:
+            return
+        if modal["active_field"] not in visible_indexes:
+            modal["active_field"] = visible_indexes[0]
+            return
+        current = visible_indexes.index(modal["active_field"])
+        modal["active_field"] = visible_indexes[(current + direction) % len(visible_indexes)]
 
     def keyup(self, button, screen):
+        if self.value_edit_modal:
+            if button == pygame.K_ESCAPE:
+                self._close_value_edit_modal()
+            return
         if self.menu.is_seed_overlay_open():
             return
         if button == pygame.K_ESCAPE:
@@ -1556,7 +1831,19 @@ class Tracker:
             box.handle_event(events)
 
     def events(self, events, time_delta):
-        self.menu.events(events)
+        if self.value_edit_modal:
+            if events.type == pygame.MOUSEBUTTONDOWN:
+                return True
+            if events.type == pygame.MOUSEBUTTONUP:
+                self._handle_value_edit_modal_click(events.pos, events.button)
+                return True
+            if events.type == pygame.KEYDOWN:
+                return self._handle_value_edit_modal_keydown(events)
+            if events.type in (pygame.MOUSEMOTION, pygame.MOUSEWHEEL):
+                return True
+            return False
+        if self.menu.events(events):
+            return True
         if self.menu.is_seed_overlay_open():
             return False
         self.handle_event_boxes(self.items, events)

@@ -132,7 +132,7 @@ class FontsMixin:
             slot = parts[0]
             field = parts[1] if len(parts) > 1 else ""
             default_font = self.MAP_FONT_DEFAULTS.get(slot) or self._default_fonts().get(slot) \
-                or {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}}
+                or {"Name": "NotoSans-Bold.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}}
             font = self.fonts.setdefault(slot, copy.deepcopy(default_font))
             if field == "name":
                 path = filedialog.askopenfilename(title="Pick a font", filetypes=[("Fonts", "*.ttf *.otf"), ("All files", "*.*")])

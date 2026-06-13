@@ -44,6 +44,7 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.main_menu = main_menu
         self.core_service = main_menu.core_service
         self.font_path = main_menu.font_data["path"]
+        self.ui_font_path = self.core_service.get_ui_font()
         self.font_color = main_menu.font_data["color_normal"]
         self.font_size = main_menu.font_data["size"]
         self.background_path = None

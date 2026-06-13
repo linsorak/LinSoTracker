@@ -12,18 +12,20 @@ from Tools import ptext
 
 
 class DrawingMixin:
-    def _text(self, surface, text, position, size=None, color=None):
-        return ptext.draw(
-            str(text),
-            position,
-            fontname=self.font_path,
-            antialias=True,
-            owidth=1,
-            ocolor=(0, 0, 0),
-            color=color or self.font_color,
-            fontsize=size or self.font_size,
-            surf=surface
+    def _render_ui_text(self, text, size=None, color=None):
+        font_size = int(size or self.font_size)
+        font = pygame.font.Font(getattr(self, "ui_font_path", None), font_size * 2)
+        text_surface = font.render(str(text), True, color or self.font_color)
+        return pygame.transform.smoothscale(
+            text_surface,
+            (max(1, text_surface.get_width() // 2), max(1, text_surface.get_height() // 2))
         )
+
+    def _text(self, surface, text, position, size=None, color=None):
+        text_surface = self._render_ui_text(text, size, color)
+        rect = text_surface.get_rect(topleft=position)
+        surface.blit(text_surface, rect)
+        return text_surface, rect
 
     def _text_center(self, surface, text, rect, size=None, color=None):
         temp = pygame.Surface((1, 1), pygame.SRCALPHA)
@@ -55,28 +57,28 @@ class DrawingMixin:
         return text[:low] + ellipsis
 
     def _draw_card(self, screen, rect, color, border_color=None, radius=0):
-        pygame.draw.rect(screen, color, rect)
-        pygame.draw.rect(screen, border_color or self.COLORS["line"], rect, 1)
+        self._draw_aa_rect(screen, color, rect, border_radius=radius)
+        self._draw_aa_rect(screen, border_color or self.COLORS["line"], rect, 1, border_radius=radius)
 
     def _draw_popup(self, screen, rect, radius=12, border_color=None):
         """Modal frame with a drop shadow + thick bright border, so the popup
         clearly stands out from whatever is behind it."""
         shadow = rect.inflate(22, 22)
         shadow_surf = pygame.Surface(shadow.size, pygame.SRCALPHA)
-        pygame.draw.rect(shadow_surf, (0, 0, 0, 140), shadow_surf.get_rect(), border_radius=radius + 6)
+        self._draw_aa_rect(shadow_surf, (0, 0, 0, 140), shadow_surf.get_rect(), border_radius=radius + 6)
         screen.blit(shadow_surf, shadow.topleft)
-        pygame.draw.rect(screen, self.COLORS["panel"], rect, border_radius=radius)
-        pygame.draw.rect(screen, (6, 7, 11), rect, 1, border_radius=radius)
-        pygame.draw.rect(screen, border_color or self.COLORS["gold"], rect, 3, border_radius=radius)
+        self._draw_aa_rect(screen, self.COLORS["panel"], rect, border_radius=radius)
+        self._draw_aa_rect(screen, (6, 7, 11), rect, 1, border_radius=radius)
+        self._draw_aa_rect(screen, border_color or self.COLORS["gold"], rect, 3, border_radius=radius)
 
     def _draw_button(self, screen, rect, label, color, hover=False):
         # Flat solid fill, brighten slightly on hover
         fill = self._lighten(color, 18) if hover else color
-        pygame.draw.rect(screen, fill, rect)
+        self._draw_aa_rect(screen, fill, rect)
 
         # Thin flat border, accent on hover
         border = self._lighten(fill, 30) if hover else self._darken(color, 18)
-        pygame.draw.rect(screen, border, rect, 1)
+        self._draw_aa_rect(screen, border, rect, 1)
 
         font_size = self.font_size
         if rect.h <= 30:
@@ -84,6 +86,22 @@ class DrawingMixin:
         elif rect.w < 80:
             font_size = max(12, self.font_size - 2)
         self._text_center(screen, label, rect, font_size, self.COLORS["button_text"])
+
+    @staticmethod
+    def _draw_aa_rect(screen, color, rect, width=0, border_radius=0):
+        if border_radius <= 0:
+            pygame.draw.rect(screen, color, rect, width)
+            return
+        scale = 2
+        surf = pygame.Surface((rect.w * scale, rect.h * scale), pygame.SRCALPHA)
+        pygame.draw.rect(
+            surf,
+            color,
+            surf.get_rect(),
+            width * scale,
+            border_radius=border_radius * scale
+        )
+        screen.blit(pygame.transform.smoothscale(surf, rect.size), rect.topleft)
 
     @staticmethod
     def _lighten(color, amount):

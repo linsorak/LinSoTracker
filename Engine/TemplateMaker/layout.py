@@ -253,6 +253,7 @@ class LayoutMixin:
             rect = self._draw_item(screen, item, index, bg_rect)
             if not rect.colliderect(item_clip):
                 item["screen_rect"] = pygame.Rect(0, 0, 0, 0)
+                self._draw_linked_items(screen, item, bg_rect, parent_path=(index,), parent_rect=rect)
                 continue
             item["screen_rect"] = rect.clip(item_clip)
             selected_indices = getattr(self, "selected_item_indices", set()) or set()
@@ -260,7 +261,7 @@ class LayoutMixin:
                 pygame.draw.rect(screen, self.COLORS["gold"], rect.inflate(8, 8), 2)
             if index == self.selected_item_index:
                 pygame.draw.rect(screen, self.COLORS["gold"], rect.inflate(12, 12), 3)
-            self._draw_linked_items(screen, item, bg_rect, parent_path=(index,))
+            self._draw_linked_items(screen, item, bg_rect, parent_path=(index,), parent_rect=rect)
         # Alignment guides while dragging with snap on
         dragging = self.dragging_item_index is not None or self.dragging_linked_path is not None
         if dragging and self.snap_guides:
@@ -502,7 +503,7 @@ class LayoutMixin:
         self._text(screen, f"{len(checks)} check(s) - click map to add, double-click to edit",
                    (bg_rect.x + 6, bg_rect.bottom + 2), 13, self.COLORS["muted"])
 
-    def _draw_linked_items(self, screen, item, bg_rect, depth=0, parent_path=()):
+    def _draw_linked_items(self, screen, item, bg_rect, depth=0, parent_path=(), parent_rect=None):
         if depth > 8:
             return
         linked_fields = [
@@ -510,7 +511,7 @@ class LayoutMixin:
             ("ActiveItems", self.COLORS["green"]),
             ("InactiveItems", self.COLORS["red"]),
         ]
-        parent_rect = item.get("screen_rect")
+        parent_rect = parent_rect or item.get("screen_rect")
         for field, color in linked_fields:
             for linked_index, linked in enumerate(item.get(field) or []):
                 path = parent_path + (field, linked_index)
@@ -530,7 +531,7 @@ class LayoutMixin:
                 label = field.replace("Items", "")
                 if rect.w >= 20 and rect.h >= 20:
                     self._text(screen, label[:1], (rect.right - 10, rect.y + 1), 12, color)
-                self._draw_linked_items(screen, linked, bg_rect, depth + 1, path)
+                self._draw_linked_items(screen, linked, bg_rect, depth + 1, path, parent_rect=rect)
 
     def _draw_item(self, screen, item, index, bg_rect, linked=False):
         icon = None if item.get("kind") == "ImageItem" and not item.get("sheet") \
@@ -622,6 +623,14 @@ class LayoutMixin:
         entries = self._flatten_items_for_list()
         self.items_list_entries = entries
         self._text(screen, f"{len(entries)} item(s)", (x, y), 13, self.COLORS["muted"])
+        self.items_list_buttons = {}
+        btn_w = 48
+        up_rect = pygame.Rect(panel.right - pad - btn_w * 2 - 6, y - 4, btn_w, 24)
+        down_rect = pygame.Rect(panel.right - pad - btn_w, y - 4, btn_w, 24)
+        self.items_list_buttons["item_order_up"] = up_rect
+        self.items_list_buttons["item_order_down"] = down_rect
+        self._draw_button(screen, up_rect, "Up", self.COLORS["button"], hover=(self.hover_key == "item_order_up"))
+        self._draw_button(screen, down_rect, "Down", self.COLORS["button"], hover=(self.hover_key == "item_order_down"))
         y += 22
         area = pygame.Rect(x, y, panel.w - pad * 2, panel.bottom - y - 14)
         self._draw_card(screen, area, (10, 12, 18), border_color=(56, 62, 76), radius=8)

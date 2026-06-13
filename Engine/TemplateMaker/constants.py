@@ -42,14 +42,14 @@ class TemplateMakerConstants:
                     "BorderSize": 2,
                     "Radius": 8,
                 },
-                "Font": {"Name": "visitor1.ttf", "Size": 32, "Color": {"r": 150, "g": 255, "b": 160}},
+                "Font": {"Name": "NotoSans-Bold.ttf", "Size": 32, "Color": {"r": 150, "g": 255, "b": 160}},
             },
             "Buttons": {
                 "StartPause": {
                     "Enable": True,
                     "Rect": {"x": 0, "y": 50, "w": 108, "h": 28},
                     "Labels": {"Start": "Start", "Pause": "Pause"},
-                    "Font": {"Name": "visitor1.ttf", "Size": 17, "Color": {"r": 255, "g": 255, "b": 255}},
+                    "Font": {"Name": "NotoSans-Bold.ttf", "Size": 17, "Color": {"r": 255, "g": 255, "b": 255}},
                     "Colors": {
                         "Start": {"r": 35, "g": 130, "b": 85},
                         "Pause": {"r": 165, "g": 100, "b": 35},
@@ -61,7 +61,7 @@ class TemplateMakerConstants:
                     "Enable": True,
                     "Rect": {"x": 122, "y": 50, "w": 108, "h": 28},
                     "Label": "Reset",
-                    "Font": {"Name": "visitor1.ttf", "Size": 17, "Color": {"r": 255, "g": 255, "b": 255}},
+                    "Font": {"Name": "NotoSans-Bold.ttf", "Size": 17, "Color": {"r": 255, "g": 255, "b": 255}},
                     "Color": {"r": 110, "g": 65, "b": 135},
                     "BorderColor": {"r": 235, "g": 235, "b": 235},
                     "BorderSize": 2, "Radius": 6,
@@ -70,7 +70,7 @@ class TemplateMakerConstants:
                     "Enable": False,
                     "Rect": {"x": 0, "y": 86, "w": 230, "h": 26},
                     "Labels": {"Start": "Start group", "Pause": "Pause group"},
-                    "Font": {"Name": "visitor1.ttf", "Size": 16, "Color": {"r": 255, "g": 255, "b": 255}},
+                    "Font": {"Name": "NotoSans-Bold.ttf", "Size": 16, "Color": {"r": 255, "g": 255, "b": 255}},
                     "Colors": {
                         "Start": {"r": 40, "g": 90, "b": 150},
                         "Pause": {"r": 150, "g": 80, "b": 40},
@@ -213,18 +213,18 @@ class TemplateMakerConstants:
     ]
 
     MAP_FONT_DEFAULTS = {
-        "mapFont": {"Name": "visitor1.ttf", "Size": 20, "Colors": {
+        "mapFont": {"Name": "NotoSans-Bold.ttf", "Size": 20, "Colors": {
             "Logic": {"r": 0, "g": 255, "b": 0}, "NotLogic": {"r": 255, "g": 0, "b": 0},
             "Done": {"r": 128, "g": 128, "b": 128}, "Normal": {"r": 255, "g": 255, "b": 255},
             "Focused": {"r": 0, "g": 255, "b": 255}, "HaveLogic": {"r": 255, "g": 165, "b": 0}}},
-        "mapFontTitle": {"Name": "visitor1.ttf", "Size": 28, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
-        "mapFontSubTitle": {"Name": "visitor1.ttf", "Size": 20, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
-        "mapFontChecksNumber": {"Name": "visitor1.ttf", "Size": 13, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
-        "mapFontPagesIndicator": {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
-        "mapFontListMaps": {"Name": "visitor1.ttf", "Size": 18, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
-        "mapFontCheckHint": {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
-        "mapFontCheckZoneHint": {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
-        "rulesOptionsFontTitle": {"Name": "visitor1.ttf", "Size": 22, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontTitle": {"Name": "NotoSans-Bold.ttf", "Size": 28, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontSubTitle": {"Name": "NotoSans-Bold.ttf", "Size": 20, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontChecksNumber": {"Name": "NotoSans-Bold.ttf", "Size": 13, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontPagesIndicator": {"Name": "NotoSans-Bold.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontListMaps": {"Name": "NotoSans-Bold.ttf", "Size": 18, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontCheckHint": {"Name": "NotoSans-Bold.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "mapFontCheckZoneHint": {"Name": "NotoSans-Bold.ttf", "Size": 16, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
+        "rulesOptionsFontTitle": {"Name": "NotoSans-Bold.ttf", "Size": 22, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},
     }
 
     COLORS = {

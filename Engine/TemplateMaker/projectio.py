@@ -18,7 +18,7 @@ class ProjectIOMixin:
         normal = {"r": 255, "g": 255, "b": 255}
         max_color = {"r": 0, "g": 255, "b": 0}
         fonts = {
-            slot: {"Name": "visitor1.ttf", "Size": 16, "Colors": {"Normal": dict(normal), "Max": dict(max_color)}}
+            slot: {"Name": "NotoSans-Bold.ttf", "Size": 16, "Colors": {"Normal": dict(normal), "Max": dict(max_color)}}
             for slot in self.FONT_SLOTS
         }
         if "timerItemFont" in fonts:
@@ -904,6 +904,8 @@ class ProjectIOMixin:
                 source = self.font_files[fname]
             elif self.font_path and os.path.exists(self.font_path):
                 source = self.font_path
+            elif os.path.exists(os.path.join(self.core_service.get_temp_path(), "tracker", fname)):
+                source = os.path.join(self.core_service.get_temp_path(), "tracker", fname)
             if source:
                 try:
                     shutil.copyfile(source, dest)

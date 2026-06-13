@@ -56,6 +56,7 @@ class CoreService(metaclass=Singleton):
         self.current_tracker_name = None
         self.app_path = self.resolve_app_path()
         self.menu_font = None
+        self.ui_font = None
         self.launch_registered = False
         self.launch_count = 0
         self.show_donation_popup = False
@@ -398,9 +399,25 @@ class CoreService(metaclass=Singleton):
 
     def set_menu_font(self, path):
         self.menu_font = path
+        self.ui_font = path
 
     def get_menu_font(self):
         return self.menu_font
+
+    def get_ui_font(self):
+        if self.ui_font and os.path.exists(self.ui_font):
+            return self.ui_font
+        if self.menu_font and os.path.exists(self.menu_font):
+            self.ui_font = self.menu_font
+            return self.ui_font
+
+        tracker_font = os.path.join(self.temp_path, "tracker", "NotoSans-Bold.ttf")
+        if os.path.exists(tracker_font):
+            self.ui_font = tracker_font
+            return self.ui_font
+
+        self.ui_font = pygame.font.match_font("notosans,segoe ui,arial,dejavusans,liberationsans")
+        return self.ui_font
 
     @staticmethod
     def detect_os():

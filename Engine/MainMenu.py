@@ -973,15 +973,10 @@ class MainMenu:
         self.fade_engine.reset()
 
     @staticmethod
-    def draw_text(text, font_name, color, font_size, surface, position, outline=2, color_outline=(0, 0, 0)):
+    def draw_text(text, font_name, color, font_size, surface, position, outline=None, color_outline=(0, 0, 0)):
         try:
-            outline_temp = outline
-            core_service = CoreService()
-            if core_service.zoom == 1 and outline == 1:
-                outline_temp = 2
-
             tsurf, tpos = ptext.draw(str(text), position, fontname=font_name, antialias=True,
-                                     owidth=outline_temp, ocolor=color_outline, color=color, fontsize=font_size,
+                                     owidth=0.45, ocolor=color_outline, color=color, fontsize=font_size,
                                      surf=surface)
             return tsurf, tpos
         except Exception as e:

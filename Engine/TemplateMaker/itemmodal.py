@@ -735,6 +735,42 @@ class ItemModalMixin:
         self.selected_linked_path = None
         return selected
 
+    def _move_selected_items_in_list(self, direction):
+        if direction not in (-1, 1):
+            return
+        selected = sorted(self._selected_indices())
+        if not selected:
+            self.message = "Select an item first."
+            return
+        if direction < 0 and selected[0] <= 0:
+            return
+        if direction > 0 and selected[-1] >= len(self.placed_items) - 1:
+            return
+
+        active_item = self.placed_items[self.selected_item_index] \
+            if self.selected_item_index is not None and 0 <= self.selected_item_index < len(self.placed_items) \
+            else None
+        moving = [self.placed_items[index] for index in selected]
+        moving_ids = {id(item) for item in moving}
+        remaining = [item for item in self.placed_items if id(item) not in moving_ids]
+        insert_at = selected[0] + direction
+        if direction > 0:
+            insert_at = selected[-1] - len(selected) + 2
+        insert_at = max(0, min(insert_at, len(remaining)))
+        self.placed_items[:] = remaining[:insert_at] + moving + remaining[insert_at:]
+
+        new_indices = {
+            index for index, item in enumerate(self.placed_items)
+            if id(item) in moving_ids
+        }
+        self.selected_item_indices = new_indices
+        self.selected_item_index = next(
+            (index for index, item in enumerate(self.placed_items) if item is active_item),
+            sorted(new_indices)[0] if new_indices else None
+        )
+        self.selected_linked_path = None
+        self.message = f"Moved {len(new_indices)} item(s) {'up' if direction < 0 else 'down'}."
+
     def _open_item_modal(self, index, path=None):
         self.selected_item_index = index
         self.selected_linked_path = path

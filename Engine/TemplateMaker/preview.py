@@ -40,7 +40,7 @@ class PreviewMixin:
         path = self._resolve_font_path((self.fonts.get(slot, {}) or {}).get("Name"))
         try:
             ptext.draw(str(text), midbottom=(rect.centerx, rect.bottom - 4), fontname=path,
-                       antialias=True, owidth=1.2, ocolor=(0, 0, 0),
+                       antialias=True, owidth=0.45, ocolor=(0, 0, 0),
                        color=self._font_color(slot), fontsize=22, surf=screen)
         except Exception:
             self._text(screen, str(text), (rect.x + 4, rect.bottom - 22), 18, self._font_color(slot))
@@ -97,7 +97,7 @@ class PreviewMixin:
                 next_items.append({
                     "Name": ch.get("name"),
                     "Label": ch.get("label"),
-                    "AlternativeLabel": ch.get("AlternativeLabel"),
+                    "AlternativeLabel": ch.get("alt_label"),
                     "Image": self._zoom_cell(ch.get("sheet"), ch["row"], ch["column"]),
                 })
             evo_args = dict(next_items=next_items, label=item.get("Label"),
@@ -328,7 +328,7 @@ class PreviewMixin:
         try:
             temp = pygame.Surface((240, 120), pygame.SRCALPHA)
             text_surface, _ = ptext.draw(str(text), (0, 0), fontname=path,
-                                         antialias=True, owidth=1.2, ocolor=(0, 0, 0),
+                                         antialias=True, owidth=0.45, ocolor=(0, 0, 0),
                                          color=self._font_color("subMenuItemFont"), fontsize=22, surf=temp)
         except Exception:
             font = pygame.font.Font(None, 22)

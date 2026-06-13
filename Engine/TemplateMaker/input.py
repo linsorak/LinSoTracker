@@ -324,6 +324,13 @@ class InputMixin:
 
             # Items List tab rows (click select, double-click edit) - top-level + linked
             if self.left_tab == "items":
+              for key, rect in getattr(self, "items_list_buttons", {}).items():
+                if rect.collidepoint(mouse_position):
+                    if key == "item_order_up":
+                        self._move_selected_items_in_list(-1)
+                    elif key == "item_order_down":
+                        self._move_selected_items_in_list(1)
+                    return True
               for index, rect in self.items_list_rows.items():
                 if rect.collidepoint(mouse_position) and index < len(self.items_list_entries):
                     entry = self.items_list_entries[index]
@@ -768,6 +775,12 @@ class InputMixin:
                         if rect.collidepoint(mouse_position) and meta["t"] in ("block", "simple"):
                             self.hover_key = f"mapcheck_{meta['i']}"
                             break
+        if self.hover_key is None:
+            if self.left_tab == "items":
+                for key, rect in getattr(self, "items_list_buttons", {}).items():
+                    if rect.collidepoint(mouse_position):
+                        self.hover_key = key
+                        break
         if self.hover_key is None:
             if self.sheet_buttons.get("add") and self.sheet_buttons["add"].collidepoint(mouse_position):
                 self.hover_key = "sheet_add"
