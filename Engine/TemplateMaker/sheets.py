@@ -299,6 +299,52 @@ class SheetsMixin:
         self.placement_kind = kind
         self._place_item(mouse_position)
 
+    def _insert_item_kind_below(self, kind, target_index):
+        if kind not in self._available_item_kinds():
+            self.message = "Item-list containers cannot contain another item-list container."
+            return
+        if target_index is None or not (0 <= target_index < len(self.placed_items)):
+            self.message = "Select a top-level item first."
+            return
+
+        target = self.placed_items[target_index]
+        target_sheet = self._sheet_by_name(target.get("sheet"))
+        vertical_offset = target_sheet["cell_h"] if target_sheet else 32
+        if kind in self.SPRITE_OPTIONAL_KINDS and not self.selected_cell:
+            sheet_name, row, column = (None, 1, 1)
+            if kind == "TimerItem":
+                sheet = self._ensure_placeholder_sheet()
+                sheet_name = sheet["name"]
+        else:
+            sheet_name, row, column = self._default_sprite_reference()
+
+        item_number = len(self.placed_items) + 1
+        item = {
+            "id": item_number,
+            "name": f"{kind} {item_number}" if kind != "Item" else f"Item {item_number}",
+            "kind": kind,
+            "x": target.get("x", 0),
+            "y": target.get("y", 0) + vertical_offset,
+            "row": row,
+            "column": column,
+            "sheet": sheet_name,
+            "isActive": kind == "ImageItem",
+            "opacity": 0.5,
+            "hint": None,
+            "children": [],
+            "uid": self._new_uid(),
+        }
+        self._ensure_kind_defaults(item)
+        if self.snap_enabled or self.grid_shown:
+            item["x"], item["y"] = self._snap_xy(item, item["x"], item["y"])
+
+        insert_at = target_index + 1
+        self.placed_items.insert(insert_at, item)
+        self._set_single_item_selection(insert_at)
+        self.selected_cell = None
+        self.placement_kind = None
+        self.message = f"{kind} added below {target.get('name', 'item')}."
+
     def _remove_last_item(self):
         if self.placed_items:
             self.placed_items.pop()

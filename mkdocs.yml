@@ -1,0 +1,66 @@
+site_name: LinSoTracker Wiki
+site_description: Documentation for LinSoTracker — a customizable item/map tracker for randomizers
+site_author: LinSoRak
+site_url: https://linsorak.github.io/LinSoTracker/
+repo_url: https://github.com/linsorak/LinSoTracker
+repo_name: linsorak/LinSoTracker
+copyright: Copyright &copy; LinSoRak
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: amber
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: amber
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - pymdownx.emoji
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: installation.md
+      - Using the tracker: using-the-tracker.md
+  - Templates:
+      - Template format: template-format.md
+      - Template Maker: template-maker.md
+      - Map templates: map-templates.md
+      - Conditions & logic: conditions.md
+      - Export & share: export.md
+  - Help:
+      - FAQ: faq.md
+
+plugins:
+  - search

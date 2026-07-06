@@ -28,8 +28,6 @@ echo Installing/updating Nuitka build dependencies...
 if %ERRORLEVEL% NEQ 0 goto error
 "%PYTHON%" -m pip install --upgrade -r requirements.txt
 if %ERRORLEVEL% NEQ 0 goto error
-"%PYTHON%" -m pip install --upgrade --no-deps "pygame-menu==4.5.2"
-if %ERRORLEVEL% NEQ 0 goto error
 "%PYTHON%" -m pip install --upgrade --force-reinstall "https://github.com/Nuitka/Nuitka/archive/develop.zip"
 if %ERRORLEVEL% NEQ 0 goto error
 
@@ -41,9 +39,6 @@ if "%WINDOWS_VERSION%"=="" goto error
 "%PYTHON%" Tools\sync_version.py
 if %ERRORLEVEL% NEQ 0 goto error
 
-set "DEV_FILE_OPTION="
-if exist ".dev" set "DEV_FILE_OPTION=--include-data-file=.dev=.dev"
-
 echo Building %APP_NAME% onefile executable with Nuitka...
 "%PYTHON%" -m nuitka ^
     --mode=onefile ^
@@ -54,8 +49,6 @@ echo Building %APP_NAME% onefile executable with Nuitka...
     --output-dir="%OUT_DIR%" ^
     --output-filename="%APP_NAME%.exe" ^
     --include-package-data=pygame_gui ^
-    --include-package-data=pygame_menu ^
-    %DEV_FILE_OPTION% ^
     --product-name="%APP_NAME%" ^
     --file-description="%APP_NAME%" ^
     --product-version="%WINDOWS_VERSION%" ^
@@ -67,29 +60,27 @@ echo Copying external runtime files next to the executable...
 if exist "tracker.data" copy tracker.data "%OUT_DIR%\tracker.data" /Y
 if %ERRORLEVEL% GEQ 8 goto error
 
-if exist ".dev" copy .dev "%OUT_DIR%\.dev" /Y
-if %ERRORLEVEL% GEQ 8 goto error
-
 if exist "templates" robocopy "templates" "%OUT_DIR%\templates" /E /NFL /NDL /NJH /NJS /NC /NS /NP
 if %ERRORLEVEL% GEQ 8 goto error
 
-if exist "default_saves" robocopy "default_saves" "%OUT_DIR%\default_saves" /E /NFL /NDL /NJH /NJS /NC /NS /NP
-if %ERRORLEVEL% GEQ 8 goto error
-
-if exist "devtemplates" robocopy "devtemplates" "%OUT_DIR%\devtemplates" /E /NFL /NDL /NJH /NJS /NC /NS /NP
-if %ERRORLEVEL% GEQ 8 goto error
-
 set "PACKAGE_NAME=%APP_NAME%-%APP_VERSION%-win"
-set "PACKAGE_DIR=%DIST_DIR%\%PACKAGE_NAME%"
 set "PACKAGE_ZIP=%DIST_DIR%\%PACKAGE_NAME%.zip"
 
 echo Packaging %PACKAGE_NAME%...
-if exist "%PACKAGE_DIR%" rmdir /s /q "%PACKAGE_DIR%"
+if not exist "%OUT_DIR%\%APP_NAME%.exe" (
+    echo Missing packaged executable: %OUT_DIR%\%APP_NAME%.exe
+    goto error
+)
+if not exist "%OUT_DIR%\tracker.data" (
+    echo Missing packaged data file: %OUT_DIR%\tracker.data
+    goto error
+)
+if not exist "%OUT_DIR%\templates" (
+    echo Missing packaged templates directory: %OUT_DIR%\templates
+    goto error
+)
 if exist "%PACKAGE_ZIP%" del /q "%PACKAGE_ZIP%"
-mkdir "%PACKAGE_DIR%"
-robocopy "%OUT_DIR%" "%PACKAGE_DIR%" /E /NFL /NDL /NJH /NJS /NC /NS /NP
-if %ERRORLEVEL% GEQ 8 goto error
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Compress-Archive -Path '%PACKAGE_DIR%\*' -DestinationPath '%PACKAGE_ZIP%' -Force"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Compress-Archive -Path '%OUT_DIR%\LinSoTracker.exe','%OUT_DIR%\tracker.data','%OUT_DIR%\templates' -DestinationPath '%PACKAGE_ZIP%' -Force"
 if %ERRORLEVEL% NEQ 0 goto error
 
 echo.

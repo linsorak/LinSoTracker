@@ -219,6 +219,8 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.items_list_rect = pygame.Rect(0, 0, 1, 1)
         self.context_menu_open = False
         self.context_add_open = False
+        self.context_add_mode = None
+        self.context_menu_from_list = False
         self.context_menu_index = None
         self.context_menu_path = None
         self.context_menu_pos = (0, 0)

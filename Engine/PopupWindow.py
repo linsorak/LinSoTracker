@@ -41,6 +41,7 @@ class PopupWindow:
         self.right_arrow_positions = None
 
         self.background_image = None
+        self.overlay_items = []
 
     def set_background_image_path(self, background_image_path):
         self.background_image_path = background_image_path
@@ -122,6 +123,9 @@ class PopupWindow:
         else:
             self.surface_subtitle, self.position_subtitle = (None, None)
 
+        for item in self.overlay_items:
+            item.update(self)
+
         try:
             new_list = [check for check in self.list_items.get_checks() if not check.hide]
             get_check = new_list
@@ -129,9 +133,17 @@ class PopupWindow:
         except AttributeError:
             get_check = self.list_items
 
+        if not get_check:
+            self.check_per_page = 1
+            self.check_page_max = 1
+            self.current_check_page = 1
+            self.surface_pages_information = None
+            self.position_pages_information = None
+            return
+
         first_check = get_check[0].get_surface_label()
-        self.check_per_page = int(self.box_rect.h / first_check.get_rect().h)
-        self.check_page_max = ceil(len(get_check) / self.check_per_page)
+        self.check_per_page = max(1, int(self.box_rect.h / first_check.get_rect().h))
+        self.check_page_max = max(1, ceil(len(get_check) / self.check_per_page))
 
         # self.current_check_page = 1
         index_start = 1 * ((self.current_check_page - 1) * self.check_per_page)
@@ -201,6 +213,9 @@ class PopupWindow:
             screen.blit(self.surface_subtitle, (self.position_subtitle[0] * self.tracker.core_service.zoom,
                                                 self.position_subtitle[1] * self.tracker.core_service.zoom))
 
+        for item in self.overlay_items:
+            item.draw(screen)
+
         # pygame.draw.rect(screen, (255, 255, 255), self.box_rect)
         try:
             for check in self.list_items.get_checks():
@@ -213,9 +228,10 @@ class PopupWindow:
 
         x_left, y_left, x_right, y_right = self.get_arrows_positions()
 
-        screen.blit(self.left_arrow, (x_left, y_left))
-        screen.blit(self.right_arrow, (x_right, y_right))
-        screen.blit(self.surface_pages_information, self.position_pages_information)
+        if self.surface_pages_information:
+            screen.blit(self.left_arrow, (x_left, y_left))
+            screen.blit(self.right_arrow, (x_right, y_right))
+            screen.blit(self.surface_pages_information, self.position_pages_information)
 
     def is_open(self):
         return self.open
@@ -262,6 +278,12 @@ class PopupWindow:
                     self.update()
             # self.right_arrow_click()
 
+        for item in self.overlay_items:
+            if item.click(mouse_position, button or 1):
+                self.update()
+                click_found = True
+                break
+
         x_left, y_left, x_right, y_right = self.get_arrows_positions()
 
         if self.tracker.core_service.is_on_element(mouse_positions=mouse_position,
@@ -294,6 +316,9 @@ class PopupWindow:
 
     def set_list_items(self, list_items):
         self.list_items = list_items
+
+    def set_overlay_items(self, overlay_items):
+        self.overlay_items = overlay_items or []
 
     def set_arrows_positions(self, left, right):
         self.left_arrow_positions = ((left[0] + self.index_positions[0]) * self.tracker.core_service.zoom,

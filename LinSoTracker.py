@@ -116,6 +116,7 @@ def main():
         loop = True
         mouse_position = (0, 0)
         CLICK_THRESHOLD = 150
+        TEMPLATE_MAKER_CLICK_THRESHOLD = 35
         is_mouse_down = False
         start_time = 0
         button_event = None
@@ -184,7 +185,12 @@ def main():
 
             if is_mouse_down and button_event == 1:
                 current_time = pygame.time.get_ticks()
-                if current_time - start_time >= CLICK_THRESHOLD:
+                click_threshold = (
+                    TEMPLATE_MAKER_CLICK_THRESHOLD
+                    if getattr(main_menu, "template_maker", None) is not None
+                    else CLICK_THRESHOLD
+                )
+                if current_time - start_time >= click_threshold:
                     main_menu.click_down(mouse_position, button_event)
                     is_mouse_down = False
                     start_time = 0

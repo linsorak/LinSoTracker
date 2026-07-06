@@ -182,8 +182,6 @@ else
     log "requirements.txt not found, skipping"
 fi
 
-python -m pip install --no-deps pygame-menu==4.5.2
-
 log "Installing Nuitka from develop branch (same as Windows build)"
 python -m pip install --upgrade --force-reinstall "https://github.com/Nuitka/Nuitka/archive/develop.zip"
 
@@ -219,7 +217,6 @@ python -m nuitka \
     --assume-yes-for-downloads \
     --remove-output \
     --enable-plugin=tk-inter \
-    --include-package-data=pygame_menu \
     --include-package-data=pygame_gui \
     --output-dir="$BUILD_DIR" \
     --product-name="$APP_NAME" \

@@ -96,6 +96,8 @@ class InputMixin:
                             self._toggle_check_kind()
                         elif key == "add_sub":
                             self._add_block_check()
+                        elif key == "add_popup_item":
+                            self._add_popup_item()
                         elif key == "close":
                             self._close_check_modal()
                         elif key == "delete":
@@ -109,6 +111,13 @@ class InputMixin:
                             self._delete_block_check(si)
                         else:
                             self._edit_block_check_field(si, part)
+                        return True
+                for (item_index, part), r in getattr(self, "popup_item_rows", {}).items():
+                    if r.collidepoint(mouse_position):
+                        if part == "del":
+                            self._delete_popup_item(item_index)
+                        else:
+                            self._edit_popup_item_field(item_index, part)
                         return True
             return True
 
@@ -172,6 +181,10 @@ class InputMixin:
                             self._context_delete_target()
                             self.context_menu_open = False
                         elif key == "ctx_add":
+                            self.context_add_mode = "canvas"
+                            self.context_add_open = not self.context_add_open
+                        elif key == "ctx_add_below":
+                            self.context_add_mode = "below"
                             self.context_add_open = not self.context_add_open
                         elif key == "ctx_reset_view":
                             self.canvas_zoom = 1.0
@@ -180,12 +193,18 @@ class InputMixin:
                             self.context_add_open = False
                             self.message = "Canvas view reset."
                         elif key.startswith("ctxkind_"):
-                            self._add_item_kind_at(key[len("ctxkind_"):], self.context_menu_pos)
+                            kind = key[len("ctxkind_"):]
+                            if self.context_add_mode == "below":
+                                self._insert_item_kind_below(kind, self.context_menu_index)
+                            else:
+                                self._add_item_kind_at(kind, self.context_menu_pos)
                             self.context_menu_open = False
                             self.context_add_open = False
+                            self.context_add_mode = None
                         return True
             self.context_menu_open = False
             self.context_add_open = False
+            self.context_add_mode = None
             return True
         canvas_menu_hit = self.last_bg_rect.collidepoint(mouse_position)
         if self.canvas_context == "main" and self.canvas_view_rect.collidepoint(mouse_position):
@@ -205,6 +224,7 @@ class InputMixin:
                 self.context_menu_index = idx
                 self.context_menu_path = (idx,) if idx is not None else None
             self.context_menu_pos = mouse_position
+            self.context_menu_from_list = False
             self.context_menu_open = True
             self.context_add_open = False
             return True
@@ -215,7 +235,10 @@ class InputMixin:
                     entry = self.items_list_entries[index]
                     self.context_menu_path = entry["path"]
                     self.context_menu_index = entry["path"][0] if entry["depth"] == 0 else None
+                    if entry["depth"] == 0:
+                        self._set_single_item_selection(entry["path"][0])
                     self.context_menu_pos = mouse_position
+                    self.context_menu_from_list = True
                     self.context_menu_open = True
                     self.context_add_open = False
                     return True
@@ -772,7 +795,7 @@ class InputMixin:
                         break
                 else:
                     for rect, meta in self.map_check_rows:
-                        if rect.collidepoint(mouse_position) and meta["t"] in ("block", "simple"):
+                        if rect.collidepoint(mouse_position) and meta["t"] in ("block", "popup", "simple"):
                             self.hover_key = f"mapcheck_{meta['i']}"
                             break
         if self.hover_key is None:

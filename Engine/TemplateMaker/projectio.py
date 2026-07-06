@@ -622,6 +622,9 @@ class ProjectIOMixin:
                 except Exception:
                     pass
             d = inner.get("Datas", {})
+            for check in inner.get("ChecksList", []):
+                if check.get("Kind") == "MapPopup":
+                    check.pop("Checks", None)
             m = {"name": d.get("Name", jf), "json_file": jf, "data": inner, "assets": {}}
             for key in ("Background", "SubMenuBackground"):
                 self._load_map_asset(m, key, d.get(key), folder)
@@ -781,15 +784,54 @@ class ProjectIOMixin:
         # RulesOptions backgrounds, map_list.png, etc) that we do not regenerate.
         self._copy_remaining_map_files(template_dir)
         for m in self.maps:
+            self._save_map_popup_assets(m, template_dir)
+            map_data = copy.deepcopy(m["data"])
+            for check in map_data.get("ChecksList", []):
+                if check.get("Kind") == "MapPopup":
+                    check.pop("Checks", None)
+            self._strip_private_editor_fields(map_data)
             # write the map json
             with open(os.path.join(template_dir, m["json_file"]), "w", encoding="utf-8") as f:
-                json.dump([m["data"]], f, indent=2)
+                json.dump([map_data], f, indent=2)
             data = m["data"]["Datas"]
             self._save_one_map_asset(m, "Background", data, template_dir, fallback="bg")
             self._save_one_map_asset(m, "SubMenuBackground", data, template_dir, fallback="submenu")
             self._save_one_map_asset(m, "LeftArrow", data, template_dir, fallback="left")
             self._save_one_map_asset(m, "RightArrow", data, template_dir, fallback="right")
         self._save_extra_section_assets(template_dir)
+
+    def _strip_private_editor_fields(self, node):
+        if isinstance(node, dict):
+            for key in list(node.keys()):
+                if key.startswith("_"):
+                    node.pop(key, None)
+                else:
+                    self._strip_private_editor_fields(node[key])
+        elif isinstance(node, list):
+            for item in node:
+                self._strip_private_editor_fields(item)
+
+    def _save_map_popup_assets(self, m, template_dir):
+        for check in m["data"].get("ChecksList", []):
+            assets = check.get("_popup_assets") or {}
+            for asset in assets.values():
+                filename = asset.get("file") or check.get("SubMenuBackground")
+                if not filename:
+                    continue
+                dest = os.path.join(template_dir, filename)
+                surface = asset.get("surface")
+                if surface is not None:
+                    try:
+                        pygame.image.save(surface, dest)
+                        continue
+                    except Exception:
+                        pass
+                path = asset.get("path")
+                if path and os.path.isfile(path):
+                    try:
+                        shutil.copyfile(path, dest)
+                    except Exception:
+                        pass
 
     def _save_extra_section_assets(self, template_dir):
         """Write/placeholder every image referenced by section-5 extras (maps-list

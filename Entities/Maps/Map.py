@@ -4,6 +4,7 @@ import pygame
 from Engine.PopupWindow import PopupWindow
 from Entities.Maps.BlockChecks import BlockChecks
 from Entities.Maps.CheckListItem import CheckListItem
+from Entities.Maps.MapPopup import MapPopup
 from Entities.Maps.SimpleCheck import SimpleCheck, ConditionsType
 
 
@@ -38,13 +39,24 @@ class Map:
         checks_list_data = self.map_datas[0]["ChecksList"]
         for check in checks_list_data:
             kind = check.get("Kind")
-            if kind == "Block":
-                block = BlockChecks(check["Id"], check["Name"], check["Positions"], self, zone=check.get("Zone"))
-                for check_item in check.get("Checks", []):
-                    temp_check = CheckListItem(check_item["Id"], check_item["Name"], check["Positions"],
-                                               check_item["Conditions"], self.tracker, group=check_item.get("Group", None))
-                    block.add_check(temp_check)
-                    self._register_grouped_check(temp_check)
+            if kind in ("Block", "MapPopup"):
+                if kind == "MapPopup":
+                    block = MapPopup(
+                        check["Id"], check["Name"], check["Positions"], self,
+                        popup_items=check.get("Items", []),
+                        popup_background=check.get("SubMenuBackground") or check.get("Background"),
+                        zone=check.get("Zone"),
+                        visible_condition=check.get("VisibleCondition", True)
+                    )
+                else:
+                    block = BlockChecks(check["Id"], check["Name"], check["Positions"], self, zone=check.get("Zone"))
+                if kind == "Block":
+                    for check_item in check.get("Checks", []):
+                        temp_check = CheckListItem(check_item["Id"], check_item["Name"], check["Positions"],
+                                                   check_item["Conditions"], self.tracker,
+                                                   group=check_item.get("Group", None))
+                        block.add_check(temp_check)
+                        self._register_grouped_check(temp_check)
                 self.checks_list.append(block)
                 self.block_checks.append(block)
             elif kind == "SimpleCheck":
@@ -84,7 +96,8 @@ class Map:
                 box_rect_data["h"] * zoom
             )
 
-            self.check_window.set_background_image_path(self.checks_list_background_filename)
+            popup_background = getattr(self.current_block_checks, "popup_background", None)
+            self.check_window.set_background_image_path(popup_background or self.checks_list_background_filename)
             self.check_window.set_arrow_left_image_path(datas["LeftArrow"]["Image"])
             self.check_window.set_arrow_right_image_path(datas["RightArrow"]["Image"])
             self.check_window.set_title(self.current_block_checks.name)
@@ -93,6 +106,7 @@ class Map:
             self.check_window.set_subtitle_font(core_service.get_font("mapFontSubTitle"))
             self.check_window.set_title_label_position_y(datas["LabelY"])
             self.check_window.set_list_items(self.current_block_checks)
+            self.check_window.set_overlay_items(getattr(self.current_block_checks, "popup_items", []))
             self.check_window.set_box_rect(box_checks)
             left_arrow = (datas["LeftArrow"]["Positions"]["x"], datas["LeftArrow"]["Positions"]["y"])
             right_arrow = (datas["RightArrow"]["Positions"]["x"], datas["RightArrow"]["Positions"]["y"])

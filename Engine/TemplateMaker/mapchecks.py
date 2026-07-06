@@ -1,4 +1,5 @@
 import copy
+from tkinter import filedialog
 
 import pygame
 
@@ -116,14 +117,24 @@ class MapChecksMixin:
         check = self._selected_check()
         if not check:
             return
-        if check.get("Kind") == "Block":
-            check["Kind"] = "SimpleCheck"
-            check.pop("Checks", None)
-            check.setdefault("Conditions", "True")
-        else:
+        kind = check.get("Kind")
+        if kind == "SimpleCheck":
             check["Kind"] = "Block"
             check.pop("Conditions", None)
             check.setdefault("Checks", [])
+        elif kind == "Block":
+            check["Kind"] = "MapPopup"
+            check.pop("Checks", None)
+            check.setdefault("Items", [])
+            check.setdefault("VisibleCondition", "True")
+            check.setdefault("SubMenuBackground", "")
+        else:
+            check["Kind"] = "SimpleCheck"
+            check.pop("Checks", None)
+            check.pop("Items", None)
+            check.pop("VisibleCondition", None)
+            check.pop("SubMenuBackground", None)
+            check.setdefault("Conditions", "True")
         self.message = f"Check kind: {check['Kind']}."
 
     def _edit_check_field(self, key):
@@ -136,7 +147,39 @@ class MapChecksMixin:
             self._open_cond_graph(check.get("Conditions", ""),
                                   title=f"Check: {check.get('Name', '')}", sink=sink)
             return
-        labels = {"Name": "Check name", "Zone": "Zone"}
+        if key == "VisibleCondition":
+            def sink(expr, c=check):
+                c["VisibleCondition"] = expr or "True"
+            self._open_cond_graph(check.get("VisibleCondition", "True"),
+                                  title=f"Visible: {check.get('Name', '')}", sink=sink)
+            return
+        if key == "SubMenuBackground":
+            path = filedialog.askopenfilename(
+                title="Select popup image",
+                filetypes=[("PNG image", "*.png"), ("All files", "*.*")]
+            )
+            if not path:
+                return
+            try:
+                surface = pygame.image.load(path).convert_alpha()
+            except Exception as exc:
+                self.message = f"Could not load image: {exc}"
+                return
+            filename = f"{self._slugify(check.get('Name', 'popup')) or 'popup'}_popup.png"
+            check["SubMenuBackground"] = filename
+            check.setdefault("_popup_assets", {})["SubMenuBackground"] = {
+                "path": path,
+                "surface": surface,
+                "file": filename,
+            }
+            self.message = "Popup image set."
+            return
+        labels = {
+            "Name": "Check name",
+            "Zone": "Zone",
+            "SubMenuBackground": "Popup image filename",
+            "VisibleCondition": "Visible condition",
+        }
 
         def cb(value):
             check[key] = value if value is not None else ""
@@ -181,3 +224,62 @@ class MapChecksMixin:
             self.message = f"Sub-check {key} updated."
         self._open_text_prompt(f"Sub-check {key}", str(subs[sub_index].get(key, "") or ""),
                                cb, label=f"{key}:")
+
+    # ---- popup items -----------------------------------------------------
+    def _add_popup_item(self):
+        check = self._selected_check()
+        if not check or check.get("Kind") != "MapPopup":
+            return
+        items = check.setdefault("Items", [])
+        items.append({"Item": "", "Positions": {"x": 32, "y": 32}, "Scale": 1.0})
+        self.message = "Popup item added."
+
+    def _delete_popup_item(self, item_index):
+        check = self._selected_check()
+        if not check or check.get("Kind") != "MapPopup":
+            return
+        items = check.get("Items", [])
+        if 0 <= item_index < len(items):
+            items.pop(item_index)
+            self.message = "Popup item removed."
+
+    def _edit_popup_item_field(self, item_index, key):
+        check = self._selected_check()
+        if not check or check.get("Kind") != "MapPopup":
+            return
+        items = check.get("Items", [])
+        if not (0 <= item_index < len(items)):
+            return
+        item = items[item_index]
+        if key == "Item":
+            initial = item.get("Item", "")
+            label = "Item name"
+            kind = "str"
+        elif key == "Positions":
+            pos = item.setdefault("Positions", {"x": 0, "y": 0})
+            initial = f"{pos.get('x', 0)},{pos.get('y', 0)}"
+            label = "Item position x,y"
+            kind = "str"
+        else:
+            initial = item.get("Scale", 1.0)
+            label = "Item scale"
+            kind = "float"
+
+        def cb(value):
+            if key == "Positions":
+                parts = [p.strip() for p in str(value).split(",")]
+                if len(parts) == 2 and all(p.lstrip("-").isdigit() for p in parts):
+                    item["Positions"] = {"x": int(parts[0]), "y": int(parts[1])}
+                else:
+                    self.message = "Enter x,y."
+                    return
+            elif key == "Scale":
+                try:
+                    item["Scale"] = max(0.1, float(value))
+                except (TypeError, ValueError):
+                    self.message = "Enter a valid scale."
+                    return
+            else:
+                item["Item"] = value or ""
+            self.message = f"Popup item {key} updated."
+        self._open_text_prompt(label, initial, cb, kind=kind, label=f"{label}:")
