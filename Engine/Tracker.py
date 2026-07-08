@@ -112,8 +112,6 @@ class Tracker:
         self._dim_overlay_size = None
         self._editable_boxes_cache = []
         self._pending_timer_data = None
-        self._last_value_edit_click_item = None
-        self._last_value_edit_click_time = 0
         self.value_edit_modal = None
 
         self._report_loading(0.05, "Preparing template")
@@ -804,10 +802,6 @@ class Tracker:
         for item in item_list:
             if item.check_click(mouse_position) and self.is_moving is None and item.show_item and not isinstance(item,
                                                                                                                  ImageItem):
-                if button == 1 and self._is_value_edit_double_click(item):
-                    self._open_value_edit_modal(item)
-                    return True
-
                 before_states = self._snapshot_item_states()
                 if button == 1:
                     item.left_click()
@@ -838,24 +832,7 @@ class Tracker:
                 return True
         return False
 
-    def _is_value_edit_double_click(self, item):
-        if not isinstance(item, (CountItem, AlternateCountItem)):
-            self._last_value_edit_click_item = None
-            self._last_value_edit_click_time = 0
-            return False
-
-        now = pygame.time.get_ticks()
-        is_double_click = (
-            self._last_value_edit_click_item is item and
-            now - self._last_value_edit_click_time <= 350
-        )
-        self._last_value_edit_click_item = item
-        self._last_value_edit_click_time = now
-        return is_double_click
-
     def _open_value_edit_modal(self, item):
-        self._last_value_edit_click_item = None
-        self._last_value_edit_click_time = 0
         fields = []
 
         if isinstance(item, AlternateCountItem):
@@ -885,6 +862,45 @@ class Tracker:
             "field_rects": [],
             "error": "",
         }
+
+    def _iter_value_edit_shortcut_items(self):
+        if self.maps_list_window.is_open() or any(r["PopupWindow"].is_open() for r in self.rules_windows_data):
+            return []
+        if any(submenu.show for submenu in self.submenus):
+            return [item for submenu in self.submenus if submenu.show for item in submenu.items]
+        return self.items
+
+    def _find_value_edit_item_at(self, mouse_position):
+        for item in self._iter_value_edit_shortcut_items():
+            if (isinstance(item, (CountItem, AlternateCountItem)) and item.show_item and
+                    item.check_click(mouse_position)):
+                return item
+        return None
+
+    def _has_focused_editable_box(self):
+        for box in self._editable_boxes_cache:
+            if box.show_item and box.enable and box.focused:
+                return True
+        for submenu in self.submenus:
+            if not submenu.show:
+                continue
+            for item in submenu.items:
+                if isinstance(item, EditableBox) and item.show_item and item.enable and item.focused:
+                    return True
+        return False
+
+    def _handle_value_edit_shortcut(self, event):
+        if event.type != pygame.KEYDOWN or event.key != pygame.K_e:
+            return False
+        if event.mod & (pygame.KMOD_CTRL | pygame.KMOD_ALT | pygame.KMOD_META):
+            return False
+        if self.is_moving or self._has_focused_editable_box():
+            return False
+        item = self._find_value_edit_item_at(pygame.mouse.get_pos())
+        if not item:
+            return False
+        self._open_value_edit_modal(item)
+        return True
 
     def _close_value_edit_modal(self):
         self.value_edit_modal = None
@@ -1846,6 +1862,8 @@ class Tracker:
             return True
         if self.menu.is_seed_overlay_open():
             return False
+        if self._handle_value_edit_shortcut(events):
+            return True
         self.handle_event_boxes(self.items, events)
         if self.is_moving:
             self.is_moving.update()
