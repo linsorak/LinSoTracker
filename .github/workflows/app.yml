@@ -75,13 +75,32 @@ jobs:
         shell: bash
         run: |
           mkdir -p out
-          version="$(python Tools/sync_version.py --print-version 2>/dev/null || python3 Tools/sync_version.py --print-version)"
+          if command -v python >/dev/null 2>&1; then
+            version="$(python Tools/sync_version.py --print-version)"
+          else
+            version="$(python3 Tools/sync_version.py --print-version)"
+          fi
           [ -z "$version" ] && { echo "Could not read version"; exit 1; }
           patch_name="LinSoTracker-${{ matrix.os_token }}-${version}.zip"
-          zip="$(ls dist/*.zip 2>/dev/null | head -1)"
-          [ -z "$zip" ] && zip="$(ls ./*.zip 2>/dev/null | head -1)"
-          [ -z "$zip" ] && { echo "No zip produced by the build"; exit 1; }
-          cp "$zip" "out/${patch_name}"
+
+          case "${{ matrix.target }}" in
+            windows)
+              source_zip="LinSoTracker-win-x64.zip"
+              ;;
+            macos|linux)
+              source_zip="$(find dist -maxdepth 1 -type f -name '*.zip' -print -quit)"
+              ;;
+            *)
+              echo "Unsupported build target: ${{ matrix.target }}"
+              exit 1
+              ;;
+          esac
+
+          [ -n "$source_zip" ] && [ -f "$source_zip" ] || {
+            echo "No zip produced for ${{ matrix.target }}"
+            exit 1
+          }
+          cp "$source_zip" "out/${patch_name}"
           echo "Patch package: ${patch_name}"
           ls -l out
 

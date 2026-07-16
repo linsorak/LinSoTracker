@@ -85,7 +85,10 @@ install_python_pkg() {
     fi
 
     log "Installing Python ${PYTHON_VERSION}; macOS may ask for your password"
-    sudo installer -pkg "$PYTHON_PKG_PATH" -target /
+    # resolve_python is used in a command substitution. Keep installer's
+    # informational output out of stdout so that only the Python path is
+    # captured by PYTHON="$(resolve_python)".
+    sudo installer -pkg "$PYTHON_PKG_PATH" -target / >&2
 
     [[ -x "$PYTHON_BIN_DEFAULT" ]] || fail "Python installer finished but executable was not found: ${PYTHON_BIN_DEFAULT}"
 
