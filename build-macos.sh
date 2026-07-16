@@ -265,9 +265,9 @@ mkdir -p "$OUTPUT_PATH"
 cp -R "$APP_PATH" "$OUTPUT_PATH/"
 
 (
-    cd "$DIST_DIR"
-    rm -f "${PACKAGE_NAME}.zip"
-    zip -qr "${PACKAGE_NAME}.zip" "$PACKAGE_NAME"
+    cd "$OUTPUT_PATH"
+    rm -f "../${PACKAGE_NAME}.zip"
+    zip -qr "../${PACKAGE_NAME}.zip" "${APP_NAME}.app"
 )
 
 log "Done: ${DIST_DIR}/${PACKAGE_NAME}.zip"

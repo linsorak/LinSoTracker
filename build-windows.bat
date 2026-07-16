@@ -11,10 +11,11 @@ python Tools\sync_version.py
 pyinstaller --clean --onefile --version-file "properties.rc" --icon "icon.ico"  "LinSoTracker.py"
 
 robocopy "templates" "dist/templates" /E
-robocopy "devtemplates" "dist/devtemplates" /E
 copy tracker.data dist\tracker.data /Y
 
-ren dist LinSoTracker-Windows
-7z a -tzip LinSoTracker-win-x64.zip LinSoTracker-Windows
+del /q "LinSoTracker-win-x64.zip" 2>nul
+pushd "dist"
+7z a -tzip "..\LinSoTracker-win-x64.zip" "*"
+popd
 
 @REM call conda deactivate

@@ -243,14 +243,14 @@ log "Package content:"
 find "$OUTPUT_PATH" -maxdepth 2 -print >&2 || true
 
 (
-    cd "$DIST_DIR"
+    cd "$OUTPUT_PATH"
     if command -v zip >/dev/null 2>&1; then
-        rm -f "${PACKAGE_NAME}.zip"
-        zip -qr "${PACKAGE_NAME}.zip" "$PACKAGE_NAME"
+        rm -f "../${PACKAGE_NAME}.zip"
+        zip -qr "../${PACKAGE_NAME}.zip" .
         log "Done: ${DIST_DIR}/${PACKAGE_NAME}.zip"
     else
-        rm -f "${PACKAGE_NAME}.tar.gz"
-        tar -czf "${PACKAGE_NAME}.tar.gz" "$PACKAGE_NAME"
+        rm -f "../${PACKAGE_NAME}.tar.gz"
+        tar -czf "../${PACKAGE_NAME}.tar.gz" .
         log "Done: ${DIST_DIR}/${PACKAGE_NAME}.tar.gz"
     fi
 )
