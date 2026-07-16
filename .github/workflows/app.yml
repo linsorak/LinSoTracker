@@ -3,85 +3,110 @@ name: Build
 on:
   push:
     tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'v*'          # e.g. v2.5.0.2 -> build all 3 OS + publish a Release
+  workflow_dispatch:   # manual "Run workflow" button (build only, no Release)
+
+permissions:
+  contents: write      # needed to create the GitHub Release
 
 jobs:
-  createrelease:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
-    - name: Output Release URL File
-      run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
-    - name: Save Release URL File for publish
-      uses: actions/upload-artifact@v1
-      with:
-        name: release_url
-        path: release_url.txt
-
   build:
-    name: Build packages
-    needs: createrelease
+    name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            TARGET: macos
-            CMD_BUILD: >
-                ./build-macos.sh
-            OUT_FILE_NAME: LinSoTracker-macos-x64.zip
-            ASSET_MIME: application/zip
-          - os: windows-latest
-            TARGET: windows
-            CMD_BUILD: > 
-                ./build-windows.bat
-            OUT_FILE_NAME: LinSoTracker-win-x64.zip
-            ASSET_MIME: application/zip
+          - os: macos-latest      # Apple Silicon (arm64) — required by build-macos.sh
+            target: macos
+            os_token: macARM64    # detect_os() token used in the patch url
           - os: ubuntu-latest
-            TARGET: linux
-            CMD_BUILD: >
-                ./build-linux.sh
-            OUT_FILE_NAME: LinSoTracker-linux-x64.zip
-            ASSET_MIME: application/zip
+            target: linux
+            os_token: linux
+          - os: windows-latest
+            target: windows
+            os_token: win
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Build with pyinstaller for ${{matrix.TARGET}}
-      run: ${{matrix.CMD_BUILD}}
-    - name: Load Release URL File from release job
-      uses: actions/download-artifact@v1
-      with:
-        name: release_url
-    - name: Get Release File Name & Upload URL
-      id: get_release_info
-      shell: bash
-      run: |
-        value=`cat release_url/release_url.txt`
-        echo ::set-output name=upload_url::$value
-    - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.get_release_info.outputs.upload_url }}
-        asset_path: ./${{ matrix.OUT_FILE_NAME}}
-        asset_name: ${{ matrix.OUT_FILE_NAME}}
-        asset_content_type: ${{ matrix.ASSET_MIME}}
+      - uses: actions/checkout@v4
+
+      # Python 3.14 provided by the runner for Linux/Windows.
+      # macOS build-macos.sh installs its own official 3.14 pkg (ships tkinter/ssl),
+      # so we don't wire setup-python there.
+      - name: Set up Python 3.14.5
+        if: matrix.target != 'macos'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.5'   # build-linux.sh requires an exact match
+
+      # --- macOS: nuitka standalone .app bundle ---
+      - name: Build macOS
+        if: matrix.target == 'macos'
+        run: |
+          chmod +x build-macos.sh
+          ./build-macos.sh
+
+      # --- Linux: nuitka onefile. Pass the runner's Python so the script
+      #     skips its pyenv/3.14 lookup. ---
+      - name: Build Linux
+        if: matrix.target == 'linux'
+        env:
+          PYTHON_BIN: ${{ env.pythonLocation }}/bin/python
+        run: |
+          chmod +x build-linux.sh
+          ./build-linux.sh
+
+      # --- Windows: pyinstaller onefile. The .bat only runs pyinstaller,
+      #     so install deps + pyinstaller here first. ---
+      - name: Install Windows build deps
+        if: matrix.target == 'windows'
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+      - name: Build Windows
+        if: matrix.target == 'windows'
+        shell: cmd
+        run: build-windows.bat
+
+      # Rename the produced zip to the exact name the updater downloads:
+      #   update.json url_base -> LinSoTracker-<os_token>-<version>.zip
+      # (mac/linux drop a versioned zip in dist/, windows one at repo root).
+      - name: Collect package
+        shell: bash
+        run: |
+          mkdir -p out
+          version="$(python Tools/sync_version.py --print-version 2>/dev/null || python3 Tools/sync_version.py --print-version)"
+          [ -z "$version" ] && { echo "Could not read version"; exit 1; }
+          patch_name="LinSoTracker-${{ matrix.os_token }}-${version}.zip"
+          zip="$(ls dist/*.zip 2>/dev/null | head -1)"
+          [ -z "$zip" ] && zip="$(ls ./*.zip 2>/dev/null | head -1)"
+          [ -z "$zip" ] && { echo "No zip produced by the build"; exit 1; }
+          cp "$zip" "out/${patch_name}"
+          echo "Patch package: ${patch_name}"
+          ls -l out
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: out/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')   # only on tag pushes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: artifacts/**/*.zip
