@@ -100,27 +100,52 @@ class MapDataMixin:
     def _current_actions(self):
         rules = self.maps_extra.get("RulesOptions", [])
         if self.actions_editor_rule is not None and 0 <= self.actions_editor_rule < len(rules):
-            return rules[self.actions_editor_rule].setdefault("Actions", [])
+            rule = rules[self.actions_editor_rule]
+            if rule.get("Actions") is None:
+                rule["Actions"] = []
+            return rule.setdefault("Actions", [])
         return []
 
+    def _discard_empty_set_rule_actions(self):
+        """Remove obsolete no-op SetRule entries created by older Maker builds."""
+        removed = 0
+        for rule in self.maps_extra.get("RulesOptions", []):
+            actions = rule.get("Actions")
+            if not isinstance(actions, list):
+                continue
+            kept = []
+            for action in actions:
+                target = action.get("SetRule") if isinstance(action, dict) else None
+                if isinstance(target, dict) and not str(target.get("RuleName") or "").strip():
+                    removed += 1
+                    continue
+                kept.append(action)
+            if len(kept) != len(actions):
+                rule["Actions"] = kept or None
+        return removed
+
     def _add_action(self, atype):
-        acts = self._current_actions()
         if atype == "SetRule":
-            acts.append({"SetRule": {"Active": True, "RuleName": ""}})
-        elif atype == "ResetItem":
-            acts.append({"ResetItem": {"Item": ""}})
-        else:
-            acts.append({atype: {"Counter": 1, "Item": ""}})
-        self.message = f"{atype} added."
+            def cb(name):
+                if name:
+                    self._current_actions().append(
+                        {"SetRule": {"Active": True, "RuleName": name}})
+                    self.message = f"{atype} added."
+            self._open_name_picker("Pick a rule", self._all_rule_names(), cb)
+            return
+
+        def cb(name):
+            if not name:
+                return
+            data = {"Item": name}
+            if atype != "ResetItem":
+                data["Counter"] = 1
+            self._current_actions().append({atype: data})
+            self.message = f"{atype} added."
+        self._open_name_picker("Pick an item", self._all_item_names(), cb)
 
     def _all_item_names(self):
-        names, seen = [], set()
-        for it in self._iter_all_items(self.main_items):
-            n = it.get("name")
-            if n and n not in seen:
-                seen.add(n)
-                names.append(n)
-        return sorted(names)
+        return self._all_template_item_names()
 
     def _all_rule_names(self):
         return sorted({r.get("Name", "") for r in self.maps_extra.get("RulesOptions", []) if r.get("Name")})
@@ -269,16 +294,28 @@ class MapDataMixin:
             return r["HideChecks"]
         return []
 
-    def _all_check_names(self):
-        m = self._current_map()
-        names, seen = [], set()
-        if m:
-            for c in m["data"].get("ChecksList", []):
-                for nm in [c.get("Name")] + [s.get("Name") for s in c.get("Checks", [])]:
-                    if nm and nm not in seen:
-                        seen.add(nm)
-                        names.append(nm)
+    def _all_check_names(self, entry=None):
+        """Checks addressable by a HideChecks entry, across every map."""
+        names = set()
+        entry = entry or {}
+        kind = entry.get("Kind", "SimpleCheck")
+        block_name = entry.get("Name")
+        for map_model in self.maps:
+            for check in map_model["data"].get("ChecksList", []):
+                if kind == "Block":
+                    if check.get("Kind") == "Block" and (not block_name or check.get("Name") == block_name):
+                        names.update(sub.get("Name") for sub in check.get("Checks", []) if sub.get("Name"))
+                elif check.get("Kind") == "SimpleCheck" and check.get("Name"):
+                    names.add(check["Name"])
         return sorted(names)
+
+    def _all_block_names(self):
+        return sorted({
+            check.get("Name")
+            for map_model in self.maps
+            for check in map_model["data"].get("ChecksList", [])
+            if check.get("Kind") == "Block" and check.get("Name")
+        })
 
     def _add_hide_entry(self, kind):
         entry = {"Kind": kind, "Checks": []}
@@ -302,6 +339,7 @@ class MapDataMixin:
         else:
             e["Kind"] = "Block"
             e.setdefault("Name", "")
+        e["Checks"] = []
 
     def _edit_hide_blockname(self, index):
         hide = self._current_hide()
@@ -309,8 +347,12 @@ class MapDataMixin:
             return
 
         def cb(value):
-            hide[index]["Name"] = value or ""
-        self._open_text_prompt("Block name", str(hide[index].get("Name", "")), cb, label="Block name:")
+            entry = hide[index]
+            if entry.get("Name") != value:
+                entry["Checks"] = []
+            entry["Name"] = value or ""
+
+        self._open_name_picker("Pick a block", self._all_block_names(), cb)
 
     def _draw_hide_editor(self, screen):
         rules = self.maps_extra.get("RulesOptions", [])
@@ -325,6 +367,7 @@ class MapDataMixin:
         modal = pygame.Rect(sw // 2 - 360, sh // 2 - 270, 720, 540)
         self._draw_popup(screen, modal, radius=12)
         self.hide_editor_buttons = {}
+        self._scrollbars.pop("hide_editor", None)
         pad = 18
         x = modal.x + pad
         self._text(screen, f"Hidden checks - {rule.get('Name', '')[:30]}", (x, modal.y + 14), 22, self.COLORS["gold"])
@@ -345,10 +388,24 @@ class MapDataMixin:
         self.hide_editor_buttons["add_Block"] = bb
         self._draw_button(screen, bb, "+ Block", (95, 70, 135), hover=(self.hover_modal_key == "add_Block"))
 
-        y = modal.y + 100
-        for i, e in enumerate(self._current_hide()):
+        entries = self._current_hide()
+        view = pygame.Rect(
+            x, modal.y + 100, modal.w - pad * 2,
+            modal.bottom - (modal.y + 100) - 14,
+        )
+        row_h = 56
+        content_h = len(entries) * row_h
+        self.hide_editor_max_scroll = max(0, content_h - view.h)
+        self.hide_editor_scroll = max(
+            0, min(self.hide_editor_scroll, self.hide_editor_max_scroll))
+        previous_clip = screen.get_clip()
+        screen.set_clip(view)
+        for i, e in enumerate(entries):
+            y = view.y + i * row_h - self.hide_editor_scroll
+            if y + 50 <= view.y or y >= view.bottom:
+                continue
             is_block = e.get("Kind") == "Block"
-            card = pygame.Rect(x, y, modal.w - pad * 2, 50)
+            card = pygame.Rect(x, y, view.w - 10, 50)
             self._draw_card(screen, card, self.COLORS["panel_alt"], border_color=(56, 62, 76), radius=6)
             kb = pygame.Rect(card.x + 8, card.y + 8, 96, 22)
             self.hide_editor_buttons[f"kind_{i}"] = kb
@@ -368,7 +425,11 @@ class MapDataMixin:
             pygame.draw.rect(screen, self.COLORS["red"], db)
             self._text(screen, "x", (db.x + 8, db.y + 4), 14, self.COLORS["line_light"])
             self._text(screen, ", ".join(e.get("Checks") or [])[:80], (card.x + 8, card.y + 32), 11, self.COLORS["muted"])
-            y += 56
+        screen.set_clip(previous_clip)
+        track = pygame.Rect(view.right - 5, view.y, 5, view.h)
+        self._register_scrollbar(
+            screen, "hide_editor", track, self.hide_editor_scroll,
+            self.hide_editor_max_scroll, content_h, view.h)
 
     def _draw_hide_picker(self, screen, modal, x, pad):
         entry = self._current_hide()[self.hide_editor_entry]
@@ -379,7 +440,7 @@ class MapDataMixin:
         self._draw_button(screen, back, "Done", (36, 124, 87), hover=(self.hover_modal_key == "pick_back"))
         area = pygame.Rect(x, modal.y + 92, modal.w - pad * 2, modal.bottom - (modal.y + 92) - 14)
         self._draw_card(screen, area, (10, 12, 18), border_color=(56, 62, 76), radius=8)
-        names = self._all_check_names()
+        names = self._all_check_names(entry)
         view = area.inflate(-8, -8)
         row_h = 26
         content_h = len(names) * row_h
@@ -390,7 +451,7 @@ class MapDataMixin:
         screen.set_clip(view)
         for i, nm in enumerate(names):
             ry = view.y + i * row_h - self.hide_editor_scroll
-            if ry + row_h < view.y or ry > view.bottom:
+            if ry + row_h <= view.y or ry >= view.bottom:
                 continue
             row = pygame.Rect(view.x, ry, view.w, row_h - 2)
             self.hide_editor_buttons[f"pickname_{i}"] = row
@@ -408,12 +469,14 @@ class MapDataMixin:
 
     def _handle_hide_editor_click(self, mouse_position):
         if self.hide_editor_entry is not None:
-            names = self._all_check_names()
+            entry = self._current_hide()[self.hide_editor_entry]
+            names = self._all_check_names(entry)
             for key, rect in self.hide_editor_buttons.items():
                 if not rect.collidepoint(mouse_position):
                     continue
                 if key == "pick_back":
                     self.hide_editor_entry = None
+                    self.hide_editor_scroll = 0
                 elif key == "close":
                     self.hide_editor_open = False
                 elif key.startswith("pickname_"):
@@ -724,7 +787,8 @@ class MapDataMixin:
                         pygame.draw.line(screen, self.COLORS["green"], (chk.centerx - 1, chk.bottom - 5), (chk.right - 4, chk.y + 4), 3)
                     nrow = pygame.Rect(chk.right + 10, card.y + 6, card.w - 200, 24)
                     self.map_data_buttons[f"ro_name_{ri}"] = nrow
-                    self._text(screen, ro.get("Name", "")[:46], (nrow.x, nrow.y + 4), 16, self.COLORS["line_light"])
+                    rule_name = ro.get("Name") or "(unnamed rule)"
+                    self._text(screen, rule_name[:46], (nrow.x, nrow.y + 4), 16, self.COLORS["line_light"])
                     self._text(screen, "Active" if active else "Inactive at start",
                                (chk.right + 10, card.y + 32), 11, self.COLORS["muted"])
                     drow = pygame.Rect(card.right - 30, card.y + 6, 24, 24)

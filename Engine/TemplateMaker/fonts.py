@@ -69,17 +69,18 @@ class FontsMixin:
             # Color swatches for each color key the font actually defines
             colors = font.get("Colors", {}) or {"Normal": {"r": 255, "g": 255, "b": 255}}
             cx = size_rect.right + 12
-            sw_w = 48
+            color_gap = 4
+            available_w = max(24, row.right - 150 - cx)
+            sw_w = max(24, min(48, (
+                available_w - color_gap * max(0, len(colors) - 1)) // max(1, len(colors))))
             for ckey in colors:
-                if cx + sw_w > row.right - 150:
-                    break
-                self._text(screen, ckey[:8], (cx, row.y + 8), 11, self.COLORS["muted"])
+                self._text(screen, ckey[:6], (cx, row.y + 8), 10, self.COLORS["muted"])
                 sw = pygame.Rect(cx, row.y + 28, sw_w, 22)
                 self.fonts_buttons[f"{slot}|color|{ckey}"] = sw
                 col = colors.get(ckey, {"r": 255, "g": 255, "b": 255})
                 pygame.draw.rect(screen, (col.get("r", 255), col.get("g", 255), col.get("b", 255)), sw)
                 pygame.draw.rect(screen, self.COLORS["line_light"], sw, 1)
-                cx += sw_w + 8
+                cx += sw_w + color_gap
 
             preview_rect = pygame.Rect(row.right - 140, row.y + 6, 130, 42)
             pygame.draw.rect(screen, (8, 9, 13), preview_rect)

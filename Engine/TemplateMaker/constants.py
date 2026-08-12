@@ -117,7 +117,8 @@ class TemplateMakerConstants:
             {"key": "Background", "type": "image", "label": "Choice background", "default": None},
             {"key": "Dimensions", "type": "rect", "label": "Choice dimensions",
              "default": {"w": 268, "h": 122}, "keys": ["w", "h"]},
-            {"key": "BackgroundOffset", "type": "rect", "label": "Background offset",
+            {"key": "BackgroundOffset", "type": "rect",
+             "label": "Choices origin offset (popup stays centered)",
              "default": {"x": 0, "y": 0}, "keys": ["x", "y"], "min": {"x": None, "y": None}},
             {"key": "ShowNumbersOfItemsActive", "type": "bool", "label": "Show active count", "default": False},
             {"key": "ShowNumberOfCheckedItems", "type": "bool", "label": "Show checked count", "default": False},
@@ -160,7 +161,7 @@ class TemplateMakerConstants:
             {"key": "Style.HoveredTextColor", "type": "color", "label": "Hovered text", "default": {"r": 255, "g": 255, "b": 255}},
         ],
         "LabelItem": [
-            {"key": "LabelList", "type": "list", "label": "Labels", "default": [""]},
+            {"key": "LabelList", "type": "list_editor", "label": "Labels", "default": [""]},
             {"key": "OffsetLabel", "type": "int", "label": "Offset label", "default": 0, "omit_default": True},
         ],
         "EvolutionItem": [
@@ -214,7 +215,11 @@ class TemplateMakerConstants:
 
     MAP_FONT_DEFAULTS = {
         "mapFont": {"Name": "NotoSans-Bold.ttf", "Size": 20, "Colors": {
-            "Logic": {"r": 0, "g": 255, "b": 0}, "NotLogic": {"r": 255, "g": 0, "b": 0},
+            "Logic": {"r": 0, "g": 255, "b": 0},
+            "OutOfLogic": {"r": 255, "g": 215, "b": 0},
+            "Scoutable": {"r": 65, "g": 140, "b": 255},
+            "Uncertain": {"r": 180, "g": 80, "b": 255},
+            "NotLogic": {"r": 255, "g": 0, "b": 0},
             "Done": {"r": 128, "g": 128, "b": 128}, "Normal": {"r": 255, "g": 255, "b": 255},
             "Focused": {"r": 0, "g": 255, "b": 255}, "HaveLogic": {"r": 255, "g": 165, "b": 0}}},
         "mapFontTitle": {"Name": "NotoSans-Bold.ttf", "Size": 28, "Colors": {"Normal": {"r": 255, "g": 255, "b": 255}}},

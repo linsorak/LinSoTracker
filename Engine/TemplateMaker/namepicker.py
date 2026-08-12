@@ -5,7 +5,7 @@ class NamePickerMixin:
     """Reusable searchable name picker overlay. Open it with a list of names and
     a callback; the user filters by typing and clicks a row to choose."""
 
-    def _open_name_picker(self, title, names, callback):
+    def _open_name_picker(self, title, names, callback, on_cancel=None):
         self.name_picker_open = True
         self.name_picker_title = title
         self.name_picker_all = list(names)
@@ -13,8 +13,19 @@ class NamePickerMixin:
         self.name_picker_scroll = 0
         self.name_picker_max_scroll = 0
         self.name_picker_callback = callback
+        self.name_picker_cancel_callback = on_cancel
         self.name_picker_rows = {}
         self.name_picker_buttons = {}
+
+    def _close_name_picker(self, cancelled=False):
+        cancel_callback = (
+            self.name_picker_cancel_callback if cancelled else None
+        )
+        self.name_picker_open = False
+        self.name_picker_callback = None
+        self.name_picker_cancel_callback = None
+        if cancel_callback:
+            cancel_callback()
 
     def _np_filtered(self):
         q = self.name_picker_query.lower().strip()
@@ -74,14 +85,12 @@ class NamePickerMixin:
 
     def _handle_name_picker_click(self, mouse_position):
         if self.name_picker_buttons.get("close") and self.name_picker_buttons["close"].collidepoint(mouse_position):
-            self.name_picker_open = False
-            self.name_picker_callback = None
+            self._close_name_picker(cancelled=True)
             return True
         for i, (row, nm) in self.name_picker_rows.items():
             if row.collidepoint(mouse_position):
                 cb = self.name_picker_callback
-                self.name_picker_open = False
-                self.name_picker_callback = None
+                self._close_name_picker()
                 if cb:
                     cb(nm)
                 return True
@@ -89,8 +98,7 @@ class NamePickerMixin:
 
     def _name_picker_key(self, event):
         if event.key == pygame.K_ESCAPE:
-            self.name_picker_open = False
-            self.name_picker_callback = None
+            self._close_name_picker(cancelled=True)
         elif event.key == pygame.K_BACKSPACE:
             self.name_picker_query = self.name_picker_query[:-1]
             self.name_picker_scroll = 0
@@ -98,8 +106,7 @@ class NamePickerMixin:
             names = self._np_filtered()
             if len(names) == 1:
                 cb = self.name_picker_callback
-                self.name_picker_open = False
-                self.name_picker_callback = None
+                self._close_name_picker()
                 if cb:
                     cb(names[0])
         elif event.unicode and event.unicode.isprintable():

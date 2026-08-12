@@ -4,22 +4,35 @@ import os
 import platform
 import shlex
 import shutil
-import ssl
-import subprocess
 import sys
 import tempfile
-import time
 import urllib
 import webbrowser
 from contextlib import contextmanager
 from datetime import date
 from tkinter import messagebox
-from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import pygame
 
 from Tools import ptext
+
+
+FONT_COLOR_FALLBACKS = {
+    "Logic": {"r": 0, "g": 255, "b": 0},
+    "OutOfLogic": {"r": 255, "g": 215, "b": 0},
+    "Scoutable": {"r": 65, "g": 140, "b": 255},
+    "Uncertain": {"r": 180, "g": 80, "b": 255},
+    "NotLogic": {"r": 255, "g": 0, "b": 0},
+    "Done": {"r": 128, "g": 128, "b": 128},
+    "Normal": {"r": 255, "g": 255, "b": 255},
+    "Focused": {"r": 0, "g": 255, "b": 255},
+    "HaveLogic": {"r": 255, "g": 165, "b": 0},
+}
+
+UPDATE_CONFIGURATION_URL = "http://linsotracker.com/tracker/update.json"
+UPDATE_CACHE_FILENAME = "update-cache.json"
+UPDATE_JSON_MAX_BYTES = 5 * 1024 * 1024
 
 
 class Singleton(type):
@@ -39,7 +52,7 @@ class CoreService(metaclass=Singleton):
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.5.0.2"
+        self.version = "2.5.0.3"
         self.beta_version = "BETA" in self.version.upper()
         self.beta_lock_enabled = True
         self.beta_end_date = None
@@ -70,7 +83,6 @@ class CoreService(metaclass=Singleton):
 
         self.dev_version = os.path.isfile(os.path.join(self.app_path, '.dev'))
 
-        # if not self.dev_version:
         self.read_checker()
         self.print_beta_status()
         self.load_default_configuration()
@@ -244,64 +256,118 @@ class CoreService(metaclass=Singleton):
                     self.go_mode_glow_clockwise = True
 
     def read_checker(self):
-        url = "https://linsotracker.com/tracker/update.json"
+        """Load update and official-template metadata without launching an updater.
+
+        A valid remote response replaces the local cache. If the server or TLS
+        connection is temporarily unavailable, the last valid response remains
+        usable so official templates do not disappear from the menu.
+        """
         self.load_cached_beta_configuration()
+        cached_data = self.load_cached_update_configuration()
+        data_json = None
+
         try:
-            response = self.safe_urlopen(url, timeout=15)
-            data_json = json.loads(response.read())
-            self.read_beta_configuration(data_json)
-
-            if "lastest_version" in data_json:
-                if self.get_version() != data_json["lastest_version"] \
-                        and (self.detect_os() == "win" or self.detect_os() == "linux") \
-                        and not self.dev_version \
-                        and not self.beta_version:
-                    self.new_version = data_json["lastest_version"]
-
-                    args_current_version = f'--current_version="{self.version}"'
-                    args_url_json = f'--url_json="{url}"'
-                    args_destination_path = f'--destination_path="{self.app_path}"'
-                    args_file_to_execute = f'--file_to_execute="{self.app_name}"'
-
-                    path_to_exe = os.path.join(self.app_path, "updater")
-                    if self.detect_os() == "win":
-                        args_file_to_execute = f'{args_file_to_execute}.exe'
-                        path_to_exe = f'{path_to_exe}.exe'
-
-                    arguments = [args_current_version,
-                                 args_url_json,
-                                 args_destination_path,
-                                 args_file_to_execute]
-
-                    if self.detect_os() == "win":
-                        cmd = f'start /B "" "{path_to_exe}" {" ".join(arguments)}'
-                        subprocess.Popen(cmd, shell=True)
-                    else:
-                        cmd = f'nohup {path_to_exe} {" ".join(arguments)} > /dev/null 2>&1 &'
-                        subprocess.Popen(cmd, shell=True)
-
-                    time.sleep(1)
-                    os._exit(0)
-
-            if "official_template" in data_json:
-                self.official_template = data_json["official_template"]
-
+            data_json = self.download_update_configuration()
+            self.save_update_configuration_cache(data_json)
         except Exception as exc:
-            print(f"Update checker failed: {type(exc).__name__}: {exc}")
+            print(f"Update metadata download failed, using cache: "
+                  f"{type(exc).__name__}: {exc}")
+            data_json = cached_data
+
+        if not isinstance(data_json, dict):
+            return
+
+        self.read_beta_configuration(data_json)
+
+        latest_version = data_json.get("lastest_version")
+        if isinstance(latest_version, str) and latest_version \
+                and latest_version != self.get_version() \
+                and self.detect_os() in ("win", "linux") \
+                and not self.dev_version \
+                and not self.beta_version:
+            self.new_version = latest_version
+
+        official_templates = self.validate_official_templates(
+            data_json.get("official_template"))
+        if official_templates is not None:
+            self.official_template = official_templates
+
+    def download_update_configuration(self):
+        request = Request(
+            UPDATE_CONFIGURATION_URL,
+            headers={
+                "Accept": "application/json",
+                "User-Agent": f"{self.app_name}/{self.version}",
+            },
+        )
+        with urlopen(request, timeout=15) as response:
+            raw_data = response.read(UPDATE_JSON_MAX_BYTES + 1)
+        if len(raw_data) > UPDATE_JSON_MAX_BYTES:
+            raise ValueError("Update metadata is too large")
+        data_json = json.loads(raw_data)
+        if not isinstance(data_json, dict):
+            raise ValueError("Update metadata must contain a JSON object")
+        if "official_template" in data_json:
+            official_templates = self.validate_official_templates(
+                data_json["official_template"])
+            if official_templates is None:
+                raise ValueError("official_template must contain a JSON list")
+            data_json["official_template"] = official_templates
+        return data_json
 
     @staticmethod
-    def safe_urlopen(url, timeout=15):
-        try:
-            import certifi
-            context = ssl.create_default_context(cafile=certifi.where())
-            return urlopen(url, timeout=timeout, context=context)
-        except Exception as https_error:
-            if url.startswith("https://"):
-                fallback_url = "http://" + url[len("https://"):]
-                print(f"HTTPS request failed, retrying without SSL: {type(https_error).__name__}: {https_error}")
-                return urlopen(fallback_url, timeout=timeout)
-            raise
+    def validate_official_templates(value):
+        if not isinstance(value, list):
+            return None
 
+        validated_templates = []
+        for template in value:
+            if not isinstance(template, dict):
+                continue
+            template_name = template.get("template_name")
+            display_name = template.get("name")
+            latest_version = template.get("lastest_version")
+            if not all(isinstance(field, str) and field
+                       for field in (template_name, display_name, latest_version)):
+                continue
+            if len(template_name) > 128 or len(display_name) > 256 \
+                    or len(latest_version) > 64:
+                continue
+            if not all(character.isalnum() or character in "._-"
+                       for character in template_name):
+                continue
+            validated_templates.append({
+                "template_name": template_name,
+                "name": display_name,
+                "lastest_version": latest_version,
+            })
+        return validated_templates
+
+    def get_update_cache_path(self):
+        return os.path.join(self.temp_path_fixe, UPDATE_CACHE_FILENAME)
+
+    def load_cached_update_configuration(self):
+        try:
+            with open(self.get_update_cache_path(), "r", encoding="utf-8") as file:
+                data_json = json.load(file)
+            return data_json if isinstance(data_json, dict) else None
+        except (OSError, json.JSONDecodeError):
+            return None
+
+    def save_update_configuration_cache(self, data_json):
+        cache_path = self.get_update_cache_path()
+        temporary_path = f"{cache_path}.tmp"
+        try:
+            with open(temporary_path, "w", encoding="utf-8") as file:
+                json.dump(data_json, file, indent=2)
+            os.replace(temporary_path, cache_path)
+        except OSError as exc:
+            try:
+                if os.path.exists(temporary_path):
+                    os.remove(temporary_path)
+            except OSError:
+                pass
+            print(f"Failed to save update metadata cache: {exc}")
     def read_beta_configuration(self, data_json):
         beta_data = data_json.get("beta", {})
         if isinstance(beta_data, dict):
@@ -385,8 +451,11 @@ class CoreService(metaclass=Singleton):
         self.background_color = (r, g, b)
 
     def get_color_from_font(self, font_datas, session):
-        return (
-            font_datas["Colors"][session]["r"], font_datas["Colors"][session]["g"], font_datas["Colors"][session]["b"])
+        colors = font_datas.get("Colors", {})
+        color = colors.get(session) or FONT_COLOR_FALLBACKS.get(session)
+        color = color or colors.get("Normal") or FONT_COLOR_FALLBACKS["Normal"]
+        return color["r"], color["g"], color["b"]
+
 
     def is_update(self):
         if self.get_new_version():
@@ -514,31 +583,6 @@ class CoreService(metaclass=Singleton):
     def launch_app(path):
         if os.path.exists(path):
             os.startfile(path)
-
-    def sync_tracker_data(self):
-        """Compare local tracker.data with the remote one and replace it if they
-        differ. Returns True if the file was updated."""
-        if self.dev_version:
-            return False
-        url = "http://linsotracker.com/tracker/tracker.data"
-        local_path = os.path.join(self.app_path, "tracker.data")
-        try:
-            response = urlopen(url, timeout=15)
-            remote_bytes = response.read()
-        except (URLError, Exception):
-            return False
-        if not remote_bytes:
-            return False
-        try:
-            if os.path.exists(local_path):
-                with open(local_path, "rb") as file:
-                    if file.read() == remote_bytes:
-                        return False
-            with open(local_path, "wb") as file:
-                file.write(remote_bytes)
-            return True
-        except Exception:
-            return False
 
     def download_and_replace(self, url, destination_path, destination_filename):
         download_path_location_file = os.path.join(self.temp_path, destination_filename)

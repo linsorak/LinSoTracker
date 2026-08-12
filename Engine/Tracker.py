@@ -25,6 +25,7 @@ from Entities.IncrementalItem import IncrementalItem
 from Entities.Item import Item
 from Entities.LabelItem import LabelItem
 from Entities.Maps.CheckListItem import CheckListItem
+from Entities.Maps.AttachedItems import attached_item_names
 from Entities.Maps.Map import Map
 from Entities.Maps.MapNameListItem import MapNameListItem
 from Entities.Maps.RulesOptionsListItem import RulesOptionsListItem
@@ -174,23 +175,31 @@ class Tracker:
         return self._font_cache[font_session]
 
     def check_is_default_save(self):
-        try:
-            save_directory = os.path.join(self.core_service.get_app_path(), "default_saves")
-            if os.path.exists(save_directory):
-                save_name = os.path.join(save_directory, self.template_name + ".trackersave")
-                save_tool = SaveLoadTool()
-                if os.path.exists(save_name):
-                    f = save_tool.loadFile(save_name)
-                    if f:
-                        if f[0]["template_name"] == self.template_name:
-                            self.load_data(f)
-                        else:
-                            messagebox.showerror('Error',
-                                                 'This save is for the template {}'.format(f[0]["template_name"]))
-        except:
-            messagebox.showerror('Save not compatible',
-                                 f"This default save isn't compatible with {f[0]['template_name']}'s template version")
+        save_directory = os.path.join(
+            self.core_service.get_app_path(), "default_saves")
+        save_name = os.path.join(
+            save_directory, self.template_name + ".trackersave")
+        if not os.path.isfile(save_name):
+            return False
 
+        try:
+            data = SaveLoadTool().loadFile(save_name)
+            if not isinstance(data, list) or not data or not isinstance(data[0], dict):
+                return False
+            saved_template = data[0].get("template_name")
+            if saved_template != self.template_name:
+                messagebox.showerror(
+                    "Error", f"This save is for the template {saved_template}")
+                return False
+            self.load_data(data)
+            return True
+        except Exception as exc:
+            # A default state may outlive checks, rules or items removed while a
+            # devtemplate is being edited. Ignore incompatible fragments so the
+            # template can still open and a fresh default state can be saved.
+            print(
+                f"Skipped incompatible default save for {self.template_name}: {exc}")
+            return False
     def extract_data(self):
         if self.is_dev_template:
             template_dir = os.path.join(self.core_service.get_app_path(), "devtemplates", self.template_name)
@@ -725,16 +734,23 @@ class Tracker:
                     self._register_check_dependencies(check)
 
     def _register_check_dependencies(self, check):
-        for item_name in self._collect_condition_item_dependencies(getattr(check, "conditions", None)):
+        condition_values = getattr(check, "condition_values", None)
+        if isinstance(condition_values, dict):
+            expressions = condition_values.values()
+        else:
+            expressions = (getattr(check, "conditions", None),)
+        dependencies = set()
+        for expression in expressions:
+            dependencies.update(self._collect_condition_item_dependencies(expression))
+        for item_name in dependencies:
             self._check_dependencies_by_item.setdefault(item_name, set()).add(check)
-
     def _collect_condition_item_dependencies(self, code, seen_actions=None):
         if not isinstance(code, str):
             return set()
 
         seen_actions = seen_actions or set()
         dependencies = set()
-        item_calls = ("have", "haveAlternateValue", "isChecked", "isVisible")
+        item_calls = ("have", "haveAlternateValue", "isChecked", "isVisible", "labelIs")
         item_pattern = r"(?:{})\(\s*['\"]([^'\"]+)['\"]".format("|".join(item_calls))
         dependencies.update(re.findall(item_pattern, code))
 
@@ -1023,10 +1039,18 @@ class Tracker:
             if getattr(check, "hide", False):
                 continue
 
+            entries = getattr(check, "dragged_items", [])
             item_names = {
-                getattr(check, "dragged_item_name", None),
-                getattr(check, "dragged_item_basename", None),
+                value
+                for entry in entries
+                for value in (entry.get("name"), entry.get("base_name"))
+                if value
             }
+            if not item_names:
+                item_names = {
+                    getattr(check, "dragged_item_name", None),
+                    getattr(check, "dragged_item_basename", None),
+                }
             for item_name in {name for name in item_names if name}:
                 check_names_by_item.setdefault(item_name, []).append(check.name)
         return check_names_by_item
@@ -1164,11 +1188,12 @@ class Tracker:
 
     def _update_target_image(self, target):
         next_index = getattr(self.is_moving, "next_item_index", None)
-        target.set_new_current_image(
+        result = target.set_new_current_image(
             name=self.is_moving.name,
             base_name=self.is_moving.base_name,
             index=next_index
         )
+        return result is not False
 
     def _drop_moving_item_on_editable_box(self, mouse_position):
         for box in self._editable_boxes_cache:
@@ -1214,16 +1239,14 @@ class Tracker:
         else:
             for item in self.selected_items_list:
                 if item.check_click(mouse_position) and isinstance(item, DraggableEvolutionItem):
-                    self._update_target_image(item)
-                    drop_found = True
+                    drop_found = self._update_target_image(item)
                     break
 
             else:
                 if self.current_map and not self.current_map.check_window.is_open():
                     check = self.current_map.find_check_at_position(mouse_position, include_blocks=False)
                     if check:
-                        self._update_target_image(check)
-                        drop_found = True
+                        drop_found = self._update_target_image(check)
 
                 elif self.current_map and self.current_map.check_window.is_open():
                     block = self.current_map.current_block_checks
@@ -1238,8 +1261,7 @@ class Tracker:
                                     element_positons=pos,
                                     element_dimension=dim
                             ):
-                                self._update_target_image(inner_check)
-                                drop_found = True
+                                drop_found = self._update_target_image(inner_check)
                                 break
 
         self.is_moving.is_dragging = False
@@ -1346,10 +1368,25 @@ class Tracker:
                     else:
                         self.surface_check_zone_hint, self.position_check_zone_hint = (None, None)
 
-                    if self.mouse_check_found.dragged_item_name:
+                    if attached_item_names(self.mouse_check_found):
+                        attached_images = [
+                            image for image in getattr(
+                                self.mouse_check_found, "dragged_icon_item_images", [])
+                            if isinstance(image, pygame.Surface)
+                        ]
+                        attached_strip = None
+                        if attached_images:
+                            attached_strip = pygame.Surface((
+                                sum(image.get_width() for image in attached_images),
+                                max(image.get_height() for image in attached_images),
+                            ), pygame.SRCALPHA)
+                            image_x = 0
+                            for image in attached_images:
+                                attached_strip.blit(image, (image_x, 0))
+                                image_x += image.get_width()
                         attached_image_data = {
-                            "image": self.mouse_check_found.dragged_icon_item_image,
-                            "name": self.mouse_check_found.dragged_item_name,
+                            "image": attached_strip,
+                            "names": attached_item_names(self.mouse_check_found),
                         }
                         self.surface_check_attached_item, self.position_check_attached_item = self.update_hint(
                             self.mouse_check_found, "mapFontCheckZoneHint", True, attached_item=attached_image_data
@@ -1394,7 +1431,10 @@ class Tracker:
             temp_surface = pygame.Surface((0, 0), pygame.SRCALPHA, 32).convert_alpha()
             attached_img = None
             if attached_item:
-                text = "Attached Item : "
+                names = attached_item.get("names") or [attached_item.get("name")]
+                names = [name for name in names if name]
+                label = "Attached Item" if len(names) == 1 else "Attached Items"
+                text = f"{label}: {', '.join(names)}"
                 attached_img = attached_item.get("image")
             elif self.core_service.dev_version and not zone:
                 text = item.name + " - [" + type(item).__name__ + "]"
@@ -1463,19 +1503,44 @@ class Tracker:
         return datas
 
 
+    @staticmethod
+    def find_item_for_saved_data(items, data):
+        """Match saved state exactly first, then by an unambiguous legacy name."""
+        name = data.get("name")
+        ident = data.get("id")
+        candidates = [
+            item for item in items
+            if getattr(item, "base_name", getattr(item, "name", None)) == name
+        ]
+        exact = next(
+            (item for item in candidates if getattr(item, "id", None) == ident),
+            None,
+        )
+        if exact is not None:
+            return exact
+        return candidates[0] if len(candidates) == 1 else None
+
     def load_data(self, datas):
-        if datas[0].get("template_name") != self.template_name:
-            return
-        item_lookup = {(item.base_name, item.id): item for item in self.items}
+        if (not isinstance(datas, list) or not datas
+                or not isinstance(datas[0], dict)
+                or datas[0].get("template_name") != self.template_name):
+            return False
+
         items_data = self.find_object_with_key(datas, "items")
-        if items_data and "items" in items_data:
-            for data in items_data["items"]:
-                item = item_lookup.get((data["name"], data["id"]))
+        if isinstance(items_data, dict):
+            for data in items_data.get("items", []):
+                if not isinstance(data, dict):
+                    continue
+                item = self.find_item_for_saved_data(self.items, data)
                 if item:
-                    item.set_data(data)
+                    try:
+                        item.set_data(data)
+                    except (KeyError, TypeError, ValueError, IndexError) as exc:
+                        print(f"Skipped saved item {data.get('name')}: {exc}")
             self.rebuild_item_indexes()
+
         timer_data = self.find_object_with_key(datas, "timer")
-        if timer_data:
+        if isinstance(timer_data, dict) and "timer" in timer_data:
             if getattr(self, "timer_window", None):
                 self.timer_window.set_data(timer_data["timer"])
                 self.menu.set_show_timer_check(self.timer_window.is_visible())
@@ -1483,30 +1548,48 @@ class Tracker:
                 self._pending_timer_data = timer_data["timer"]
 
         maps_data = self.find_object_with_key(datas, "maps")
-        if maps_data:
-            maps = maps_data.get("maps")
-            if maps:
-                for map_data in self.maps_list:
-                    map_name = map_data.get_name()
-                    map_data.load_data(next((m for m in maps if m["name"] == map_name), None))
-                    map_data.update()
+        if isinstance(maps_data, dict):
+            saved_maps = {
+                saved_map.get("name"): saved_map
+                for saved_map in maps_data.get("maps", []) or []
+                if isinstance(saved_map, dict) and saved_map.get("name")
+            }
+            for map_model in self.maps_list:
+                saved_map = saved_maps.get(map_model.get_name())
+                if saved_map:
+                    try:
+                        map_model.load_data(saved_map)
+                    except (KeyError, TypeError, ValueError, IndexError) as exc:
+                        print(f"Skipped saved map {map_model.get_name()}: {exc}")
+                map_model.update()
+
             for rules_window_data in self.rules_windows_data:
                 rules_key = f"rules_{rules_window_data['Name']}"
-                rules = self.find_object_with_key(datas, rules_key)
-                rules = rules[rules_key]
-                if rules:
-                    for rule_data in rules:
-                        rule = next(
-                            (r for r in rules_window_data["PopupWindow"].list_items if r.name == rule_data["name"]), None)
-                        if rule:
+                saved_section = self.find_object_with_key(datas, rules_key)
+                if not isinstance(saved_section, dict):
+                    continue
+                saved_rules = saved_section.get(rules_key) or []
+                current_rules = {
+                    rule.name: rule
+                    for rule in rules_window_data["PopupWindow"].list_items
+                }
+                for rule_data in saved_rules:
+                    if not isinstance(rule_data, dict):
+                        continue
+                    rule = current_rules.get(rule_data.get("name"))
+                    if rule:
+                        try:
                             rule.set_data(rule_data)
                             rule.update()
+                        except (KeyError, TypeError, ValueError, IndexError) as exc:
+                            print(
+                                f"Skipped saved rule {rule_data.get('name')}: {exc}")
+
             if self.current_map:
                 self.update()
                 self.update_cpt()
                 self.current_map.update()
-
-
+        return True
 
     def change_zoom(self, value, progress_callback=None):
         if progress_callback:
@@ -1943,6 +2026,15 @@ class Tracker:
         item = self.find_item(item_name)
         return item and item.hint_show
 
+    def labelIs(self, item_name, label):
+        item = self.find_item(item_name)
+        if not isinstance(item, LabelItem):
+            return False
+        try:
+            return str(item.label_list[item.label_count]) == str(label)
+        except (IndexError, TypeError):
+            return False
+
     def isChecked(self, item_name):
         item = self.find_item(item_name)
         return isinstance(item, CheckItem) and item.check
@@ -1962,6 +2054,7 @@ class Tracker:
             if isinstance(code_str, str):
                 code_str = code_str.strip()
                 code_str = code_str.replace("have(", "self.have(") \
+                    .replace("labelIs(", "self.labelIs(") \
                     .replace("do(", "self.do(") \
                     .replace("rules(", "self.rules(") \
                     .replace("haveAlternateValue(", "self.haveAlternateValue(") \

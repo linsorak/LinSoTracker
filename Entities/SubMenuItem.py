@@ -122,12 +122,10 @@ class SubMenuItem(Item):
         return data
 
     def set_data(self, datas):
-        # self.increments_position = datas["increments_position"]
         for item_datas in datas["submenu_items"]:
-            for item in self.items:
-                if item_datas["name"] == item.name and item_datas["id"] == item.id:
-                    item.set_data(item_datas)
-                    break
+            item = self.tracker.find_item_for_saved_data(self.items, item_datas)
+            if item:
+                item.set_data(item_datas)
 
         Item.set_data(self, datas)
 

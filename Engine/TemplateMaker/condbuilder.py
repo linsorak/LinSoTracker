@@ -4,8 +4,8 @@ import pygame
 
 
 HAS_INPUT = {"and", "or", "not", "output"}
-HAS_OUTPUT = {"and", "or", "not", "have", "do", "rules", "bool", "raw"}
-LEAF_FNS = ("have", "do", "rules")
+HAS_OUTPUT = {"and", "or", "not", "have", "labelIs", "do", "rules", "bool", "raw"}
+LEAF_FNS = ("have", "labelIs", "do", "rules")
 NODE_W = 180
 NODE_H = 58
 PORT_R = 9
@@ -112,6 +112,8 @@ class CondBuilderMixin:
             a0 = n.args[0]
             value = str(a0.value if isinstance(a0, ast.Constant) else "")
             node = {"type": n.func.id, "value": value}
+            if n.func.id == "labelIs" and len(n.args) > 1 and isinstance(n.args[1], ast.Constant):
+                node["label"] = str(n.args[1].value)
             if n.func.id == "have" and len(n.args) > 1 and isinstance(n.args[1], ast.Constant):
                 node["count"] = str(n.args[1].value)
             return node
@@ -125,12 +127,14 @@ class CondBuilderMixin:
         on their children. Returns (node_id, center_y). Columns are spaced wider
         than a node so nothing overlaps."""
         t = node["type"]
-        if t in ("have", "do", "rules", "bool", "raw"):
+        if t in ("have", "labelIs", "do", "rules", "bool", "raw"):
             cy = self._leaf_y + NODE_H / 2
             nid = self._cg_new(t, node.get("value", ""), 0, self._leaf_y)
             self._cg_by_id(nid)["_depth"] = depth
             if t == "have" and node.get("count"):
                 self._cg_by_id(nid)["count"] = node["count"]
+            if t == "labelIs":
+                self._cg_by_id(nid)["label"] = node.get("label", "")
             self._leaf_y += NODE_H + 22
             return nid, cy
         if t == "not":
@@ -167,11 +171,16 @@ class CondBuilderMixin:
         t = node["type"]
         if t == "have":
             count = node.get("count")
+            value = repr(str(node.get("value", "")))
             if count:
-                return f"have('{node.get('value', '')}', '{count}')"
-            return f"have('{node.get('value', '')}')"
+                return f"have({value}, {repr(str(count))})"
+            return f"have({value})"
+        if t == "labelIs":
+            item_name = repr(str(node.get("value", "")))
+            label = repr(str(node.get("label", "")))
+            return f"labelIs({item_name}, {label})"
         if t in ("do", "rules"):
-            return f"{t}('{node.get('value', '')}')"
+            return f"{t}({repr(str(node.get('value', '')))})"
         if t == "bool":
             return "True" if node.get("value") else "False"
         if t == "raw":
@@ -215,13 +224,19 @@ class CondBuilderMixin:
         self.message = f"Action '{self.cond_builder_name}' saved."
 
     def _cond_item_names(self):
-        names, seen = [], set()
-        for it in self._iter_all_items(self.main_items):
-            n = it.get("name")
-            if n and n not in seen:
-                seen.add(n)
-                names.append(n)
-        return sorted(names)
+        return self._all_template_item_names()
+    def _cond_label_items(self):
+        return sorted({
+            item.get("name")
+            for item in self._iter_all_items(self.main_items)
+            if item.get("kind") == "LabelItem" and item.get("name")
+        })
+
+    def _cond_label_values(self, item_name):
+        for item in self._iter_all_items(self.main_items):
+            if item.get("kind") == "LabelItem" and item.get("name") == item_name:
+                return [str(value) for value in (item.get("LabelList") or [])]
+        return []
 
     def _cond_action_names(self):
         return sorted(k for k in self.maps_extra.get("ActionsConditions", {}) if k != self.cond_builder_name)
@@ -274,16 +289,17 @@ class CondBuilderMixin:
         self._text(screen, title, (modal.x + pad, modal.y + 14), 24, self.COLORS["gold"])
         # live expression
         self._text(screen, (self._cond_expr() or "(empty)")[:120], (modal.x + pad, modal.y + 46), 16, self.COLORS["green"])
-        self._text(screen, "drag port->port to link  -  click a wire to cut  -  drag node to move",
-                   (modal.x + 360, modal.y + 20), 12, self.COLORS["muted"])
 
         # palette
         px = modal.x + pad
-        for key, lbl, col in (("pal_have", "+ item", (36, 124, 87)), ("pal_do", "+ cond", (40, 90, 150)),
+        for key, lbl, col in (("pal_have", "+ item", (36, 124, 87)),
+                              ("pal_label", "+ label", (30, 115, 125)),
+                              ("pal_do", "+ cond", (40, 90, 150)),
                               ("pal_rules", "+ rule", (150, 120, 40)),
                               ("pal_and", "+ AND", (95, 70, 135)), ("pal_or", "+ OR", (95, 70, 135)),
                               ("pal_not", "+ NOT", (150, 70, 90)),
-                              ("pal_true", "+ True", (60, 90, 90)), ("pal_false", "+ False", (60, 90, 90))):
+                              ("pal_true", "+ True", (60, 90, 90)), ("pal_false", "+ False", (60, 90, 90)),
+                              ("pal_raw", "+ raw", (80, 80, 80))):
             b = pygame.Rect(px, modal.y + 72, 108, 30)
             self.cond_builder_buttons[key] = b
             self._draw_button(screen, b, lbl, col, hover=(self.hover_modal_key == key))
@@ -300,6 +316,13 @@ class CondBuilderMixin:
         self.cond_builder_buttons["cond_cancel"] = cancel
         self._draw_button(screen, save, "Save", (36, 124, 87), hover=(self.hover_modal_key == "cond_save"))
         self._draw_button(screen, cancel, "Cancel", self.COLORS["red"], hover=(self.hover_modal_key == "cond_cancel"))
+        help_text = "drag port->port to link  -  click a wire to cut  -  drag node to move"
+        help_surface = self._render_ui_text(help_text, 12, self.COLORS["muted"])
+        help_position = (
+            modal.centerx - help_surface.get_width() // 2,
+            modal.bottom - 35,
+        )
+        screen.blit(help_surface, help_position)
 
     def _draw_graph(self, screen, canvas):
         pygame.draw.rect(screen, (10, 12, 18), canvas)
@@ -319,7 +342,8 @@ class CondBuilderMixin:
                 self._draw_wire(screen, self._out_port(canvas, src), self.cg_wire_end, self.COLORS["green"])
         # nodes
         colors = {"output": (60, 66, 82), "and": (95, 70, 135), "or": (95, 70, 135),
-                  "not": (150, 70, 90), "have": (28, 90, 55), "do": (28, 60, 110),
+                  "not": (150, 70, 90), "have": (28, 90, 55), "labelIs": (25, 90, 100),
+                  "do": (28, 60, 110),
                   "rules": (120, 95, 30), "bool": (60, 90, 90), "raw": (80, 80, 80)}
         z = self.cg_zoom
         pr = max(4, int(PORT_R * z))
@@ -332,6 +356,8 @@ class CondBuilderMixin:
                 val = str(node.get("value") or "(click to set)")
                 if node["type"] == "have" and node.get("count"):
                     val = f"{val} {node['count']}"
+                elif node["type"] == "labelIs":
+                    val = f"{val}: {node.get('label') or '(pick value)'}"
                 self._text(screen, val[:18], (r.x + int(12 * z), r.y + int(24 * z)), max(11, int(18 * z)), self.COLORS["line_light"])
                 if node["type"] == "have":
                     cb = pygame.Rect(r.right - int(34 * z), r.bottom - int(20 * z), int(30 * z), int(16 * z))
@@ -426,6 +452,12 @@ class CondBuilderMixin:
     def _cg_start_drag(self, mouse_position):
         if self.cond_builder_mode is not None:
             return False
+        # Node controls live inside the draggable body. Let the regular click
+        # handler consume them instead of starting a drag that suppresses the
+        # subsequent click.
+        for key, (rect, _node_id) in self.cond_builder_rows.items():
+            if key.startswith(("del_", "count_")) and rect.collidepoint(mouse_position):
+                return False
         screen = pygame.display.get_surface()
         _, canvas = self._cg_area(screen)
         src = self._cg_port_at(mouse_position, "out")
@@ -541,6 +573,9 @@ class CondBuilderMixin:
                 self.cond_builder_open = False
             elif key == "pal_have":
                 sx, sy = self._cg_spawn_xy(); self._cg_new("have", "", sx, sy); self._enter_value_pick_latest("have")
+            elif key == "pal_label":
+                sx, sy = self._cg_spawn_xy(); self._cg_new("labelIs", "", sx, sy)
+                self._open_label_picker_for(self.cg_nodes[-1]["id"], remove_on_cancel=True)
             elif key == "pal_do":
                 sx, sy = self._cg_spawn_xy(); self._cg_new("do", "", sx, sy); self._enter_value_pick_latest("do")
             elif key == "pal_rules":
@@ -555,6 +590,8 @@ class CondBuilderMixin:
                 sx, sy = self._cg_spawn_xy(); self._cg_new("bool", True, sx, sy)
             elif key == "pal_false":
                 sx, sy = self._cg_spawn_xy(); self._cg_new("bool", False, sx, sy)
+            elif key == "pal_raw":
+                sx, sy = self._cg_spawn_xy(); self._cg_new("raw", "", sx, sy)
             return True
         # delete + count buttons on nodes
         for key, (rect, nid) in self.cond_builder_rows.items():
@@ -576,13 +613,29 @@ class CondBuilderMixin:
                 self.cg_links.remove(link)
                 self.message = "Link removed."
                 return True
-        # click a have/do node body -> edit value
+        # Click a leaf node body to edit its value.
         nid = self._cg_node_body_at(mouse_position)
         if nid is not None:
             node = self._cg_by_id(nid)
-            if node and node["type"] in LEAF_FNS:
+            if node and node["type"] == "labelIs":
+                self._open_label_picker_for(nid)
+            elif node and node["type"] in LEAF_FNS:
                 self._open_value_picker_for(nid, node["type"])
+            elif node and node["type"] == "raw":
+                self._edit_raw_node(nid)
         return True
+
+    def _edit_raw_node(self, nid):
+        node = self._cg_by_id(nid)
+        if not node or node["type"] != "raw":
+            return
+
+        def cb(value):
+            node["value"] = value or ""
+            self.message = "Raw condition updated."
+
+        self._open_text_prompt("Raw condition", str(node.get("value") or ""), cb,
+                               label="Expression:")
 
     @staticmethod
     def _point_seg_dist(p, a, b):
@@ -613,7 +666,42 @@ class CondBuilderMixin:
             return self._cond_rule_names()
         return self._cond_action_names()
 
-    def _open_value_picker_for(self, nid, kind):
+    def _open_label_picker_for(self, nid, remove_on_cancel=False):
+        node = self._cg_by_id(nid)
+        if not node:
+            return
+
+        def remove_node():
+            if not remove_on_cancel:
+                return
+            self.cg_nodes = [item for item in self.cg_nodes if item["id"] != nid]
+            self.cg_links = [
+                link for link in self.cg_links
+                if link["src"] != nid and link["dst"] != nid
+            ]
+
+        def pick_item(item_name):
+            def pick_label(label):
+                current = self._cg_by_id(nid)
+                if current:
+                    current["value"] = item_name
+                    current["label"] = label
+
+            self._open_name_picker(
+                f"Pick the value for {item_name}",
+                self._cond_label_values(item_name),
+                pick_label,
+                on_cancel=remove_node if remove_on_cancel else None,
+            )
+
+        self._open_name_picker(
+            "Pick a LabelItem",
+            self._cond_label_items(),
+            pick_item,
+            on_cancel=remove_node if remove_on_cancel else None,
+        )
+
+    def _open_value_picker_for(self, nid, kind, remove_on_cancel=False):
         node = self._cg_by_id(nid)
         if not node:
             return
@@ -621,7 +709,23 @@ class CondBuilderMixin:
 
         def cb(name):
             node["value"] = name
-        self._open_name_picker(titles.get(kind, "Pick"), self._value_names_for(kind), cb)
+
+        def cancel():
+            if not remove_on_cancel:
+                return
+            self.cg_nodes = [item for item in self.cg_nodes
+                             if item["id"] != nid]
+            self.cg_links = [link for link in self.cg_links
+                             if link["src"] != nid and link["dst"] != nid]
+
+        self._open_name_picker(
+            titles.get(kind, "Pick"),
+            self._value_names_for(kind),
+            cb,
+            on_cancel=cancel if remove_on_cancel else None,
+        )
 
     def _enter_value_pick_latest(self, kind):
-        self._open_value_picker_for(self.cg_nodes[-1]["id"], kind)
+        self._open_value_picker_for(
+            self.cg_nodes[-1]["id"], kind, remove_on_cancel=True
+        )

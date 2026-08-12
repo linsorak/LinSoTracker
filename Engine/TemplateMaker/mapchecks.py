@@ -4,9 +4,23 @@ from tkinter import filedialog
 import pygame
 
 
+CHECK_CONDITION_FIELDS = (
+    "Conditions", "OutOfLogicConditions",
+    "ScoutableConditions", "UncertainConditions",
+)
+
+CHECK_CONDITION_LABELS = {
+    "Conditions": "Logic condition (green)",
+    "OutOfLogicConditions": "Out-of-logic condition (yellow)",
+    "ScoutableConditions": "Scoutable condition (blue)",
+    "UncertainConditions": "Uncertain condition (purple)",
+}
+
+
 class MapChecksMixin:
     """Editing the ChecksList of the selected map: add / move / delete / edit
     SimpleCheck and Block checks directly on the map canvas."""
+
 
     # ---- geometry --------------------------------------------------------
     def _map_pixel_from_screen(self, pos):
@@ -69,6 +83,7 @@ class MapChecksMixin:
             "Zone": "",
             "Positions": {"x": pixel[0], "y": pixel[1]},
             "Conditions": "True",
+            "ItemCount": 1,
         }
         checks.append(check)
         self.selected_check_index = len(checks) - 1
@@ -102,9 +117,23 @@ class MapChecksMixin:
             return
         self.selected_check_index = index
         self.check_modal_open = True
+        self.check_sub_scroll = 0
+        self.popup_item_scroll = 0
 
     def _close_check_modal(self):
         self.check_modal_open = False
+
+    def _scroll_check_modal(self, direction):
+        check = self._selected_check()
+        if not check:
+            return
+        delta = -1 if direction > 0 else 1
+        if check.get("Kind") == "Block":
+            maximum = max(0, len(check.get("Checks", [])) - 1)
+            self.check_sub_scroll = max(0, min(maximum, self.check_sub_scroll + delta))
+        elif check.get("Kind") == "MapPopup":
+            maximum = max(0, len(check.get("Items", [])) - 1)
+            self.popup_item_scroll = max(0, min(maximum, self.popup_item_scroll + delta))
 
     def _selected_check(self):
         checks = self._current_checks()
@@ -120,7 +149,9 @@ class MapChecksMixin:
         kind = check.get("Kind")
         if kind == "SimpleCheck":
             check["Kind"] = "Block"
-            check.pop("Conditions", None)
+            for field in CHECK_CONDITION_FIELDS:
+                check.pop(field, None)
+            check.pop("ItemCount", None)
             check.setdefault("Checks", [])
         elif kind == "Block":
             check["Kind"] = "MapPopup"
@@ -135,17 +166,26 @@ class MapChecksMixin:
             check.pop("VisibleCondition", None)
             check.pop("SubMenuBackground", None)
             check.setdefault("Conditions", "True")
+            check.setdefault("ItemCount", 1)
         self.message = f"Check kind: {check['Kind']}."
 
     def _edit_check_field(self, key):
         check = self._selected_check()
         if not check:
             return
-        if key == "Conditions":
-            def sink(expr, c=check):
-                c["Conditions"] = expr
-            self._open_cond_graph(check.get("Conditions", ""),
-                                  title=f"Check: {check.get('Name', '')}", sink=sink)
+        if key == "ItemCount":
+            self._open_item_count_prompt(check, "Check item count")
+            return
+        if key in CHECK_CONDITION_FIELDS:
+            def sink(expr, c=check, field=key):
+                if expr:
+                    c[field] = expr
+                else:
+                    c.pop(field, None)
+            self._open_cond_graph(
+                check.get(key, ""),
+                title=f"{CHECK_CONDITION_LABELS[key]}: {check.get('Name', '')}",
+                sink=sink)
             return
         if key == "VisibleCondition":
             def sink(expr, c=check):
@@ -177,6 +217,9 @@ class MapChecksMixin:
         labels = {
             "Name": "Check name",
             "Zone": "Zone",
+            "Group": "Linked check group",
+            "ItemCount": "Item count",
+            **CHECK_CONDITION_LABELS,
             "SubMenuBackground": "Popup image filename",
             "VisibleCondition": "Visible condition",
         }
@@ -187,14 +230,43 @@ class MapChecksMixin:
         self._open_text_prompt(labels.get(key, key), str(check.get(key, "") or ""),
                                cb, label=f"{labels.get(key, key)}:")
 
+    def _open_item_count_prompt(self, target, title):
+        def cb(value):
+            target["ItemCount"] = max(1, int(value))
+            self.message = "Item count updated."
+
+        self._open_text_prompt(title, target.get("ItemCount", 1), cb, kind="int",
+                               allow_empty=False, minvalue=1, label="Number of items:")
+
     # ---- block sub-checks ------------------------------------------------
     def _add_block_check(self):
         check = self._selected_check()
         if not check or check.get("Kind") != "Block":
             return
         subs = check.setdefault("Checks", [])
-        subs.append({"Id": self._next_check_id(subs), "Name": "New check", "Conditions": "True"})
+        subs.append({
+            "Id": self._next_check_id(subs),
+            "Name": "New check",
+            "Conditions": "True",
+            "ItemCount": 1,
+        })
         self.message = "Sub-check added."
+
+    def _move_block_check(self, sub_index, direction):
+        check = self._selected_check()
+        if not check or check.get("Kind") != "Block":
+            return
+        subs = check.get("Checks", [])
+        target_index = sub_index + direction
+        if not (0 <= sub_index < len(subs) and 0 <= target_index < len(subs)):
+            return
+        subs[sub_index], subs[target_index] = subs[target_index], subs[sub_index]
+        visible_rows = max(1, getattr(self, "check_sub_visible_rows", 1))
+        if target_index < self.check_sub_scroll:
+            self.check_sub_scroll = target_index
+        elif target_index >= self.check_sub_scroll + visible_rows:
+            self.check_sub_scroll = target_index - visible_rows + 1
+        self.message = f"Sub-check moved to position {target_index + 1}."
 
     def _delete_block_check(self, sub_index):
         check = self._selected_check()
@@ -212,11 +284,19 @@ class MapChecksMixin:
         subs = check.get("Checks", [])
         if not (0 <= sub_index < len(subs)):
             return
-        if key == "Conditions":
-            def sink(expr, s=subs[sub_index]):
-                s["Conditions"] = expr
-            self._open_cond_graph(subs[sub_index].get("Conditions", ""),
-                                  title=f"Sub-check: {subs[sub_index].get('Name', '')}", sink=sink)
+        if key == "ItemCount":
+            self._open_item_count_prompt(subs[sub_index], "Sub-check item count")
+            return
+        if key in CHECK_CONDITION_FIELDS:
+            def sink(expr, s=subs[sub_index], field=key):
+                if expr:
+                    s[field] = expr
+                else:
+                    s.pop(field, None)
+            self._open_cond_graph(
+                subs[sub_index].get(key, ""),
+                title=f"{CHECK_CONDITION_LABELS[key]}: {subs[sub_index].get('Name', '')}",
+                sink=sink)
             return
 
         def cb(value):
@@ -252,9 +332,14 @@ class MapChecksMixin:
             return
         item = items[item_index]
         if key == "Item":
-            initial = item.get("Item", "")
-            label = "Item name"
-            kind = "str"
+            def set_item(name):
+                item["Item"] = name
+                item.pop("Name", None)
+                self.message = f"Popup item set to {name}."
+
+            self._open_name_picker(
+                "Pick a popup item", self._all_template_item_names(), set_item)
+            return
         elif key == "Positions":
             pos = item.setdefault("Positions", {"x": 0, "y": 0})
             initial = f"{pos.get('x', 0)},{pos.get('y', 0)}"

@@ -16,6 +16,18 @@ class InputMixin:
         if self.suppress_next_click:
             self.suppress_next_click = False
             return True
+        if self.error_popup_open:
+            if button in (4, 5):
+                self._scroll_error_popup(1 if button == 4 else -1)
+                return True
+            if button == 1:
+                copy_button = self.error_popup_buttons.get("copy")
+                close_button = self.error_popup_buttons.get("close")
+                if copy_button and copy_button.collidepoint(mouse_position):
+                    self._copy_error_popup()
+                elif close_button and close_button.collidepoint(mouse_position):
+                    self._close_error_popup()
+            return True
         if self.prompt_open:
             if button == 1:
                 self._handle_text_prompt_click(mouse_position)
@@ -87,6 +99,9 @@ class InputMixin:
 
         # Check modal (map view)
         if self.check_modal_open:
+            if button in (4, 5):
+                self._scroll_check_modal(1 if button == 4 else -1)
+                return True
             if button == 1:
                 for key, r in self.check_modal_buttons.items():
                     if r.collidepoint(mouse_position):
@@ -109,6 +124,10 @@ class InputMixin:
                     if r.collidepoint(mouse_position):
                         if part == "del":
                             self._delete_block_check(si)
+                        elif part == "up":
+                            self._move_block_check(si, -1)
+                        elif part == "down":
+                            self._move_block_check(si, 1)
                         else:
                             self._edit_block_check_field(si, part)
                         return True
@@ -143,7 +162,23 @@ class InputMixin:
 
         # Map view: click the map to add / select / edit checks
         no_overlay = not (self.item_modal_open or self.prompt_open or self.sprite_picker_open
-                          or self.fonts_modal_open or self.check_modal_open)
+                          or self.fonts_modal_open or self.check_modal_open
+                          or self.map_options_open or self.map_data_open
+                          or self.cond_builder_open)
+        if no_overlay and self._map_view_active() and button == 1:
+            for filter_name, filter_rect in self.map_visibility_buttons.items():
+                if not filter_rect.collidepoint(mouse_position):
+                    continue
+                if filter_name == "blocks":
+                    self.show_map_blocks = not self.show_map_blocks
+                    state = self.show_map_blocks
+                else:
+                    self.show_map_checks = not self.show_map_checks
+                    state = self.show_map_checks
+                self.message = (
+                    f"{filter_name.title()} {'shown' if state else 'hidden'}."
+                )
+                return True
         if no_overlay and self._map_view_active() and self.map_view_rect.collidepoint(mouse_position):
             if self.suppress_next_click:
                 self.suppress_next_click = False
@@ -512,8 +547,14 @@ class InputMixin:
     def click_down(self, mouse_position, button):
         if button != 1:
             return
+        # The topmost error popup may only start its own scrollbar.
+        if self.error_popup_open:
+            self._start_scrollbar_drag(mouse_position, only="error_popup")
+            return
         # Generic draggable scrollbars (panels, pickers, fonts, checks list)
         if self._start_scrollbar_drag(mouse_position):
+            return
+        if self.name_picker_open:
             return
         # Condition node-graph: start dragging a node or a wire
         if self.cond_builder_open and self._cg_start_drag(mouse_position):
@@ -545,6 +586,10 @@ class InputMixin:
                 or self.sprite_picker_open or self.check_modal_open
                 or self.map_options_open or self.map_data_open):
             return
+        if self._map_view_active() and any(
+                rect.collidepoint(mouse_position)
+                for rect in self.map_visibility_buttons.values()):
+            return
         if pygame.key.get_mods() & pygame.KMOD_SHIFT:
             return
         # Map view: drag a check marker, or pan the map (empty area)
@@ -553,13 +598,20 @@ class InputMixin:
             if idx is not None:
                 self.selected_check_index = idx
                 self.dragging_check_index = idx
-                self.suppress_next_click = True
-                self._move_check(idx, mouse_position)
+                self.check_drag_moved = False
+                self.check_drag_start = mouse_position
+                marker_rect = self.check_screen_rects.get(idx)
+                marker_anchor = self.check_screen_anchors.get(
+                    idx, marker_rect.center if marker_rect else mouse_position)
+                self.check_drag_offset = (
+                    mouse_position[0] - marker_anchor[0],
+                    mouse_position[1] - marker_anchor[1],
+                )
             else:
                 self.panning_map = True
+                self.map_pan_moved = False
                 self.pan_start = mouse_position
                 self.pan_origin = list(self.map_pan)
-                self.suppress_next_click = True
             return
         linked_path = self._find_linked_item_path_at(mouse_position)
         if linked_path is not None:
@@ -570,11 +622,10 @@ class InputMixin:
             self.selected_linked_path = linked_path
             self._clear_multi_selection()
             self.dragging_linked_path = linked_path
-            self.suppress_next_click = True
+            self.item_drag_start = mouse_position
+            self.item_drag_moved = False
             rect = item.get("screen_rect", pygame.Rect(mouse_position[0], mouse_position[1], 1, 1))
             self.drag_offset = (mouse_position[0] - rect.x, mouse_position[1] - rect.y)
-            self.message = f"Moving linked {item['name']}."
-            self._move_linked_item_to_mouse(linked_path, mouse_position)
             return
         if self.dragging_item_index is None:
             item_index = self._get_item_index_at(mouse_position)
@@ -592,7 +643,8 @@ class InputMixin:
                 self.selected_item_index = item_index
                 self.selected_linked_path = None
             self.dragging_item_index = item_index
-            self.suppress_next_click = True
+            self.item_drag_start = mouse_position
+            self.item_drag_moved = False
             item = self.placed_items[item_index]
             rect = item.get("screen_rect", pygame.Rect(mouse_position[0], mouse_position[1], 1, 1))
             self.drag_offset = (mouse_position[0] - rect.x, mouse_position[1] - rect.y)
@@ -600,9 +652,6 @@ class InputMixin:
                 index: (self.placed_items[index].get("x", 0), self.placed_items[index].get("y", 0))
                 for index in self._selected_indices()
             }
-            selected_count = len(self._selected_indices())
-            self.message = f"Moving {selected_count} item(s)." if selected_count > 1 else f"Moving {item['name']}."
-        self._move_item_to_mouse(self.dragging_item_index, mouse_position)
 
     def mouse_up(self):
         if self.cond_builder_open and (self.cg_drag_node is not None or self.cg_drag_wire_src is not None
@@ -611,22 +660,54 @@ class InputMixin:
             self._cg_drag_end(mp)
         self.dragging_item_index = None
         self.dragging_linked_path = None
+        self.item_drag_start = (0, 0)
+        self.item_drag_moved = False
         self.group_drag_offsets = {}
         self.dragging_check_index = None
+        self.check_drag_moved = False
+        self.check_drag_start = (0, 0)
+        self.check_drag_offset = (0, 0)
         self.dragging_scrollbar = None
         self.panning_map = False
+        self.map_pan_moved = False
         self.panning_canvas = False
         self.snap_guides = []
         self.dragging_child_scroll = False
         self.dragging_property_scroll = False
 
     def mouse_move(self, mouse_position):
+        if self.error_popup_open:
+            if self.dragging_scrollbar is not None:
+                self._update_scrollbar_drag(mouse_position)
+                self._set_cursor_safe(pygame.SYSTEM_CURSOR_HAND)
+                return
+            self.hover_key = None
+            self.hover_property_key = None
+            self.hover_modal_key = None
+            copy_button = self.error_popup_buttons.get("copy")
+            close_button = self.error_popup_buttons.get("close")
+            if copy_button and copy_button.collidepoint(mouse_position):
+                self.hover_modal_key = "error_copy"
+            elif close_button and close_button.collidepoint(mouse_position):
+                self.hover_modal_key = "error_close"
+            self._set_cursor_safe(
+                pygame.SYSTEM_CURSOR_HAND
+                if self.hover_modal_key else pygame.SYSTEM_CURSOR_ARROW
+            )
+            return
         if self.cond_builder_open and self._cg_drag_move(mouse_position):
             self._set_cursor_safe(pygame.SYSTEM_CURSOR_HAND)
             return
         if self.panning_map:
-            self.map_pan[0] = self.pan_origin[0] + (mouse_position[0] - self.pan_start[0])
-            self.map_pan[1] = self.pan_origin[1] + (mouse_position[1] - self.pan_start[1])
+            dx = mouse_position[0] - self.pan_start[0]
+            dy = mouse_position[1] - self.pan_start[1]
+            if not self.map_pan_moved:
+                if dx * dx + dy * dy < 25:
+                    return
+                self.map_pan_moved = True
+                self.suppress_next_click = True
+            self.map_pan[0] = self.pan_origin[0] + dx
+            self.map_pan[1] = self.pan_origin[1] + dy
             self._set_cursor_safe(pygame.SYSTEM_CURSOR_HAND)
             return
         if self.panning_canvas:
@@ -639,10 +720,31 @@ class InputMixin:
             self._set_cursor_safe(pygame.SYSTEM_CURSOR_HAND)
             return
         if self.dragging_check_index is not None:
-            self._move_check(self.dragging_check_index, mouse_position)
+            if not self.check_drag_moved:
+                dx = mouse_position[0] - self.check_drag_start[0]
+                dy = mouse_position[1] - self.check_drag_start[1]
+                if dx * dx + dy * dy < 25:
+                    return
+                self.check_drag_moved = True
+                self.suppress_next_click = True
+            target_position = (
+                mouse_position[0] - self.check_drag_offset[0],
+                mouse_position[1] - self.check_drag_offset[1],
+            )
+            self._move_check(self.dragging_check_index, target_position)
             self._set_cursor_safe(pygame.SYSTEM_CURSOR_HAND)
             return
         if self.dragging_linked_path is not None:
+            if not self.item_drag_moved:
+                dx = mouse_position[0] - self.item_drag_start[0]
+                dy = mouse_position[1] - self.item_drag_start[1]
+                if dx * dx + dy * dy < 25:
+                    return
+                self.item_drag_moved = True
+                self.suppress_next_click = True
+                item = self._get_linked_item_by_path(self.dragging_linked_path)
+                if item:
+                    self.message = f"Moving linked {item['name']}."
             self._move_linked_item_to_mouse(self.dragging_linked_path, mouse_position)
             self._set_cursor_safe(pygame.SYSTEM_CURSOR_HAND)
             return
@@ -843,6 +945,17 @@ class InputMixin:
                         self.hover_key = f"sheetrow_{index}"
                         break
         if self.dragging_item_index is not None:
+            if not self.item_drag_moved:
+                dx = mouse_position[0] - self.item_drag_start[0]
+                dy = mouse_position[1] - self.item_drag_start[1]
+                if dx * dx + dy * dy < 25:
+                    return
+                self.item_drag_moved = True
+                self.suppress_next_click = True
+                selected_count = len(self._selected_indices())
+                item = self.placed_items[self.dragging_item_index]
+                self.message = (f"Moving {selected_count} item(s)." if selected_count > 1
+                                else f"Moving {item['name']}.")
             self._move_item_to_mouse(self.dragging_item_index, mouse_position)
         if (self.canvas_rect.collidepoint(mouse_position) or self.left_panel_rect.collidepoint(mouse_position)
                 or self.right_panel_rect.collidepoint(mouse_position)):
@@ -851,6 +964,10 @@ class InputMixin:
             self._set_cursor_safe(pygame.SYSTEM_CURSOR_ARROW)
 
     def keyup(self, key, screen):
+        if self.error_popup_open:
+            if key == pygame.K_ESCAPE:
+                self._close_error_popup()
+            return
         if key == pygame.K_ESCAPE and self.fonts_modal_open:
             self.fonts_modal_open = False
         elif key == pygame.K_ESCAPE and self.position_pick_mode:
@@ -875,6 +992,7 @@ class InputMixin:
         elif key == pygame.K_ESCAPE and self.hide_editor_open:
             if self.hide_editor_entry is not None:
                 self.hide_editor_entry = None
+                self.hide_editor_scroll = 0
             else:
                 self.hide_editor_open = False
         elif key == pygame.K_ESCAPE and self.map_data_open:
@@ -906,6 +1024,21 @@ class InputMixin:
             self._delete_selected_item()
 
     def events(self, event, time_delta):
+        if self.error_popup_open:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return True
+                if event.key == pygame.K_c and event.mod & pygame.KMOD_CTRL:
+                    self._copy_error_popup()
+                return True
+            if event.type == pygame.MOUSEWHEEL:
+                self._scroll_error_popup(event.y)
+                return True
+            if event.type in (
+                    pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP,
+                    pygame.MOUSEMOTION):
+                return False
+            return True
         if self.name_picker_open:
             if event.type == pygame.KEYDOWN:
                 self._name_picker_key(event)
@@ -943,6 +1076,9 @@ class InputMixin:
                 if self.project_list_rect.collidepoint(pos):
                     self.project_scroll -= event.y * 48
                 return True
+            if self.check_modal_open:
+                self._scroll_check_modal(event.y)
+                return True
             if self.cond_builder_open:
                 if self.cond_builder_mode in ("have", "do", "rules"):
                     self.cond_builder_scroll = max(0, min(getattr(self, "cond_builder_max_scroll", 0),
@@ -950,7 +1086,7 @@ class InputMixin:
                 else:
                     self._cg_zoom_at(event.y, pygame.mouse.get_pos())
                 return True
-            if self.hide_editor_open and self.hide_editor_entry is not None:
+            if self.hide_editor_open:
                 self.hide_editor_scroll = max(0, min(getattr(self, "hide_editor_max_scroll", 0),
                                                      self.hide_editor_scroll - event.y * 48))
                 return True
@@ -966,6 +1102,11 @@ class InputMixin:
                 self.picker_scroll -= event.y * 40
                 return True
             if self.item_modal_open:
+                if self.field_editor_open:
+                    self.field_editor_scroll = max(
+                        0, min(self.field_editor_max_scroll,
+                               self.field_editor_scroll - event.y * 44))
+                    return True
                 if self.item_refs_editor_open and self.item_refs_scroll_rect.collidepoint(pos) \
                         and self._scroll_item_refs_editor(event.y):
                     return True

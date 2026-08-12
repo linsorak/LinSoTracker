@@ -422,9 +422,17 @@ class ItemModalMixin:
             self._close_field_editor()
             return
         self.modal_buttons = {}
+        self._scrollbars.pop("field_editor", None)
         parts = self._field_editor_parts()
         list_mode = spec["type"] == "list_editor"
-        rows_to_draw = parts[:6] if list_mode else parts
+        if list_mode:
+            self.field_editor_max_scroll = max(0, (len(parts) - 6) * 44)
+            self.field_editor_scroll = max(
+                0, min(self.field_editor_scroll, self.field_editor_max_scroll))
+            first_row = min(max(0, len(parts) - 6), self.field_editor_scroll // 44)
+            rows_to_draw = parts[first_row:first_row + 6]
+        else:
+            rows_to_draw = parts
         actions = []
         for action in spec.get("actions", []):
             visible = action.get("visible", True)
@@ -449,7 +457,10 @@ class ItemModalMixin:
             count_text = f"{len(parts)} entry" if len(parts) == 1 else f"{len(parts)} entries"
             self._text(screen, count_text, (add_rect.right + 12, y + 7), 14, self.COLORS["muted"])
             y += 42
+            list_y = y
             if not parts:
+                self.field_editor_scroll = 0
+                self.field_editor_max_scroll = 0
                 self._text(screen, "No entry yet.", (popup.x + 16, y + 8), 15, self.COLORS["muted"])
                 return
 
@@ -475,10 +486,18 @@ class ItemModalMixin:
                 self._text(screen, key.upper(), (row.x + 10, row.y + 7), 15, self.COLORS["muted"])
                 self._text(screen, value, (row.right - 92, row.y + 7), 15, self.COLORS["line_light"])
             y += 44
-        if list_mode and len(parts) > len(rows_to_draw):
-            self._text(screen, f"+ {len(parts) - len(rows_to_draw)} more entries", (popup.x + 16, y + 4),
-                       13, self.COLORS["muted"])
-            y += 28
+        if list_mode and parts:
+            view_h = max(44, len(rows_to_draw) * 44)
+            self.field_editor_scroll_rect = pygame.Rect(
+                popup.x + 16, list_y, popup.w - 32, view_h)
+            track = pygame.Rect(popup.right - 10, list_y, 5, view_h)
+            self._register_scrollbar(
+                screen, "field_editor", track, self.field_editor_scroll,
+                self.field_editor_max_scroll, len(parts) * 44, view_h)
+            if self.field_editor_max_scroll:
+                self._text(screen, "Mouse wheel or drag the scrollbar",
+                           (popup.x + 16, y + 4), 13, self.COLORS["muted"])
+                y += 28
         if actions:
             y += 2
             action_w = min(150, popup.w - 32)
@@ -1379,6 +1398,9 @@ class ItemModalMixin:
         self.field_editor_spec = None
         self.field_editor_item = None
         self.field_editor_callback = None
+        self.field_editor_scroll = 0
+        self.field_editor_max_scroll = 0
+        self._scrollbars.pop("field_editor", None)
 
     def _notify_field_editor_changed(self):
         if callable(self.field_editor_callback):
@@ -1666,6 +1688,8 @@ class ItemModalMixin:
             self.field_editor_spec = spec
             self.field_editor_item = item
             self.field_editor_callback = None
+            self.field_editor_scroll = 0
+            self.field_editor_max_scroll = 0
         elif ftype == "rect":
             self.field_editor_open = True
             self.field_editor_spec = spec

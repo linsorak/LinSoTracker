@@ -127,11 +127,19 @@ class PopupWindow:
             item.update(self)
 
         try:
-            new_list = [check for check in self.list_items.get_checks() if not check.hide]
-            get_check = new_list
-
+            get_check = [
+                check for check in self.list_items.get_checks()
+                if not check.hide
+            ]
         except AttributeError:
-            get_check = self.list_items
+            get_check = [check for check in self.list_items if not check.hide]
+
+        wrap_width = max(
+            1, int(self.box_rect.w - 20 * self.tracker.core_service.zoom))
+        for check in get_check:
+            check.popup_wrap_width = wrap_width
+            check.update()
+            check.show = False
 
         if not get_check:
             self.check_per_page = 1
@@ -141,28 +149,34 @@ class PopupWindow:
             self.position_pages_information = None
             return
 
-        first_check = get_check[0].get_surface_label()
-        self.check_per_page = max(1, int(self.box_rect.h / first_check.get_rect().h))
-        self.check_page_max = max(1, ceil(len(get_check) / self.check_per_page))
-
-        # self.current_check_page = 1
-        index_start = 1 * ((self.current_check_page - 1) * self.check_per_page)
-        index_end = index_start + self.check_per_page
-        if index_end > len(get_check):
-            index_end = len(get_check)
-
+        row_gap = max(4, int(5 * self.tracker.core_service.zoom))
+        pages = []
+        page = []
+        used_height = 0
         for check in get_check:
-            check.update()
-            check.show = False
+            row_height = check.get_surface_label().get_rect().h + row_gap
+            if page and used_height + row_height > self.box_rect.h:
+                pages.append(page)
+                page = []
+                used_height = 0
+            page.append(check)
+            used_height += row_height
+        if page:
+            pages.append(page)
 
-        for i in range(index_start, index_end):
-            index = 0 + (i - index_start)
-            check = get_check[i]
+        self.check_page_max = max(1, len(pages))
+        self.current_check_page = max(
+            1, min(self.current_check_page, self.check_page_max))
+        visible_checks = pages[self.current_check_page - 1]
+        self.check_per_page = max(1, len(visible_checks))
+
+        y = self.box_rect.y + row_gap // 2
+        for check in visible_checks:
             label_surface = check.get_surface_label()
-            x = self.box_rect.x + (self.box_rect.w / 2) - (label_surface.get_rect().w / 2)
-            y = self.box_rect.y + (label_surface.get_rect().h * index + 5)
+            x = self.box_rect.centerx - label_surface.get_rect().w / 2
             check.set_position_draw(x, y)
             check.show = True
+            y += label_surface.get_rect().h + row_gap
         self.left_arrow = self.left_arrow_base.copy()
         self.right_arrow = self.right_arrow_base.copy()
         if self.current_check_page == 1:

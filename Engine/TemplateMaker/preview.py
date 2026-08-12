@@ -28,7 +28,7 @@ class PreviewMixin:
                 "active": bool(item.get("isActive", False)),
                 "value": int(item.get("valueStart", 0) or 0),
                 "label_index": int(item.get("OffsetLabel", 0) or 0),
-                "inc_index": 0,
+                "inc_index": -1,
                 "evo_index": 0,
                 "checked": False,
                 "submenu_open": False,
@@ -511,7 +511,7 @@ class PreviewMixin:
                 pass
         # Simulation fallback only handles left/right as a state advance
         if action in ("left", "right"):
-            self._advance_preview_sim(item)
+            self._advance_preview_sim(item, action)
 
     def _draw_item_preview_sim(self, screen, rect, item):
         kind = item.get("kind", "Item")
@@ -556,8 +556,8 @@ class PreviewMixin:
                 self._preview_overlay_text(screen, rect, "labelItemFont", labels[idx])
         elif kind == "IncrementalItem":
             incs = item.get("Increment") or []
-            if incs and is_on:
-                self._preview_overlay_text(screen, rect, "incrementalItemFont", incs[st["inc_index"] % len(incs)])
+            if incs and is_on and st["inc_index"] >= 0:
+                self._preview_overlay_text(screen, rect, "incrementalItemFont", incs[st["inc_index"]])
         elif kind == "CheckItem" and st["checked"]:
             chk = item.get("check")
             chimg = self._get_icon_surface(chk["row"], chk["column"], chk.get("sheet")) if chk else None
@@ -567,7 +567,7 @@ class PreviewMixin:
                 pygame.draw.line(screen, self.COLORS["green"], (rect.x + 10, rect.centery), (rect.centerx - 4, rect.bottom - 12), 4)
                 pygame.draw.line(screen, self.COLORS["green"], (rect.centerx - 4, rect.bottom - 12), (rect.right - 10, rect.y + 12), 4)
 
-    def _advance_preview_sim(self, item):
+    def _advance_preview_sim(self, item, action="left"):
         if not item:
             return
         kind = item.get("kind", "Item")
@@ -582,8 +582,33 @@ class PreviewMixin:
             st["label_index"] = (st["label_index"] + 1) % len(labels)
         elif kind == "IncrementalItem":
             incs = item.get("Increment") or []
-            st["inc_index"] = (st["inc_index"] + 1) % (len(incs) or 1)
-            st["active"] = True
+            start_increment_index = item.get("StartIncrementIndex")
+            start_increment_index = (start_increment_index
+                                     if type(start_increment_index) is int
+                                     and 0 <= start_increment_index < len(incs)
+                                     else -1)
+            if not incs:
+                st["inc_index"] = -1
+                st["active"] = False
+            elif action == "right":
+                if not st["active"]:
+                    st["active"] = True
+                    st["inc_index"] = len(incs) - 1
+                elif st["inc_index"] >= 0:
+                    st["inc_index"] -= 1
+                    if start_increment_index >= 0 and st["inc_index"] == start_increment_index - 1:
+                        st["inc_index"] = -1
+                        st["active"] = False
+                else:
+                    st["active"] = False
+            elif not st["active"]:
+                st["active"] = True
+                st["inc_index"] = start_increment_index
+            elif st["inc_index"] < len(incs) - 1:
+                st["inc_index"] += 1
+            else:
+                st["inc_index"] = -1
+                st["active"] = False
         elif kind in self.EVOLUTION_KINDS:
             st["evo_index"] = (st["evo_index"] + 1) % (len(item.get("children", [])) + 1)
         elif kind == "CheckItem":

@@ -56,6 +56,8 @@ class LayoutMixin:
             self._draw_context_menu(screen)
         if self.prompt_open:
             self._draw_text_prompt(screen)
+        if self.error_popup_open:
+            self._draw_error_popup(screen)
 
     def _layout(self, width, height):
         toolbar_h = 86
@@ -124,6 +126,7 @@ class LayoutMixin:
         title_rect = pygame.Rect(self.canvas_rect.x + 18, self.canvas_rect.y + 12, self.canvas_rect.w - 36, 28)
         canvas_size = self._canvas_size()
         map_view = self._map_view_active()
+        self.map_visibility_buttons = {}
         if map_view:
             title = f"Map: {self._current_map()['name']}"
         elif self.canvas_context == "submenu":
@@ -138,6 +141,43 @@ class LayoutMixin:
             self.see_links_rect = pygame.Rect(0, 0, 1, 1)
             self.snap_rect = pygame.Rect(0, 0, 1, 1)
             self.grid_rect = pygame.Rect(0, 0, 1, 1)
+            check_count = len(self._current_map()["data"].get("ChecksList", []))
+            filter_width = 88
+            filter_y = title_rect.y + 28
+            checks_filter = pygame.Rect(
+                title_rect.right - filter_width, filter_y, filter_width, 20)
+            blocks_filter = pygame.Rect(
+                checks_filter.x - filter_width - 6,
+                filter_y,
+                filter_width,
+                20,
+            )
+            self.map_visibility_buttons = {
+                "blocks": blocks_filter,
+                "checks": checks_filter,
+            }
+            self._draw_button(
+                screen,
+                blocks_filter,
+                f"Blocks {'ON' if self.show_map_blocks else 'OFF'}",
+                (36, 124, 87) if self.show_map_blocks else (70, 74, 86),
+            )
+            self._draw_button(
+                screen,
+                checks_filter,
+                f"Checks {'ON' if self.show_map_checks else 'OFF'}",
+                (36, 124, 87) if self.show_map_checks else (70, 74, 86),
+            )
+            status = f"{check_count} check(s) - click map to add"
+            status = self._truncate_text_to_width(
+                status, max(80, blocks_filter.x - title_rect.x - 10), 13)
+            self._text(
+                screen,
+                status,
+                (title_rect.x, title_rect.y + 32),
+                13,
+                self.COLORS["muted"],
+            )
         else:
             box = pygame.Rect(title_rect.x, title_rect.y + 30, 18, 18)
             self.see_links_rect = pygame.Rect(box.x, box.y, 110, 20)
@@ -204,15 +244,19 @@ class LayoutMixin:
         pygame.draw.rect(screen, (bg_color.get("r", 0), bg_color.get("g", 0), bg_color.get("b", 0)), bg_rect)
         background = self._canvas_background_surface()
         if background:
-            scale = bg_rect.w / canvas_size[0]
-            bg_pos = self._canvas_background_position()
-            bg_w = max(1, int(background.get_width() * scale))
-            bg_h = max(1, int(background.get_height() * scale))
-            scaled = pygame.transform.smoothscale(background, (bg_w, bg_h))
-            screen.blit(scaled, (
-                bg_rect.x + int(bg_pos.get("x", 0) * scale),
-                bg_rect.y + int(bg_pos.get("y", 0) * scale),
-            ))
+            if map_view:
+                self._draw_cached_map_background(
+                    screen, background, bg_rect, clip_rect)
+            else:
+                scale = bg_rect.w / canvas_size[0]
+                bg_pos = self._canvas_background_position()
+                bg_w = max(1, int(background.get_width() * scale))
+                bg_h = max(1, int(background.get_height() * scale))
+                scaled = pygame.transform.smoothscale(background, (bg_w, bg_h))
+                screen.blit(scaled, (
+                    bg_rect.x + int(bg_pos.get("x", 0) * scale),
+                    bg_rect.y + int(bg_pos.get("y", 0) * scale),
+                ))
         screen.set_clip(prev_clip)
 
         # Grid overlay (item canvas) - enables grid snapping
@@ -394,7 +438,8 @@ class LayoutMixin:
         overlay = pygame.Surface((sw, sh), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 170))
         screen.blit(overlay, (0, 0))
-        modal = pygame.Rect(sw // 2 - 260, sh // 2 - 220, 520, 440)
+        modal_h = min(760, sh - 80)
+        modal = pygame.Rect(sw // 2 - 260, (sh - modal_h) // 2, 520, modal_h)
         self._draw_popup(screen, modal, radius=12)
         self.check_modal_buttons = {}
         self.check_subrows = {}
@@ -433,7 +478,20 @@ class LayoutMixin:
             y += 44
 
         if not (is_block or is_popup):
-            field_row("Conditions", "Conditions", check.get("Conditions"))
+            field_row("Group", "Group", check.get("Group"))
+            y += 44
+            field_row("Item count", "ItemCount", check.get("ItemCount", 1))
+            y += 44
+            field_row("Logic condition (green)", "Conditions", check.get("Conditions"))
+            y += 44
+            field_row("Out-of-logic condition (yellow)", "OutOfLogicConditions",
+                      check.get("OutOfLogicConditions"))
+            y += 44
+            field_row("Scoutable condition (blue)", "ScoutableConditions",
+                      check.get("ScoutableConditions"))
+            y += 44
+            field_row("Uncertain condition (purple)", "UncertainConditions",
+                      check.get("UncertainConditions"))
             y += 44
         elif is_block:
             self._text(screen, "SUB-CHECKS", (x, y), 12, self.COLORS["gold"])
@@ -446,20 +504,67 @@ class LayoutMixin:
             ry = list_area.y + 4
             prev_clip = screen.get_clip()
             screen.set_clip(list_area)
-            for si, sub in enumerate(check.get("Checks", [])):
-                if ry + 30 > list_area.bottom:
-                    break
-                nrow = pygame.Rect(list_area.x + 4, ry, list_area.w - 70, 26)
-                crow = pygame.Rect(nrow.right + 4, ry, 0, 26)  # placeholder
-                cond_row = pygame.Rect(nrow.right + 4, ry, list_area.right - nrow.right - 34, 26)
+            subchecks = check.get("Checks", [])
+            max_rows = max(1, (list_area.h - 8) // 30)
+            self.check_sub_visible_rows = max_rows
+            self.check_sub_scroll = max(
+                0, min(self.check_sub_scroll, max(0, len(subchecks) - max_rows)))
+            for si in range(self.check_sub_scroll, min(len(subchecks), self.check_sub_scroll + max_rows)):
+                sub = subchecks[si]
+                nrow = pygame.Rect(list_area.x + 4, ry, 90, 26)
+                count_row = pygame.Rect(nrow.right + 4, ry, 40, 26)
+                group_row = pygame.Rect(count_row.right + 4, ry, 68, 26)
                 del_btn = pygame.Rect(list_area.right - 26, ry, 22, 26)
+                down_btn = pygame.Rect(del_btn.x - 24, ry, 20, 26)
+                up_btn = pygame.Rect(down_btn.x - 22, ry, 20, 26)
+                condition_specs = (
+                    ("Conditions", "L", (38, 116, 58)),
+                    ("OutOfLogicConditions", "O", (154, 126, 32)),
+                    ("ScoutableConditions", "S", (42, 91, 166)),
+                    ("UncertainConditions", "U", (118, 63, 151)),
+                )
+                condition_x = group_row.right + 4
+                condition_space = up_btn.x - 4 - condition_x
+                condition_w = max(24, (condition_space - 9) // 4)
+                condition_rows = {}
+                for condition_index, (field, short_label, active_color) in enumerate(condition_specs):
+                    condition_row = pygame.Rect(
+                        condition_x + condition_index * (condition_w + 3), ry,
+                        condition_w, 26)
+                    condition_rows[field] = (condition_row, short_label, active_color)
+
                 self.check_subrows[(si, "Name")] = nrow
-                self.check_subrows[(si, "Conditions")] = cond_row
+                self.check_subrows[(si, "ItemCount")] = count_row
+                self.check_subrows[(si, "Group")] = group_row
+                for field, (condition_row, _short_label, _active_color) in condition_rows.items():
+                    self.check_subrows[(si, field)] = condition_row
+                self.check_subrows[(si, "up")] = up_btn
+                self.check_subrows[(si, "down")] = down_btn
                 self.check_subrows[(si, "del")] = del_btn
                 pygame.draw.rect(screen, self.COLORS["panel_alt"], nrow)
-                pygame.draw.rect(screen, self.COLORS["panel_alt"], cond_row)
-                self._text(screen, str(sub.get("Name", ""))[:18], (nrow.x + 4, nrow.y + 5), 13, self.COLORS["line_light"])
-                self._text(screen, str(sub.get("Conditions", ""))[:22], (cond_row.x + 4, cond_row.y + 5), 12, self.COLORS["muted"])
+                pygame.draw.rect(screen, self.COLORS["panel_alt"], count_row)
+                pygame.draw.rect(screen, self.COLORS["panel_alt"], group_row)
+                self._text(screen, str(sub.get("Name", ""))[:12], (nrow.x + 4, nrow.y + 5), 12, self.COLORS["line_light"])
+                self._text(screen, f"x{sub.get('ItemCount', 1)}", (count_row.x + 4, count_row.y + 5), 11, self.COLORS["gold"])
+                self._text(screen, str(sub.get("Group", ""))[:8] or "group", (group_row.x + 4, group_row.y + 5), 10, self.COLORS["muted"])
+                for field, (condition_row, short_label, active_color) in condition_rows.items():
+                    active = bool(sub.get(field))
+                    pygame.draw.rect(
+                        screen, active_color if active else self.COLORS["panel_alt"],
+                        condition_row)
+                    self._text(
+                        screen, short_label, (condition_row.x + 5, condition_row.y + 5),
+                        11, self.COLORS["line_light"] if active else self.COLORS["muted"])
+                up_enabled = si > 0
+                down_enabled = si < len(subchecks) - 1
+                pygame.draw.rect(screen, (70, 74, 86) if up_enabled else (35, 38, 46), up_btn)
+                pygame.draw.rect(screen, (70, 74, 86) if down_enabled else (35, 38, 46), down_btn)
+                self._text_center(
+                    screen, "^", up_btn, 13,
+                    self.COLORS["line_light"] if up_enabled else self.COLORS["muted"])
+                self._text_center(
+                    screen, "v", down_btn, 13,
+                    self.COLORS["line_light"] if down_enabled else self.COLORS["muted"])
                 pygame.draw.rect(screen, self.COLORS["red"], del_btn)
                 self._text(screen, "x", (del_btn.x + 7, del_btn.y + 4), 14, self.COLORS["line_light"])
                 ry += 30
@@ -478,9 +583,12 @@ class LayoutMixin:
             ry = item_area.y + 4
             prev_clip = screen.get_clip()
             screen.set_clip(item_area)
-            for ii, popup_item in enumerate(check.get("Items", [])):
-                if ry + 30 > item_area.bottom:
-                    break
+            popup_items = check.get("Items", [])
+            max_rows = max(1, (item_area.h - 8) // 30)
+            self.popup_item_scroll = max(
+                0, min(self.popup_item_scroll, max(0, len(popup_items) - max_rows)))
+            for ii in range(self.popup_item_scroll, min(len(popup_items), self.popup_item_scroll + max_rows)):
+                popup_item = popup_items[ii]
                 item_row = pygame.Rect(item_area.x + 4, ry, item_area.w - 218, 26)
                 pos_row = pygame.Rect(item_row.right + 4, ry, 82, 26)
                 scale_row = pygame.Rect(pos_row.right + 4, ry, 54, 26)
@@ -492,7 +600,7 @@ class LayoutMixin:
                 pygame.draw.rect(screen, self.COLORS["panel_alt"], item_row)
                 pygame.draw.rect(screen, self.COLORS["panel_alt"], pos_row)
                 pygame.draw.rect(screen, self.COLORS["panel_alt"], scale_row)
-                item_name = popup_item.get("Item", "")
+                item_name = popup_item.get("Item") or popup_item.get("Name", "")
                 pos = popup_item.get("Positions", {})
                 self._text(screen, item_name[:22] or "item name", (item_row.x + 4, item_row.y + 5), 12,
                            self.COLORS["line_light"] if item_name else self.COLORS["muted"])
@@ -500,6 +608,16 @@ class LayoutMixin:
                            self.COLORS["muted"])
                 self._text(screen, str(popup_item.get("Scale", 1.0))[:5], (scale_row.x + 4, scale_row.y + 5), 11,
                            self.COLORS["muted"])
+                up_enabled = si > 0
+                down_enabled = si < len(subchecks) - 1
+                pygame.draw.rect(screen, (70, 74, 86) if up_enabled else (35, 38, 46), up_btn)
+                pygame.draw.rect(screen, (70, 74, 86) if down_enabled else (35, 38, 46), down_btn)
+                self._text_center(
+                    screen, "^", up_btn, 13,
+                    self.COLORS["line_light"] if up_enabled else self.COLORS["muted"])
+                self._text_center(
+                    screen, "v", down_btn, 13,
+                    self.COLORS["line_light"] if down_enabled else self.COLORS["muted"])
                 pygame.draw.rect(screen, self.COLORS["red"], del_btn)
                 self._text(screen, "x", (del_btn.x + 7, del_btn.y + 4), 14, self.COLORS["line_light"])
                 ry += 30
@@ -515,6 +633,7 @@ class LayoutMixin:
 
     def _draw_map_checks(self, screen, bg_rect, canvas_size):
         self.check_screen_rects = {}
+        self.check_screen_anchors = {}
         checks = self._current_map()["data"].get("ChecksList", [])
         scale = bg_rect.w / canvas_size[0]
         extra = self.maps_extra or {}
@@ -526,22 +645,52 @@ class LayoutMixin:
         screen.set_clip(getattr(self, "map_view_rect", bg_rect))
         for index, check in enumerate(checks):
             pos = check.get("Positions") or {}
-            cx = bg_rect.x + int(pos.get("x", 0) * scale)
-            cy = bg_rect.y + int(pos.get("y", 0) * scale)
+            px = float(pos.get("x", 0) or 0)
+            py = float(pos.get("y", 0) or 0)
+            anchor_x = bg_rect.x + int(px * scale)
+            anchor_y = bg_rect.y + int(py * scale)
             is_block = check.get("Kind") in ("Block", "MapPopup")
+            if is_block and not self.show_map_blocks:
+                continue
+            if not is_block and not self.show_map_checks:
+                continue
             if is_block:
-                side = max(12, int(sgc.get("w", 16) * 2 * scale))
-                rect = pygame.Rect(cx - side // 2, cy - side // 2, side, side)
+                marker_w = max(1, int(float(sgc.get("w", 16) or 16) * scale))
+                marker_h = max(1, int(float(sgc.get("h", 16) or 16) * scale))
+                rect = pygame.Rect(anchor_x, anchor_y, marker_w, marker_h)
+            else:
+                simple_w = float(ssc.get("w", 5) or 5)
+                simple_h = float(ssc.get("h", 5) or 5)
+                pin_x = bg_rect.x + int((px + simple_w / 2) * scale)
+                pin_y = bg_rect.y + int((py + simple_h / 2) * scale)
+                pin_w = max(1, int(simple_w * 2 * scale))
+                pin_h = max(1, int(simple_h * 2 * scale))
+                rect = pygame.Rect(pin_x, pin_y, pin_w, pin_h)
+                circle_center = (
+                    rect.x + rect.w // 2,
+                    rect.y + rect.h // 2,
+                )
+                circle_radius = max(1, rect.w // 2)
+
+            if not rect.colliderect(self.map_view_rect):
+                continue
+
+            if is_block:
                 pygame.draw.rect(screen, (80, 120, 210) if check.get("Kind") == "MapPopup" else red, rect)
                 pygame.draw.rect(screen, black, rect, max(1, int(2 * scale)))
                 n = (len(check.get("Items") or []) if check.get("Kind") == "MapPopup"
                      else len(check.get("Checks") or []))
-                self._text_center(screen, str(n), rect, max(11, int(side * 0.55)), (255, 255, 255))
+                self._text_center(
+                    screen, str(n), rect,
+                    max(1, int(min(rect.w, rect.h) * 0.55)),
+                    (255, 255, 255),
+                )
             else:
-                r = max(5, int(ssc.get("w", 5) * scale))
-                rect = pygame.Rect(cx - r, cy - r, r * 2, r * 2)
-                pygame.gfxdraw.filled_circle(screen, cx, cy, r, red)
-                pygame.gfxdraw.aacircle(screen, cx, cy, r, black)
+                pygame.gfxdraw.filled_circle(
+                    screen, circle_center[0], circle_center[1], circle_radius, red)
+                pygame.gfxdraw.aacircle(
+                    screen, circle_center[0], circle_center[1], circle_radius, black)
+            self.check_screen_anchors[index] = (anchor_x, anchor_y)
             self.check_screen_rects[index] = rect.inflate(6, 6)
             if index == self.selected_check_index:
                 pygame.draw.rect(screen, self.COLORS["line_light"], rect.inflate(8, 8), 2)
@@ -549,9 +698,6 @@ class LayoutMixin:
                 if name:
                     self._text(screen, name, (rect.right + 6, rect.y - 2), 14, self.COLORS["line_light"])
         screen.set_clip(prev_clip)
-        self._text(screen, f"{len(checks)} check(s) - click map to add, double-click to edit",
-                   (bg_rect.x + 6, bg_rect.bottom + 2), 13, self.COLORS["muted"])
-
     def _draw_linked_items(self, screen, item, bg_rect, depth=0, parent_path=(), parent_rect=None):
         if depth > 8:
             return

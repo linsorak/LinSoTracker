@@ -2,7 +2,9 @@ import os
 import pygame
 
 from Engine import MainMenu
-from Entities.Maps.SimpleCheck import SimpleCheck, ConditionsType
+from Entities.Maps.SimpleCheck import (
+    ConditionsType, STATE_COLOR_KEYS, SimpleCheck, aggregate_block_state,
+)
 
 
 class BlockChecks(SimpleCheck):
@@ -28,30 +30,20 @@ class BlockChecks(SimpleCheck):
         return self.list_checks
 
     def update(self, update_children=True):
-        self.logic_cpt = 0
-        self.all_logic = True
-        self.checked = True
         self.focused = False
         self.has_attached_item_on_child = False
 
         for check in self.list_checks:
             if update_children:
                 check.update()
-            if not check.hide and not check.checked:
-                if not check.checked:
-                    self.checked = False
-
-                if not self.focused:
-                    self.focused = check.focused
-
-                if check.state == ConditionsType.LOGIC:
-                    self.logic_cpt += 1
-                else:
-                    self.all_logic = False
-
+            if not check.hide and not check.checked and not self.focused:
+                self.focused = check.focused
             if check.dragged_icon_item_image and not check.hide:
                 self.has_attached_item_on_child = True
 
+        self.state, self.logic_cpt = aggregate_block_state(self.list_checks)
+        self.checked = self.state == ConditionsType.DONE
+        self.all_logic = self.state == ConditionsType.LOGIC
         font = self.map.tracker.core_service.get_font("mapFont")
         map_font_path = os.path.join(self.map.tracker.core_service.get_tracker_temp_path(), font["Name"])
         font_number = self.map.tracker.core_service.get_font("mapFontChecksNumber")
@@ -67,9 +59,7 @@ class BlockChecks(SimpleCheck):
             groups_datas["h"] * zoom
         )
 
-        color = "Done" if self.checked else (
-            "Logic" if self.all_logic else ("HaveLogic" if self.logic_cpt > 0 else "NotLogic")
-        )
+        color = STATE_COLOR_KEYS[self.state]
         self.pin_color = self.map.tracker.core_service.get_color_from_font(font, color)
 
         # --- Calcul du nombre de checks « logic » ---
@@ -187,13 +177,17 @@ class BlockChecks(SimpleCheck):
         return data
 
     def set_data(self, datas):
-        i = 0
-        for data in datas["checks_datas"]:
-            for check in self.list_checks:
-                if (check.id == data["id"]) and (check.name == data["name"]):
-                    i = i + 1
-                    check.set_data(data)
-                    break
+        if not isinstance(datas, dict):
+            return
+        checks_by_identity = {
+            (check.id, check.name): check for check in self.list_checks
+        }
+        for data in datas.get("checks_datas", []) or []:
+            if not isinstance(data, dict):
+                continue
+            check = checks_by_identity.get((data.get("id"), data.get("name")))
+            if check:
+                check.set_data(data)
 
     def all_check_hidden(self):
         hidden = 0

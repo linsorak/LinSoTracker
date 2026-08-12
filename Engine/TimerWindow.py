@@ -539,11 +539,18 @@ class TimerWindow:
 
     @staticmethod
     def check_signature(check):
+        entries = getattr(check, "dragged_items", [])
+        names = tuple(entry.get("name") for entry in entries if entry.get("name"))
+        base_names = tuple(
+            entry.get("base_name") for entry in entries if entry.get("base_name"))
+        if not names and getattr(check, "dragged_item_name", None):
+            names = (check.dragged_item_name,)
+            base_names = (getattr(check, "dragged_item_basename", None),)
         return (
             check.name,
             bool(getattr(check, "checked", False)),
-            getattr(check, "dragged_item_name", None),
-            getattr(check, "dragged_item_basename", None),
+            names,
+            base_names,
         )
 
     @staticmethod
@@ -625,9 +632,11 @@ class TimerWindow:
     @staticmethod
     def get_check_display_name(check_sig):
         check_name = check_sig[0]
-        attached_item_name = check_sig[2]
-        if attached_item_name:
-            return "{} : {}".format(attached_item_name, check_name)
+        attached_item_names = check_sig[2]
+        if attached_item_names:
+            if isinstance(attached_item_names, str):
+                attached_item_names = (attached_item_names,)
+            return "{} : {}".format(", ".join(attached_item_names), check_name)
         return check_name
 
     @staticmethod

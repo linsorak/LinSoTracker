@@ -11,6 +11,7 @@ import pygame
 
 from Tools import ptext
 from Tools.TemplateChecker import TemplateChecker
+from Engine.TemplateMaker.mapvalidation import MapTemplateValidator
 
 
 class ProjectIOMixin:
@@ -33,10 +34,13 @@ class ProjectIOMixin:
         return slots
 
     def _ensure_map_fonts(self):
-        """Seed missing map font slots (with their proper color keys)."""
+        """Seed missing map font slots and map-state colors."""
         for slot in self.MAP_FONT_SLOTS:
             if slot not in self.fonts:
                 self.fonts[slot] = copy.deepcopy(self.MAP_FONT_DEFAULTS[slot])
+        colors = self.fonts["mapFont"].setdefault("Colors", {})
+        for name, value in self.MAP_FONT_DEFAULTS["mapFont"]["Colors"].items():
+            colors.setdefault(name, copy.deepcopy(value))
 
     def _kind_fields(self, kind):
         return self.KIND_FIELDS.get(kind, []) + self.COMMON_FIELDS
@@ -102,6 +106,7 @@ class ProjectIOMixin:
             self.sheet_scroll = 0
 
             self.project_info = dict(info)
+            self.project_datas = copy.deepcopy(datas)
             fonts_section = next((s["Fonts"] for s in data if "Fonts" in s), None)
             self.fonts = dict(fonts_section) if fonts_section else self._default_fonts()
             self.font_files = {}
@@ -122,7 +127,8 @@ class ProjectIOMixin:
             self.selected_item_index = None
             self.selected_item_indices = set()
             self.item_modal_open = False
-            self.placed_items = self._items_from_tracker_json(data[3].get("Items", []))
+            self.placed_items = self._items_from_tracker_json(
+                data[3].get("Items", []), source_top_level=True)
             self.main_items = self.placed_items
             # Map template: load the Maps list (section 5) + preserve the rest
             if len(data) >= 5 and isinstance(data[4], dict):
@@ -132,6 +138,7 @@ class ProjectIOMixin:
                 self.maps = self._load_maps(data[4].get("Maps", []), folder)
                 self._ensure_map_extras()
                 self._ensure_map_fonts()
+                self._discard_empty_set_rule_actions()
             else:
                 self.is_map_template = False
                 self.maps_extra = {}
@@ -149,7 +156,7 @@ class ProjectIOMixin:
         except Exception as exc:
             self.message = f"Could not open project: {exc}"
 
-    def _items_from_tracker_json(self, items):
+    def _items_from_tracker_json(self, items, source_top_level=False):
         default_sheet = self.sheets[0]["name"] if self.sheets else "Normal"
         result = []
         for index, item in enumerate(items, start=1):
@@ -157,6 +164,7 @@ class ProjectIOMixin:
             kind = item.get("Kind", "Item")
             entry = {
                 "id": item.get("Id", index),
+                "_source_top_level": source_top_level,
                 "name": item.get("Name", f"Item {index}"),
                 "kind": kind,
                 "x": item.get("Positions", {}).get("x", 0),
@@ -177,6 +185,7 @@ class ProjectIOMixin:
                         "sheet": child.get("SheetInformation", {}).get("SpriteSheet", default_sheet),
                         "label": child.get("Label"),
                         "alt_label": child.get("AlternativeLabel"),
+                        "_raw": copy.deepcopy(child),
                     }
                     for child_index, child in enumerate(item.get("NextItems", []))
                 ],
@@ -451,6 +460,9 @@ class ProjectIOMixin:
             self.message = "Invalid template name."
             return
 
+        if self.is_map_template:
+            self._discard_empty_set_rule_actions()
+
         # Validate the whole template before writing anything
         sheet_files_preview = {}
         if self.sheets:
@@ -459,11 +471,22 @@ class ProjectIOMixin:
         else:
             sheet_files_preview["Normal"] = "items.png"
         preview_json = self._build_tracker_json(name, "background.png" if self.background else None, sheet_files_preview)
+        if self.is_map_template:
+            map_checker = MapTemplateValidator(
+                self.maps, self.maps_extra, self._all_template_item_names())
+            if not map_checker.is_valid():
+                self._open_error_popup(
+                    "Template cannot be saved",
+                    map_checker.errors,
+                )
+                return
+
         checker = TemplateChecker(preview_json)
         if not checker.is_valid():
-            errs = checker.errors
-            extra = f" (+{len(errs) - 2} more)" if len(errs) > 2 else ""
-            self.message = "Save blocked - " + " | ".join(str(e) for e in errs[:2]) + extra
+            self._open_error_popup(
+                "Template cannot be saved",
+                checker.errors,
+            )
             return
 
         template_dir = os.path.join(base_dir or self.main_menu.dev_template_directory, slug)
@@ -683,6 +706,12 @@ class ProjectIOMixin:
             data[asset_key]["Image"] = filename
         else:
             data[asset_key] = filename
+            if asset_key == "Background":
+                data["Dimensions"] = {
+                    "width": surface.get_width(),
+                    "height": surface.get_height(),
+                }
+
         self.message = f"{asset_key} set for {m['name']}."
 
     def _ensure_map_extras(self):
@@ -693,8 +722,6 @@ class ProjectIOMixin:
         e.setdefault("SizeGroupChecks", {"w": 16, "h": 16})
         e.setdefault("CptChecksPosition", {"x": 10, "y": 10})
         e.setdefault("ActionsConditions", {})
-        e.setdefault("RulesOptionsLists", [])
-        e.setdefault("RulesOptions", [])
 
     def _required_map_dimensions(self):
         """Window must be wide enough to host items + the widest map to its right
@@ -785,6 +812,14 @@ class ProjectIOMixin:
         self._copy_remaining_map_files(template_dir)
         for m in self.maps:
             self._save_map_popup_assets(m, template_dir)
+            # Fill asset filenames before copying the map payload: new maps use
+            # placeholders, and those generated names must be present in JSON.
+            data = m["data"]["Datas"]
+            self._save_one_map_asset(m, "Background", data, template_dir, fallback="bg")
+            self._save_one_map_asset(m, "SubMenuBackground", data, template_dir, fallback="submenu")
+            self._save_one_map_asset(m, "LeftArrow", data, template_dir, fallback="left")
+            self._save_one_map_asset(m, "RightArrow", data, template_dir, fallback="right")
+
             map_data = copy.deepcopy(m["data"])
             for check in map_data.get("ChecksList", []):
                 if check.get("Kind") == "MapPopup":
@@ -793,11 +828,6 @@ class ProjectIOMixin:
             # write the map json
             with open(os.path.join(template_dir, m["json_file"]), "w", encoding="utf-8") as f:
                 json.dump([map_data], f, indent=2)
-            data = m["data"]["Datas"]
-            self._save_one_map_asset(m, "Background", data, template_dir, fallback="bg")
-            self._save_one_map_asset(m, "SubMenuBackground", data, template_dir, fallback="submenu")
-            self._save_one_map_asset(m, "LeftArrow", data, template_dir, fallback="left")
-            self._save_one_map_asset(m, "RightArrow", data, template_dir, fallback="right")
         self._save_extra_section_assets(template_dir)
 
     def _strip_private_editor_fields(self, node):
@@ -967,6 +997,19 @@ class ProjectIOMixin:
                 for child in self._iter_all_items(item.get(key) or []):
                     yield child
 
+    def _all_template_item_names(self):
+        """Names addressable by map logic, including every evolution stage."""
+        names = set()
+        for item in self._iter_all_items(self.main_items):
+            name = item.get("name")
+            if name:
+                names.add(name)
+            for child in item.get("children") or []:
+                child_name = child.get("name")
+                if child_name:
+                    names.add(child_name)
+        return sorted(names)
+
     def _save_submenu_backgrounds(self, template_dir, source_dir=None):
         for item in self._iter_all_items(self.main_items):
             if item.get("kind") not in ("SubMenuItem", "MultipleChoiceItem"):
@@ -1032,7 +1075,21 @@ class ProjectIOMixin:
     def _build_tracker_json(self, name, background_name, sheet_files):
         fonts = self.fonts or self._default_fonts()
         self._ref_identity_cache = None
-        self._save_id_counter = 0
+        existing_ids = []
+
+        def collect_ids(item):
+            ident = item.get("id")
+            if type(ident) is int and ident >= 0:
+                existing_ids.append(ident)
+            for field in ("HintItems", "ActiveItems", "InactiveItems"):
+                for linked in item.get(field) or []:
+                    collect_ids(linked)
+            for submenu_item in item.get("_submenu_items") or []:
+                collect_ids(submenu_item)
+
+        for main_item in self.main_items:
+            collect_ids(main_item)
+        self._save_id_counter = max(existing_ids, default=-1) + 1
         items_sheets = {}
         for sheet in self.sheets:
             items_sheets[sheet["name"]] = {
@@ -1050,17 +1107,29 @@ class ProjectIOMixin:
         informations.setdefault("Version", "0.1")
         if "Comments" not in informations and "Credits" not in informations:
             informations["Comments"] = "Generated by LinSoTracker Template Maker"
+        datas = copy.deepcopy(self.project_datas or {})
+        datas.update({
+            "Dimensions": {"width": self.template_size[0], "height": self.template_size[1]},
+            "BackgroundColor": dict(self.background_color or {"r": 0, "g": 0, "b": 0}),
+            "Items": items_sheets,
+        })
+        if ("BackgroundPosition" in (self.project_datas or {})
+                or self.background_position != {"x": 0, "y": 0}):
+            datas["BackgroundPosition"] = dict(self.background_position)
+        else:
+            datas.pop("BackgroundPosition", None)
+
+        if background_name:
+            datas["Background"] = background_name
+        else:
+            datas.pop("Background", None)
+
         sections = [
             {
                 "Informations": informations
             },
             {
-                "Datas": {
-                    "Dimensions": {"width": self.template_size[0], "height": self.template_size[1]},
-                    "BackgroundColor": dict(self.background_color or {"r": 0, "g": 0, "b": 0}),
-                    "BackgroundPosition": dict(self.background_position or {"x": 0, "y": 0}),
-                    "Items": items_sheets
-                }
+                "Datas": datas
             },
             {
                 "Fonts": fonts
@@ -1072,9 +1141,6 @@ class ProjectIOMixin:
                 ]
             }
         ]
-        if background_name:
-            sections[1]["Datas"]["Background"] = background_name
-
         # Map template: build section 5 (Maps list + preserved extras)
         if self.is_map_template and self.maps:
             section = {"Maps": [{"Id": i, "Datas": m["json_file"]} for i, m in enumerate(self.maps)]}
@@ -1087,7 +1153,8 @@ class ProjectIOMixin:
         referenced = self._referenced_item_identities(items)
         return [
             item for item in items
-            if not self._item_ref_aliases(item).intersection(referenced)
+            if item.get("_source_top_level")
+            or not self._item_ref_aliases(item).intersection(referenced)
         ]
 
     def _referenced_item_identities(self, items):
@@ -1112,15 +1179,21 @@ class ProjectIOMixin:
     def _build_item_json(self, item):
         kind = item.get("kind", "Item")
         sheet_name = item.get("sheet", "Normal")
-        # Assign a fresh unique Id across the whole template (top-level + linked refs)
+        # Preserve IDs because tracker saves restore items by (name, id).
+        # Only allocate an ID when an item genuinely has none; the explicit
+        # "Fix IDs" action remains responsible for intentional renumbering.
         if getattr(self, "_save_id_counter", None) is None:
             self._save_id_counter = 0
-        assigned_id = self._save_id_counter
-        self._save_id_counter += 1
+        assigned_id = item.get("id")
+        if type(assigned_id) is not int or assigned_id < 0:
+            assigned_id = self._save_id_counter
+            self._save_id_counter += 1
+            item["id"] = assigned_id
 
         # EditableBox is sprite-less and has no enable/hint/opacity/sheet fields
         if kind == "EditableBox":
-            return {
+            data = copy.deepcopy(item.get("_raw", {}))
+            data.update({
                 "Id": assigned_id,
                 "Kind": "EditableBox",
                 "Name": item["name"],
@@ -1129,10 +1202,12 @@ class ProjectIOMixin:
                 "PlaceHolder": item.get("PlaceHolder", ""),
                 "Style": item.get("Style", {}),
                 "Lines": item.get("Lines", []),
-            }
+            })
+            return data
 
         if kind == "ImageItem":
-            data = {
+            data = copy.deepcopy(item.get("_raw", {}))
+            data.update({
                 "Id": assigned_id,
                 "Kind": "ImageItem",
                 "Name": item["name"],
@@ -1141,7 +1216,7 @@ class ProjectIOMixin:
                 "isActive": item.get("isActive", True),
                 "Hint": item.get("hint"),
                 "OpacityDisable": item.get("opacity", 0.5),
-            }
+            })
             if item.get("Image"):
                 data["Image"] = item.get("Image")
             else:
@@ -1165,7 +1240,7 @@ class ProjectIOMixin:
             return data
 
         # Start from the raw json (if any) to keep fields of unsupported kinds intact
-        data = dict(item.get("_raw", {}))
+        data = copy.deepcopy(item.get("_raw", {}))
         data.update({
             "Id": assigned_id,
             "Kind": kind,
@@ -1188,7 +1263,11 @@ class ProjectIOMixin:
                 continue
             output_key = spec.get("json", key)
             value = item.get(key, spec["default"])
-            if spec.get("omit_default") and value == spec["default"]:
+            raw = item.get("_raw")
+            raw_has_key = output_key in (raw or {})
+            loaded_as_same_kind = isinstance(raw, dict) and raw.get("Kind") == kind
+            if (spec.get("omit_default") and value == spec["default"]
+                    and loaded_as_same_kind and not raw_has_key):
                 data.pop(output_key, None)
                 continue
             if spec["type"] == "sprite":
@@ -1226,7 +1305,8 @@ class ProjectIOMixin:
                     data[output_key] = value
             elif spec["type"] == "strnull":
                 # Optional labels are omitted when empty; "Label" stays (checker needs it)
-                if value in (None, "") and output_key != "Label":
+                raw_has_key = output_key in (item.get("_raw") or {})
+                if value in (None, "") and output_key != "Label" and not raw_has_key:
                     data.pop(output_key, None)
                 else:
                     data[output_key] = value
@@ -1249,7 +1329,8 @@ class ProjectIOMixin:
         if kind in self.EVOLUTION_KINDS:
             next_items = []
             for child in item.get("children", []):
-                nxt = {
+                nxt = copy.deepcopy(child.get("_raw", {}))
+                nxt.update({
                     "Id": child["id"],
                     "Name": child["name"],
                     "SheetInformation": {
@@ -1258,11 +1339,12 @@ class ProjectIOMixin:
                         "SpriteSheet": child.get("sheet", sheet_name)
                     },
                     "Label": child.get("label"),
-                }
-                if child.get("alt_label") not in (None, ""):
+                })
+                if child.get("alt_label") not in (None, "") or "AlternativeLabel" in (child.get("_raw") or {}):
                     nxt["AlternativeLabel"] = child.get("alt_label")
+                else:
+                    nxt.pop("AlternativeLabel", None)
                 next_items.append(nxt)
             data["NextItems"] = next_items
 
         return data
-

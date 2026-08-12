@@ -3,7 +3,7 @@ import os
 import pygame
 
 from Engine import MainMenu
-from Entities.Maps.CheckListItem import CheckListItem
+from Entities.Maps.CheckListItem import CheckListItem, wrap_popup_text
 
 
 class MapNameListItem(CheckListItem):
@@ -20,12 +20,19 @@ class MapNameListItem(CheckListItem):
 
         temp_surface = pygame.Surface(([0, 0]), pygame.SRCALPHA, 32)
         temp_surface = temp_surface.convert_alpha()
+        display_name = wrap_popup_text(
+            self.name, font_path,
+            font["Size"] * self.tracker.core_service.zoom,
+            self.popup_wrap_width,
+        )
+        self.display_line_count = display_name.count("\n") + 1
         self.surface, self.position_draw = MainMenu.MainMenu.draw_text(
-            text=self.name,
+            text=display_name,
             font_name=font_path,
             color=self.color,
             font_size=font["Size"] * self.tracker.core_service.zoom,
             surface=temp_surface,
+            align="center",
             position=(self.position["x"], self.position["y"]),
             outline=1 * self.tracker.core_service.zoom)
 

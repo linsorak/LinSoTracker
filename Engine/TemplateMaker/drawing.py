@@ -1,5 +1,6 @@
 import copy
 import json
+import math
 import os
 import re
 import shutil
@@ -14,13 +15,45 @@ from Tools import ptext
 class DrawingMixin:
     def _render_ui_text(self, text, size=None, color=None):
         font_size = int(size or self.font_size)
-        font = pygame.font.Font(getattr(self, "ui_font_path", None), font_size * 2)
-        text_surface = font.render(str(text), True, color or self.font_color)
-        return pygame.transform.smoothscale(
+        font_path = getattr(self, "ui_font_path", None)
+        resolved_color = tuple(color or self.font_color)
+        text = str(text)
+        font_key = (font_path, font_size * 2)
+        font_cache = getattr(self, "_ui_font_cache", None)
+        if font_cache is None:
+            font_cache = self._ui_font_cache = {}
+        font = font_cache.get(font_key)
+        if font is None:
+            font = pygame.font.Font(font_path, font_size * 2)
+            font_cache[font_key] = font
+
+        cache = getattr(self, "_ui_text_cache", None)
+        if cache is None:
+            cache = self._ui_text_cache = {}
+        cache_key = (font_key, text, resolved_color)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # pygame can return a zero-width surface for an empty string. Passing
+        # that surface to smoothscale crashes pygame-ce natively on Windows.
+        if not text:
+            rendered = pygame.Surface(
+                (1, max(1, font.get_linesize() // 2)), pygame.SRCALPHA
+            )
+            cache[cache_key] = rendered
+            return rendered
+
+        text_surface = font.render(text, True, resolved_color)
+        rendered = pygame.transform.smoothscale(
             text_surface,
             (max(1, text_surface.get_width() // 2), max(1, text_surface.get_height() // 2))
         )
-
+        if len(cache) >= 1024:
+            for old_key in list(cache)[:256]:
+                cache.pop(old_key, None)
+        cache[cache_key] = rendered
+        return rendered
     def _text(self, surface, text, position, size=None, color=None):
         text_surface = self._render_ui_text(text, size, color)
         rect = text_surface.get_rect(topleft=position)
@@ -87,10 +120,17 @@ class DrawingMixin:
             font_size = max(12, self.font_size - 2)
         self._text_center(screen, label, rect, font_size, self.COLORS["button_text"])
 
-    @staticmethod
-    def _draw_aa_rect(screen, color, rect, width=0, border_radius=0):
+    def _draw_aa_rect(self, screen, color, rect, width=0, border_radius=0):
         if border_radius <= 0:
             pygame.draw.rect(screen, color, rect, width)
+            return
+        cache = getattr(self, "_aa_rect_cache", None)
+        if cache is None:
+            cache = self._aa_rect_cache = {}
+        cache_key = (rect.size, tuple(color), width, border_radius)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            screen.blit(cached, rect.topleft)
             return
         scale = 2
         surf = pygame.Surface((rect.w * scale, rect.h * scale), pygame.SRCALPHA)
@@ -101,8 +141,68 @@ class DrawingMixin:
             width * scale,
             border_radius=border_radius * scale
         )
-        screen.blit(pygame.transform.smoothscale(surf, rect.size), rect.topleft)
+        rendered = pygame.transform.smoothscale(surf, rect.size)
+        if len(cache) >= 128:
+            for old_key in list(cache)[:32]:
+                cache.pop(old_key, None)
+        cache[cache_key] = rendered
+        screen.blit(rendered, rect.topleft)
 
+    def _draw_cached_map_background(self, screen, background, bg_rect, view_rect):
+        visible_rect = bg_rect.clip(view_rect)
+        if visible_rect.w <= 0 or visible_rect.h <= 0:
+            return
+
+        local_visible = visible_rect.move(-bg_rect.x, -bg_rect.y)
+        cache_key = (id(background), background.get_size(), bg_rect.size)
+        cache_data = getattr(self, "_map_background_cache", None)
+        if cache_data and cache_data["key"] == cache_key \
+                and cache_data["rect"].contains(local_visible):
+            cache_rect = cache_data["rect"]
+            scaled = cache_data["surface"]
+        else:
+            desired = local_visible.inflate(
+                max(128, local_visible.w),
+                max(128, local_visible.h),
+            )
+            desired = desired.clip(pygame.Rect((0, 0), bg_rect.size))
+
+            source_w, source_h = background.get_size()
+            source_rect = pygame.Rect(
+                max(0, math.floor(desired.x * source_w / bg_rect.w)),
+                max(0, math.floor(desired.y * source_h / bg_rect.h)),
+                0,
+                0,
+            )
+            source_right = min(
+                source_w, math.ceil(desired.right * source_w / bg_rect.w))
+            source_bottom = min(
+                source_h, math.ceil(desired.bottom * source_h / bg_rect.h))
+            source_rect.w = max(1, source_right - source_rect.x)
+            source_rect.h = max(1, source_bottom - source_rect.y)
+
+            cache_left = round(source_rect.x * bg_rect.w / source_w)
+            cache_top = round(source_rect.y * bg_rect.h / source_h)
+            cache_right = round(source_rect.right * bg_rect.w / source_w)
+            cache_bottom = round(source_rect.bottom * bg_rect.h / source_h)
+            cache_rect = pygame.Rect(
+                cache_left,
+                cache_top,
+                max(1, cache_right - cache_left),
+                max(1, cache_bottom - cache_top),
+            )
+            source = background.subsurface(source_rect)
+            scaled = pygame.transform.smoothscale(source, cache_rect.size)
+            self._map_background_cache = {
+                "key": cache_key,
+                "rect": cache_rect,
+                "surface": scaled,
+            }
+
+        screen.blit(
+            scaled,
+            (bg_rect.x + cache_rect.x, bg_rect.y + cache_rect.y),
+        )
     @staticmethod
     def _lighten(color, amount):
         return tuple(min(255, channel + amount) for channel in color)
@@ -253,7 +353,8 @@ class DrawingMixin:
         "fonts": "fonts_scroll", "project": "project_scroll",
         "maps_checks": "maps_checks_scroll", "map_data": "map_data_scroll",
         "cond_builder": "cond_builder_scroll", "hide_editor": "hide_editor_scroll",
-        "name_picker": "name_picker_scroll",
+        "name_picker": "name_picker_scroll", "error_popup": "error_popup_scroll",
+        "field_editor": "field_editor_scroll",
     }
 
     def _register_scrollbar(self, screen, name, track, scroll, max_scroll, content_h, view_h):
@@ -266,8 +367,10 @@ class DrawingMixin:
         pygame.draw.rect(screen, self.COLORS["gold"], thumb)
         self._scrollbars[name] = {"track": track, "thumb": thumb, "max": max_scroll}
 
-    def _start_scrollbar_drag(self, mouse_position):
+    def _start_scrollbar_drag(self, mouse_position, only=None):
         for name, sb in (self._scrollbars or {}).items():
+            if only is not None and name != only:
+                continue
             if sb["thumb"].collidepoint(mouse_position):
                 self.dragging_scrollbar = name
                 self.scrollbar_drag_offset = mouse_position[1] - sb["thumb"].y
@@ -307,4 +410,196 @@ class DrawingMixin:
     def _flash_status(self, message, duration_ms=2500):
         self.message = message
         self.status_flash_until = pygame.time.get_ticks() + duration_ms
+
+    def _open_error_popup(self, title, errors):
+        self.error_popup_title = str(title or "Error")
+        self.error_popup_errors = [str(error) for error in errors]
+        self.error_popup_scroll = 0
+        self.error_popup_max_scroll = 0
+        self.error_popup_copied_until = 0
+        self.error_popup_open = True
+        self.message = "Save blocked. Review the error details."
+
+    def _close_error_popup(self):
+        self.error_popup_open = False
+        self.error_popup_buttons = {}
+        self.error_popup_scroll = 0
+        self.error_popup_max_scroll = 0
+
+    def _error_popup_text(self):
+        lines = [self.error_popup_title, ""]
+        lines.extend(
+            f"{index}. {error}"
+            for index, error in enumerate(self.error_popup_errors, start=1)
+        )
+        return "\n".join(lines)
+
+    def _copy_error_popup(self):
+        self._set_prompt_clipboard(self._error_popup_text())
+        self.error_popup_copied_until = pygame.time.get_ticks() + 1800
+        self.message = "Error details copied to the clipboard."
+
+    def _scroll_error_popup(self, wheel_y):
+        self.error_popup_scroll = max(
+            0,
+            min(
+                self.error_popup_max_scroll,
+                self.error_popup_scroll - int(wheel_y) * 48,
+            ),
+        )
+
+    def _wrap_error_popup_text(self, text, max_width, size=15):
+        paragraphs = str(text).replace("\r", "").split("\n")
+        wrapped = []
+        for paragraph in paragraphs:
+            if not paragraph:
+                wrapped.append("")
+                continue
+            words = paragraph.split(" ")
+            line = ""
+            for word in words:
+                candidate = word if not line else f"{line} {word}"
+                if self._render_ui_text(candidate, size, self.COLORS["line_light"]).get_width() <= max_width:
+                    line = candidate
+                    continue
+                if line:
+                    wrapped.append(line)
+                    line = ""
+                remainder = word
+                while remainder and self._render_ui_text(
+                        remainder, size, self.COLORS["line_light"]).get_width() > max_width:
+                    low, high = 1, len(remainder)
+                    while low < high:
+                        middle = (low + high + 1) // 2
+                        width = self._render_ui_text(
+                            remainder[:middle], size, self.COLORS["line_light"]
+                        ).get_width()
+                        if width <= max_width:
+                            low = middle
+                        else:
+                            high = middle - 1
+                    wrapped.append(remainder[:low])
+                    remainder = remainder[low:]
+                line = remainder
+            if line:
+                wrapped.append(line)
+        return wrapped or [""]
+
+    def _draw_error_popup(self, screen):
+        sw, sh = screen.get_size()
+        overlay = pygame.Surface((sw, sh), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 195))
+        screen.blit(overlay, (0, 0))
+
+        modal_w = min(1000, max(520, sw - 80))
+        modal_h = min(700, max(420, sh - 80))
+        modal = pygame.Rect(
+            (sw - modal_w) // 2,
+            (sh - modal_h) // 2,
+            modal_w,
+            modal_h,
+        )
+        self._draw_popup(screen, modal, radius=12)
+        self.error_popup_buttons = {}
+
+        self._text(
+            screen,
+            self.error_popup_title,
+            (modal.x + 24, modal.y + 18),
+            24,
+            self.COLORS["gold"],
+        )
+        count = len(self.error_popup_errors)
+        summary = (
+            "1 error prevents saving."
+            if count == 1 else f"{count} errors prevent saving."
+        )
+        self._text(
+            screen,
+            summary,
+            (modal.x + 24, modal.y + 52),
+            14,
+            (255, 150, 150),
+        )
+        self._text(
+            screen,
+            "Use the button below or Ctrl+C to copy all details.",
+            (modal.x + 24, modal.y + 72),
+            12,
+            self.COLORS["muted"],
+        )
+
+        area = pygame.Rect(
+            modal.x + 24,
+            modal.y + 102,
+            modal.w - 48,
+            modal.h - 176,
+        )
+        self._draw_card(
+            screen,
+            area,
+            (10, 12, 18),
+            border_color=(80, 55, 60),
+            radius=8,
+        )
+        text_width = area.w - 38
+        groups = []
+        for index, error in enumerate(self.error_popup_errors, start=1):
+            groups.append(
+                self._wrap_error_popup_text(
+                    f"{index}. {error}", text_width, size=15
+                )
+            )
+        line_height = 23
+        content_h = 18 + sum(len(lines) * line_height + 10 for lines in groups)
+        self.error_popup_max_scroll = max(0, content_h - area.h)
+        self.error_popup_scroll = max(
+            0, min(self.error_popup_scroll, self.error_popup_max_scroll)
+        )
+
+        previous_clip = screen.get_clip()
+        screen.set_clip(area.inflate(-8, -8))
+        y = area.y + 10 - self.error_popup_scroll
+        for lines in groups:
+            for line in lines:
+                self._text(
+                    screen,
+                    line,
+                    (area.x + 12, y),
+                    15,
+                    self.COLORS["line_light"],
+                )
+                y += line_height
+            y += 10
+        screen.set_clip(previous_clip)
+        track = pygame.Rect(area.right - 8, area.y + 8, 4, area.h - 16)
+        self._register_scrollbar(
+            screen,
+            "error_popup",
+            track,
+            self.error_popup_scroll,
+            self.error_popup_max_scroll,
+            content_h,
+            area.h,
+        )
+
+        copy_button = pygame.Rect(modal.x + 24, modal.bottom - 52, 170, 32)
+        close_button = pygame.Rect(modal.right - 124, modal.bottom - 52, 100, 32)
+        self.error_popup_buttons["copy"] = copy_button
+        self.error_popup_buttons["close"] = close_button
+        copied = pygame.time.get_ticks() < self.error_popup_copied_until
+        self._draw_button(
+            screen,
+            copy_button,
+            "Copied!" if copied else "Copy all errors",
+            (36, 124, 87),
+            hover=self.hover_modal_key == "error_copy",
+        )
+        self._draw_button(
+            screen,
+            close_button,
+            "Close",
+            self.COLORS["red"],
+            hover=self.hover_modal_key == "error_close",
+        )
 

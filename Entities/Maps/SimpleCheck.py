@@ -3,15 +3,115 @@ from enum import Enum
 import pygame
 from pygame import gfxdraw
 
+from Entities.Maps.AttachedItems import (
+    add_attached_item, load_attached_items, refresh_attached_images,
+    remove_last_attached_item, serialize_attached_items, sync_legacy_attachment,
+)
+
 
 class ConditionsType(Enum):
     DONE = 0
     LOGIC = 1
-    NOT_LOGIC = 2
+    OUT_OF_LOGIC = 2
+    SCOUTABLE = 3
+    UNCERTAIN = 4
+    NOT_LOGIC = 5
+    PARTIAL_LOGIC = 6
 
+
+STATE_COLOR_KEYS = {
+    ConditionsType.DONE: "Done",
+    ConditionsType.LOGIC: "Logic",
+    ConditionsType.OUT_OF_LOGIC: "OutOfLogic",
+    ConditionsType.SCOUTABLE: "Scoutable",
+    ConditionsType.UNCERTAIN: "Uncertain",
+    ConditionsType.NOT_LOGIC: "NotLogic",
+    ConditionsType.PARTIAL_LOGIC: "HaveLogic",
+}
+
+CONDITION_STATE_FIELDS = (
+    (ConditionsType.LOGIC, "Conditions"),
+    (ConditionsType.OUT_OF_LOGIC, "OutOfLogicConditions"),
+    (ConditionsType.SCOUTABLE, "ScoutableConditions"),
+    (ConditionsType.UNCERTAIN, "UncertainConditions"),
+)
+
+_TRACKER_CALLS = (
+    ("labelIs(", "tracker.labelIs("),
+    ("haveAlternateValue(", "tracker.haveAlternateValue("),
+    ("haveCheck(", "tracker.have_check("),
+    ("isChecked(", "tracker.isChecked("),
+    ("isVisible(", "tracker.isVisible("),
+    ("rules(", "tracker.rules("),
+    ("have(", "tracker.have("),
+    ("do(", "tracker.do("),
+)
+
+
+def normalize_item_count(value):
+    """Return a safe positive weight for a map check."""
+    if isinstance(value, bool):
+        return 1
+    try:
+        return max(1, int(value))
+    except (TypeError, ValueError):
+        return 1
+
+
+def compile_map_condition(value, filename):
+    if not isinstance(value, str) or not value.strip():
+        return None
+    expression = value.strip()
+    for source, replacement in _TRACKER_CALLS:
+        expression = expression.replace(source, replacement)
+    return compile(expression, filename, "eval")
+
+
+def evaluate_map_condition(value, compiled, tracker):
+    if compiled is not None:
+        return bool(eval(compiled, {"__builtins__": {}}, {"tracker": tracker}))
+    return bool(value)
+
+
+def resolve_condition_state(condition_values, compiled_conditions, tracker):
+    """Return the first matching state in green/yellow/blue/purple order."""
+    for state, _field in CONDITION_STATE_FIELDS:
+        value = condition_values.get(state)
+        if value in (None, ""):
+            continue
+        try:
+            if evaluate_map_condition(value, compiled_conditions.get(state), tracker):
+                return state
+        except Exception:
+            continue
+    return ConditionsType.NOT_LOGIC
+
+
+def aggregate_block_state(checks):
+    """Summarize visible, unfinished child checks for a Block pin."""
+    pending = [check for check in checks if not check.hide and not check.checked]
+    if not pending:
+        return ConditionsType.DONE, 0
+
+    logic_count = sum(
+        check.item_count for check in pending if check.state == ConditionsType.LOGIC)
+    if all(check.state == ConditionsType.LOGIC for check in pending):
+        return ConditionsType.LOGIC, logic_count
+    if logic_count:
+        return ConditionsType.PARTIAL_LOGIC, logic_count
+    for state in (
+            ConditionsType.OUT_OF_LOGIC,
+            ConditionsType.SCOUTABLE,
+            ConditionsType.UNCERTAIN):
+        if any(check.state == state for check in pending):
+            return state, 0
+    return ConditionsType.NOT_LOGIC, 0
 
 class SimpleCheck:
-    def __init__(self, ident, name, positions, linked_map, conditions, hide=False, zone=None, group=None):
+    def __init__(self, ident, name, positions, linked_map, conditions, hide=False,
+                 zone=None, group=None, item_count=1,
+                 out_of_logic_conditions=None, scoutable_conditions=None,
+                 uncertain_conditions=None):
         self.state = None
         self.id = ident
         self.name = name
@@ -22,10 +122,25 @@ class SimpleCheck:
         self.pin_rect = None
         self.checked = False
         self.conditions = conditions
+        self.out_of_logic_conditions = out_of_logic_conditions
+        self.scoutable_conditions = scoutable_conditions
+        self.uncertain_conditions = uncertain_conditions
+        self.condition_values = {
+            ConditionsType.LOGIC: conditions,
+            ConditionsType.OUT_OF_LOGIC: out_of_logic_conditions,
+            ConditionsType.SCOUTABLE: scoutable_conditions,
+            ConditionsType.UNCERTAIN: uncertain_conditions,
+        }
+        self.compiled_conditions_by_state = {
+            state: compile_map_condition(value, "<simple-check-condition>")
+            for state, value in self.condition_values.items()
+        }
+        self.compiled_conditions = self.compiled_conditions_by_state[ConditionsType.LOGIC]
         self.hide = hide
         self.focused = False
         self.zone = zone
         self.group = group
+        self.item_count = normalize_item_count(item_count)
         self.zoom = self.map.tracker.core_service.zoom
         self.pin_rect = pygame.Rect(0, 0, 1, 1)
         self.dragged_item_name = None
@@ -34,42 +149,17 @@ class SimpleCheck:
         self.dragged_icon_item_image = None
         self._dragged_scaled_cache_key = None
 
-        if type(self.conditions) == str:
-            self.conditions = self.conditions.strip()
-            self.conditions = self.conditions.replace("have(", "self.map.tracker.have(")
-            self.conditions = self.conditions.replace("do(", "self.map.tracker.do(")
-            self.conditions = self.conditions.replace("rules(", "self.map.tracker.rules(")
-            self.conditions = self.conditions.replace("haveCheck(", "self.map.tracker.have_check(")
-            self.conditions = self.conditions.replace("haveAlternateValue(", "self.map.tracker.haveAlternateValue(")
-            self.conditions = self.conditions.replace("isChecked(", "self.map.tracker.isChecked(")
-            self.conditions = self.conditions.replace("isVisible(", "self.map.tracker.isVisible(")
-            self.compiled_conditions = compile(self.conditions, "<simple-check-condition>", "eval")
-        else:
-            self.compiled_conditions = None
-
-        try:
-            self.state = ConditionsType.LOGIC if self.evaluate_conditions() else ConditionsType.NOT_LOGIC
-            if self.checked:
-                self.state = ConditionsType.DONE
-        except Exception:
-            self.state = ConditionsType.NOT_LOGIC
+        self.state = self.evaluate_state()
 
     def update(self):
         font = self.map.tracker.core_service.get_font("mapFont")
         core_service = self.map.tracker.core_service
         index_positions = self.map.index_positions
-        simple_check_datas = self.map.tracker.tracker_json_data[4]["SizeSimpleCheck"]
 
-        if self.evaluate_conditions():
-            self.state = ConditionsType.LOGIC
-            self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "Logic")
-        else:
-            self.state = ConditionsType.NOT_LOGIC
-            self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "NotLogic")
-
+        self.state = ConditionsType.DONE if self.checked else self.evaluate_state()
+        self.pin_color = self.map.tracker.core_service.get_color_from_font(
+            font, STATE_COLOR_KEYS[self.state])
         if self.checked:
-            self.state = ConditionsType.DONE
-            self.pin_color = self.map.tracker.core_service.get_color_from_font(font, "Done")
             self.focused = False
 
         simple_check_datas = self.map.tracker.tracker_json_data[4]["SizeSimpleCheck"]
@@ -79,16 +169,23 @@ class SimpleCheck:
         self.update_dragged_image()
 
     def evaluate_conditions(self):
-        if self.compiled_conditions:
-            return eval(self.compiled_conditions)
-        return bool(self.conditions)
+        return evaluate_map_condition(
+            self.conditions, self.compiled_conditions, self.map.tracker)
+
+    def evaluate_state(self):
+        return resolve_condition_state(
+            self.condition_values, self.compiled_conditions_by_state, self.map.tracker)
 
     def draw_dragged_image(self, screen):
-        if self.dragged_icon_item_image:
-            dragged_x = self.pin_rect.x - (self.dragged_icon_item_image.get_rect().w / 3)
-            dragged_y = self.pin_rect.y - (self.dragged_icon_item_image.get_rect().h / 3)
-            screen.blit(self.dragged_icon_item_image, (dragged_x, dragged_y))
-
+        images = self.dragged_icon_item_images
+        if not images:
+            return
+        spacing = max(10, int(18 * self.map.tracker.core_service.zoom))
+        total_width = images[0].get_width() + spacing * (len(images) - 1)
+        start_x = self.pin_rect.centerx - total_width // 2
+        y = self.pin_rect.y - images[0].get_height() + 4
+        for offset, image in enumerate(images):
+            screen.blit(image, (start_x + offset * spacing, y))
     def draw(self, screen):
         if not self.hide:
             # zoom = self.map.tracker.core_service.zoom
@@ -133,50 +230,25 @@ class SimpleCheck:
                 group_check.update()
 
     def right_click(self, mouse_position):
-        if self.dragged_item_name:
-            self.dragged_item_name = None
-            self.dragged_item_basename = None
-            self.dragged_item_index = None
-            self.dragged_icon_item_image = None
-            self._dragged_scaled_cache_key = None
+        if remove_last_attached_item(self):
+            self.update_dragged_image()
             self.update()
-
     def wheel_click(self, mouse_position):
         if not self.checked:
             self.focused = not self.focused
 
     def update_dragged_image(self):
-        if self.dragged_item_name:
-            item = self.map.tracker.find_item(self.dragged_item_name, self.dragged_item_name == self.dragged_item_basename)
-            source_image = None
-            if item:
-                if hasattr(item, "next_item_index"):
-                    if self.dragged_item_index > -1:
-                        source_image = item.next_items[self.dragged_item_index]["Image"]
-                    else:
-                        source_image = item.colored_image
-                else:
-                    source_image = item.colored_image
-            else:
-                source_image = self.dragged_icon_item_image
-
-            if source_image is None:
-                return
-
-            zoom = self.map.tracker.core_service.zoom
-            cache_key = (id(source_image), zoom)
-            if cache_key != self._dragged_scaled_cache_key:
-                self.dragged_icon_item_image = pygame.transform.smoothscale(
-                    source_image, (30 * zoom, 30 * zoom))
-                self._dragged_scaled_cache_key = cache_key
-
+        zoom = self.map.tracker.core_service.zoom
+        size = max(1, int(30 * zoom))
+        refresh_attached_images(
+            self, self.map.tracker, (size, size))
 
     def set_new_current_image(self, name, base_name, index=None):
-        self.dragged_item_name = name
-        self.dragged_item_basename = base_name
-        self.dragged_item_index = index
+        if not add_attached_item(self, name, base_name, index):
+            return False
+        self.update_dragged_image()
         self.update()
-
+        return True
 
     def get_rect(self):
         return self.pin_rect
@@ -185,23 +257,24 @@ class SimpleCheck:
         return self.pin_rect.x, self.pin_rect.y
 
     def get_data(self):
-        data = {"id": self.id,
-                "name": self.name,
-                "checked": self.checked,
-                "hide": self.hide,
-                "focused": self.focused,
-                "dragged_item_name": self.dragged_item_name,
-                "dragged_item_basename": self.dragged_item_basename,
-                "dragged_item_index": self.dragged_item_index}
-        return data
+        sync_legacy_attachment(self)
+        return {
+            "id": self.id,
+            "name": self.name,
+            "checked": self.checked,
+            "hide": self.hide,
+            "focused": self.focused,
+            "dragged_items": serialize_attached_items(self),
+            "dragged_item_name": self.dragged_item_name,
+            "dragged_item_basename": self.dragged_item_basename,
+            "dragged_item_index": self.dragged_item_index,
+        }
 
     def set_data(self, datas):
         self.checked = datas.get("checked", False)
         self.hide = datas.get("hide", False)
         self.focused = datas.get("focused", False)
-        self.dragged_item_name = datas.get("dragged_item_name", None)
-        self.dragged_item_basename = datas.get("dragged_item_basename", None)
-        self.dragged_item_index = datas.get("dragged_item_index", None)
+        load_attached_items(self, datas)
         self.update()
         self.update_dragged_image()
 

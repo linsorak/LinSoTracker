@@ -53,15 +53,24 @@ class Map:
                 if kind == "Block":
                     for check_item in check.get("Checks", []):
                         temp_check = CheckListItem(check_item["Id"], check_item["Name"], check["Positions"],
-                                                   check_item["Conditions"], self.tracker,
-                                                   group=check_item.get("Group", None))
+                                                   check_item.get("Conditions"), self.tracker,
+                                                   group=check_item.get("Group", None),
+                                                   item_count=check_item.get("ItemCount", 1),
+                                                   out_of_logic_conditions=check_item.get("OutOfLogicConditions"),
+                                                   scoutable_conditions=check_item.get("ScoutableConditions"),
+                                                   uncertain_conditions=check_item.get("UncertainConditions"))
                         block.add_check(temp_check)
                         self._register_grouped_check(temp_check)
                 self.checks_list.append(block)
                 self.block_checks.append(block)
             elif kind == "SimpleCheck":
                 simple_check = SimpleCheck(check["Id"], check["Name"], check["Positions"], self,
-                                           check["Conditions"], zone=check.get("Zone"), group=check.get("Group", None))
+                                           check.get("Conditions"), zone=check.get("Zone"),
+                                           group=check.get("Group", None),
+                                           item_count=check.get("ItemCount", 1),
+                                           out_of_logic_conditions=check.get("OutOfLogicConditions"),
+                                           scoutable_conditions=check.get("ScoutableConditions"),
+                                           uncertain_conditions=check.get("UncertainConditions"))
                 self.checks_list.append(simple_check)
                 self.simple_checks.append(simple_check)
                 self._register_grouped_check(simple_check)
@@ -216,14 +225,14 @@ class Map:
         for check in self.block_checks:
             for sub_check in check.list_checks:
                 if not sub_check.hide and not sub_check.checked:
-                    cpt_left += 1
+                    cpt_left += sub_check.item_count
                     if sub_check.state == ConditionsType.LOGIC:
-                        cpt_logic += 1
+                        cpt_logic += sub_check.item_count
         for check in self.simple_checks:
             if not check.hide and not check.checked:
-                cpt_left += 1
+                cpt_left += check.item_count
                 if check.state == ConditionsType.LOGIC:
-                    cpt_logic += 1
+                    cpt_logic += check.item_count
 
         return cpt_logic, cpt_left
 
@@ -243,9 +252,15 @@ class Map:
         }
 
     def load_data(self, datas):
-        for data in datas.get("checks_datas", []):
-            for check in self.checks_list:
-                if check.id == data["id"] and check.name == data["name"]:
-                    check.set_data(data)
-                    break
+        if not isinstance(datas, dict):
+            return
+        checks_by_identity = {
+            (check.id, check.name): check for check in self.checks_list
+        }
+        for data in datas.get("checks_datas", []) or []:
+            if not isinstance(data, dict):
+                continue
+            check = checks_by_identity.get((data.get("id"), data.get("name")))
+            if check:
+                check.set_data(data)
 

@@ -5,11 +5,17 @@ from Entities.Item import Item
 
 class IncrementalItem(Item):
     def __init__(self, id, name, image, position, enable, opacity_disable, increments, hint, start_increment_index, always_enable=False):
-        self.increments_position = -1
         self.increments = increments
         self.start_increment_index = start_increment_index
+        self.increments_position = -1
         Item.__init__(self, id=id, name=name, image=image, position=position, enable=enable,
                       opacity_disable=opacity_disable, hint=hint, always_enable=always_enable)
+
+    def _get_start_increment_index(self):
+        if (type(self.start_increment_index) is int
+                and 0 <= self.start_increment_index < len(self.increments)):
+            return self.start_increment_index
+        return -1
 
     def left_click(self):
         if self.enable:
@@ -21,8 +27,7 @@ class IncrementalItem(Item):
                     self.enable = False
         else:
             self.enable = True
-            if type(self.start_increment_index) == int:
-                self.increments_position = self.start_increment_index
+            self.increments_position = self._get_start_increment_index()
 
         self.update()
 
@@ -34,7 +39,8 @@ class IncrementalItem(Item):
             if self.increments_position >= 0:
                 self.increments_position = self.increments_position - 1
 
-                if self.start_increment_index is not None and self.increments_position == self.start_increment_index - 1:
+                start_increment_index = self._get_start_increment_index()
+                if start_increment_index >= 0 and self.increments_position == start_increment_index - 1:
                     self.increments_position = -1
                     self.enable = False
             else:

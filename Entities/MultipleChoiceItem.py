@@ -29,7 +29,8 @@ class MultipleChoiceItem(Item):
         self.counter_check = 0
         self.background_x = 0
         self.background_y = 0
-        if background_offset:
+        self.has_explicit_background_offset = background_offset is not None
+        if self.has_explicit_background_offset:
             self.background_x = position[0] + background_offset[0]
             self.background_y = position[1] + background_offset[1]
         self.init_items()
@@ -144,8 +145,10 @@ class MultipleChoiceItem(Item):
             menu_rect.center = screen_rect.center
             delta_x = menu_rect.x - self.background_x
             delta_y = menu_rect.y - self.background_y
-            if bounds is not None and not menu_rect.contains(bounds.move(delta_x, delta_y)):
-                # Authored origin puts the choices outside the frame: re-center them in it.
+            if (not self.has_explicit_background_offset and bounds is not None
+                    and not menu_rect.contains(bounds.move(delta_x, delta_y))):
+                # Legacy templates without an authored origin keep the historical
+                # safety fallback that centers choices inside the popup.
                 delta_x = menu_rect.centerx - bounds.centerx
                 delta_y = menu_rect.centery - bounds.centery
             menu_pos = menu_rect.topleft
@@ -206,9 +209,8 @@ class MultipleChoiceItem(Item):
 
     def set_data(self, datas):
         for item_datas in datas["submenu_items"]:
-            for item in self.items:
-                if item_datas["name"] == item.name and item_datas["id"] == item.id:
-                    item.set_data(item_datas)
-                    break
+            item = self.tracker.find_item_for_saved_data(self.items, item_datas)
+            if item:
+                item.set_data(item_datas)
 
         Item.set_data(self, datas)
