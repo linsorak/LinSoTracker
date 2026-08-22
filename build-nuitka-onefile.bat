@@ -10,11 +10,16 @@ set "APP_NAME=LinSoTracker"
 set "APP_VERSION="
 set "WINDOWS_VERSION="
 
-if not exist "%PYTHON%" (
-    echo Python virtual environment not found: %PYTHON%
-    echo Creating it with the first python found on PATH...
-    python -m venv .venv
-    if %ERRORLEVEL% NEQ 0 goto error
+rem A venv launcher may still exist while pointing to a Python installation that
+rem was moved or upgraded. Run it once instead of checking the file only.
+"%PYTHON%" -c "import sys" >nul 2>&1
+if errorlevel 1 call :repair_venv
+if errorlevel 1 goto error
+
+"%PYTHON%" -c "import sys" >nul 2>&1
+if errorlevel 1 (
+    echo Python virtual environment is still unusable: %PYTHON%
+    goto error
 )
 
 if exist "%OUT_DIR%" rmdir /s /q "%OUT_DIR%"
@@ -90,6 +95,35 @@ echo %CD%\%PACKAGE_ZIP%
 echo.
 pause
 exit /b 0
+
+:repair_venv
+echo Python virtual environment is missing or points to an unavailable Python.
+echo Recreating .venv with an installed Python...
+
+rem Prefer the regular Python 3.14 build required by this project.
+where py >nul 2>&1
+if not errorlevel 1 (
+    py -3.14 -c "import sys" >nul 2>&1
+    if not errorlevel 1 (
+        py -3.14 -m venv --clear .venv
+        if errorlevel 1 exit /b 1
+        exit /b 0
+    )
+)
+
+rem Fall back to the first usable python available on PATH.
+where python >nul 2>&1
+if not errorlevel 1 (
+    python -c "import sys" >nul 2>&1
+    if not errorlevel 1 (
+        python -m venv --clear .venv
+        if errorlevel 1 exit /b 1
+        exit /b 0
+    )
+)
+
+echo No usable Python installation was found.
+exit /b 1
 
 :error
 echo.

@@ -14,6 +14,7 @@ from Tools import ptext
 
 class LayoutMixin:
     def draw(self, screen, time_delta=0):
+        self._ensure_error_popup_state()
         width, height = screen.get_size()
         self._scrollbars = {}
         self._layout(width, height)
@@ -1458,4 +1459,3 @@ class LayoutMixin:
             self._text(screen, label, (x, y), 13, self.COLORS["muted"])
             self._text(screen, value, (value_x, y), 15, self.COLORS["line_light"])
             y += 26
-

@@ -13,6 +13,7 @@ from Tools import ptext
 
 class InputMixin:
     def click(self, mouse_position, button):
+        self._ensure_error_popup_state()
         if self.suppress_next_click:
             self.suppress_next_click = False
             return True
@@ -513,7 +514,10 @@ class InputMixin:
                     self._open_item_modal(linked_path[0], linked_path)
                     self.message = f"Editing linked {item['name']}."
                 else:
-                    self.message = f"Selected linked {item['name']}. Double-click to edit."
+                    self.message = (
+                        f"Selected linked {item['name']} at "
+                        f"{item.get('x', 0)}, {item.get('y', 0)}. Double-click to edit."
+                    )
                 return True
 
             item_index = self._get_item_index_at(mouse_position)
@@ -534,7 +538,10 @@ class InputMixin:
                     self._open_item_modal(item_index)
                     self.message = f"Editing {item['name']}."
                 else:
-                    self.message = f"Selected {item['name']}. Double-click to edit."
+                    self.message = (
+                        f"Selected {item['name']} at "
+                        f"{item.get('x', 0)}, {item.get('y', 0)}. Double-click to edit."
+                    )
                 return True
 
             if (self.selected_cell or self.placement_kind) and self.last_bg_rect.collidepoint(mouse_position):
@@ -545,6 +552,7 @@ class InputMixin:
         return True
 
     def click_down(self, mouse_position, button):
+        self._ensure_error_popup_state()
         if button != 1:
             return
         # The topmost error popup may only start its own scrollbar.
@@ -676,6 +684,7 @@ class InputMixin:
         self.dragging_property_scroll = False
 
     def mouse_move(self, mouse_position):
+        self._ensure_error_popup_state()
         if self.error_popup_open:
             if self.dragging_scrollbar is not None:
                 self._update_scrollbar_drag(mouse_position)
@@ -964,6 +973,7 @@ class InputMixin:
             self._set_cursor_safe(pygame.SYSTEM_CURSOR_ARROW)
 
     def keyup(self, key, screen):
+        self._ensure_error_popup_state()
         if self.error_popup_open:
             if key == pygame.K_ESCAPE:
                 self._close_error_popup()
@@ -1024,6 +1034,7 @@ class InputMixin:
             self._delete_selected_item()
 
     def events(self, event, time_delta):
+        self._ensure_error_popup_state()
         if self.error_popup_open:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -1143,4 +1154,3 @@ class InputMixin:
                 self.sheet_scroll -= event.y * 40
                 return True
         return False
-

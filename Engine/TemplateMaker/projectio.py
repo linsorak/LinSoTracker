@@ -427,6 +427,10 @@ class ProjectIOMixin:
         if not (self.project_dir and os.path.isdir(self.project_dir)):
             self.message = "Save the template first, then export."
             return
+        # Export must contain the current editor state, including changes made in
+        # a submenu. Previously it only zipped the last version on disk.
+        if not self._do_save(self.project_name):
+            return
         default = f"{self._slugify(self.project_name or 'template') or 'template'}.template"
         path = filedialog.asksaveasfilename(
             title="Export template", defaultextension=".template",
@@ -447,7 +451,7 @@ class ProjectIOMixin:
         if self.canvas_context == "submenu":
             self._sync_submenu_canvas()
         if not name:
-            return
+            return False
         # Map templates: ensure the window reserves room for the maps (drawn to the
         # right of the items), otherwise they would render off-screen in the tracker.
         if self.is_map_template and self.maps:
@@ -458,7 +462,7 @@ class ProjectIOMixin:
         slug = self._slugify(name)
         if not slug:
             self.message = "Invalid template name."
-            return
+            return False
 
         if self.is_map_template:
             self._discard_empty_set_rule_actions()
@@ -479,7 +483,7 @@ class ProjectIOMixin:
                     "Template cannot be saved",
                     map_checker.errors,
                 )
-                return
+                return False
 
         checker = TemplateChecker(preview_json)
         if not checker.is_valid():
@@ -487,7 +491,7 @@ class ProjectIOMixin:
                 "Template cannot be saved",
                 checker.errors,
             )
-            return
+            return False
 
         template_dir = os.path.join(base_dir or self.main_menu.dev_template_directory, slug)
         source_dir = self.project_dir
@@ -562,6 +566,7 @@ class ProjectIOMixin:
         self.main_menu.process_templates_list()
         self._scan_projects()
         self._flash_status(f"Saved '{name}'  -  {template_dir}")
+        return True
 
     @staticmethod
     def _normalized_template_icon(icon):

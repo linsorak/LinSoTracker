@@ -73,6 +73,7 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.project_dir = None
         self.saved_once = False
         self.project_info = {}
+        self.project_datas = {}
         self.background_color = {"r": 0, "g": 0, "b": 0}
         self.background_position = {"x": 0, "y": 0}
         self.fonts = self._default_fonts()
@@ -115,6 +116,9 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.field_editor_spec = None
         self.field_editor_item = None
         self.field_editor_callback = None
+        self.field_editor_scroll = 0
+        self.field_editor_max_scroll = 0
+        self.field_editor_scroll_rect = pygame.Rect(0, 0, 1, 1)
         self.item_refs_editor_open = False
         self.item_refs_editor_spec = None
         self.item_refs_editor_item = None
@@ -143,12 +147,18 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.maps_rows = {}
         self.maps_buttons = {}
         self.check_screen_rects = {}
+        self.check_screen_anchors = {}
         self.selected_check_index = None
         self.dragging_check_index = None
         self.check_drag_moved = False
+        self.check_drag_start = (0, 0)
+        self.check_drag_offset = (0, 0)
         self.check_modal_open = False
         self.check_modal_buttons = {}
         self.check_subrows = {}
+        self.check_sub_scroll = 0
+        self.popup_item_rows = {}
+        self.popup_item_scroll = 0
         self.map_check_rows = []
         self.expanded_blocks = set()
         self.maps_checks_scroll = 0
@@ -177,6 +187,7 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.name_picker_scroll = 0
         self.name_picker_max_scroll = 0
         self.name_picker_callback = None
+        self.name_picker_cancel_callback = None
         self.name_picker_rows = {}
         self.name_picker_buttons = {}
         self.cond_builder_open = False
@@ -203,7 +214,11 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.map_zoom = 1.0
         self.map_pan = [0, 0]
         self.map_view_rect = pygame.Rect(0, 0, 1, 1)
+        self.show_map_blocks = True
+        self.show_map_checks = True
+        self.map_visibility_buttons = {}
         self.panning_map = False
+        self.map_pan_moved = False
         self.canvas_pan = [0, 0]
         self.canvas_zoom = 1.0
         self.canvas_view_rect = pygame.Rect(0, 0, 1, 1)
@@ -254,6 +269,8 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.selected_item_indices = set()
         self.dragging_item_index = None
         self.dragging_linked_path = None
+        self.item_drag_start = (0, 0)
+        self.item_drag_moved = False
         self.group_drag_offsets = {}
         self.suppress_next_click = False
         self.drag_offset = (0, 0)
@@ -263,6 +280,13 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.last_click_item = None
         self._uid_counter = 0
         self.status_flash_until = 0
+        self.error_popup_open = False
+        self.error_popup_title = ""
+        self.error_popup_errors = []
+        self.error_popup_scroll = 0
+        self.error_popup_max_scroll = 0
+        self.error_popup_buttons = {}
+        self.error_popup_copied_until = 0
         self._init_text_prompt()
         self._scan_projects()
 

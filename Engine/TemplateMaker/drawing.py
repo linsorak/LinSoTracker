@@ -411,7 +411,23 @@ class DrawingMixin:
         self.message = message
         self.status_flash_until = pygame.time.get_ticks() + duration_ms
 
+    def _ensure_error_popup_state(self):
+        """Backfill popup state for TemplateMaker instances created by older code."""
+        defaults = {
+            "error_popup_open": False,
+            "error_popup_title": "",
+            "error_popup_errors": [],
+            "error_popup_scroll": 0,
+            "error_popup_max_scroll": 0,
+            "error_popup_buttons": {},
+            "error_popup_copied_until": 0,
+        }
+        for name, value in defaults.items():
+            if not hasattr(self, name):
+                setattr(self, name, value.copy() if isinstance(value, (dict, list)) else value)
+
     def _open_error_popup(self, title, errors):
+        self._ensure_error_popup_state()
         self.error_popup_title = str(title or "Error")
         self.error_popup_errors = [str(error) for error in errors]
         self.error_popup_scroll = 0
