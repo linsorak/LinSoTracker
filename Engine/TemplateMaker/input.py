@@ -318,6 +318,12 @@ class InputMixin:
                 self.snap_enabled = not self.snap_enabled
                 self.message = f"Snap to items {'ON' if self.snap_enabled else 'OFF'}."
                 return True
+            if self.grid_minus_rect.collidepoint(mouse_position):
+                self._adjust_grid_size(-1)
+                return True
+            if self.grid_plus_rect.collidepoint(mouse_position):
+                self._adjust_grid_size(1)
+                return True
             if self.grid_rect.collidepoint(mouse_position):
                 self.grid_shown = not self.grid_shown
                 self.message = f"Grid {'shown (snaps to grid)' if self.grid_shown else 'hidden'}."
@@ -515,7 +521,7 @@ class InputMixin:
                     self.message = f"Editing linked {item['name']}."
                 else:
                     self.message = (
-                        f"Selected linked {item['name']} at "
+                        f"Selected linked {item['name']} ({item.get('kind', 'Item')}) at "
                         f"{item.get('x', 0)}, {item.get('y', 0)}. Double-click to edit."
                     )
                 return True
@@ -539,7 +545,7 @@ class InputMixin:
                     self.message = f"Editing {item['name']}."
                 else:
                     self.message = (
-                        f"Selected {item['name']} at "
+                        f"Selected {item['name']} ({item.get('kind', 'Item')}) at "
                         f"{item.get('x', 0)}, {item.get('y', 0)}. Double-click to edit."
                     )
                 return True

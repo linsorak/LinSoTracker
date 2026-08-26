@@ -1198,6 +1198,7 @@ class ProjectIOMixin:
         # EditableBox is sprite-less and has no enable/hint/opacity/sheet fields
         if kind == "EditableBox":
             data = copy.deepcopy(item.get("_raw", {}))
+            self._remove_previous_kind_fields(data, kind)
             data.update({
                 "Id": assigned_id,
                 "Kind": "EditableBox",
@@ -1212,6 +1213,7 @@ class ProjectIOMixin:
 
         if kind == "ImageItem":
             data = copy.deepcopy(item.get("_raw", {}))
+            self._remove_previous_kind_fields(data, kind)
             data.update({
                 "Id": assigned_id,
                 "Kind": "ImageItem",
@@ -1246,6 +1248,7 @@ class ProjectIOMixin:
 
         # Start from the raw json (if any) to keep fields of unsupported kinds intact
         data = copy.deepcopy(item.get("_raw", {}))
+        self._remove_previous_kind_fields(data, kind)
         data.update({
             "Id": assigned_id,
             "Kind": kind,
@@ -1353,3 +1356,26 @@ class ProjectIOMixin:
             data["NextItems"] = next_items
 
         return data
+
+    def _remove_previous_kind_fields(self, data, current_kind):
+        """Remove schema fields left in raw JSON after changing an item's type."""
+        previous_kind = data.get("Kind")
+        if not previous_kind or previous_kind == current_kind:
+            return
+
+        def fields_for(kind):
+            fields = set(self.KIND_REQUIRED.get(kind, {}).keys())
+            for spec in self.KIND_FIELDS.get(kind, []):
+                key = spec.get("json", spec["key"])
+                if spec.get("type") == "sprite":
+                    key = "CheckImageSheetInformation"
+                fields.add(key.split(".", 1)[0])
+            if kind in self.EVOLUTION_KINDS:
+                fields.add("NextItems")
+            if kind == "SubMenuItem":
+                fields.add("Background")
+            return fields
+
+        stale_fields = fields_for(previous_kind) - fields_for(current_kind)
+        for field in stale_fields:
+            data.pop(field, None)

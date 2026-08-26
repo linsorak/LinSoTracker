@@ -142,6 +142,8 @@ class LayoutMixin:
             self.see_links_rect = pygame.Rect(0, 0, 1, 1)
             self.snap_rect = pygame.Rect(0, 0, 1, 1)
             self.grid_rect = pygame.Rect(0, 0, 1, 1)
+            self.grid_minus_rect = pygame.Rect(0, 0, 1, 1)
+            self.grid_plus_rect = pygame.Rect(0, 0, 1, 1)
             check_count = len(self._current_map()["data"].get("ChecksList", []))
             filter_width = 88
             filter_y = title_rect.y + 28
@@ -199,14 +201,18 @@ class LayoutMixin:
             self._text(screen, "Snap items", (sbox.right + 6, sbox.y + 1), 14,
                        self.COLORS["line_light"] if self.snap_enabled else self.COLORS["muted"])
             gbox = pygame.Rect(sbox.right + 96, box.y, 18, 18)
-            self.grid_rect = pygame.Rect(gbox.x, gbox.y, 60, 20)
+            self.grid_rect = pygame.Rect(gbox.x, gbox.y, 86, 20)
             pygame.draw.rect(screen, (20, 24, 34), gbox)
             pygame.draw.rect(screen, self.COLORS["gold"] if self.grid_shown else (56, 62, 76), gbox, 2)
             if self.grid_shown:
                 pygame.draw.line(screen, self.COLORS["green"], (gbox.x + 3, gbox.centery), (gbox.centerx - 1, gbox.bottom - 4), 2)
                 pygame.draw.line(screen, self.COLORS["green"], (gbox.centerx - 1, gbox.bottom - 4), (gbox.right - 3, gbox.y + 3), 2)
-            self._text(screen, "Grid", (gbox.right + 6, gbox.y + 1), 14,
+            self._text(screen, f"Grid {self.snap_size}px", (gbox.right + 6, gbox.y + 1), 14,
                        self.COLORS["line_light"] if self.grid_shown else self.COLORS["muted"])
+            self.grid_minus_rect = pygame.Rect(self.grid_rect.right + 4, gbox.y, 22, 20)
+            self.grid_plus_rect = pygame.Rect(self.grid_minus_rect.right + 3, gbox.y, 22, 20)
+            self._draw_button(screen, self.grid_minus_rect, "-", (70, 74, 86))
+            self._draw_button(screen, self.grid_plus_rect, "+", (70, 74, 86))
 
         title_h = 60
         margin = 18

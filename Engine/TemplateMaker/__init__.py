@@ -142,6 +142,8 @@ class TemplateMaker(TemplateMakerConstants, DrawingMixin, LayoutMixin, StartMixi
         self.snap_rect = pygame.Rect(0, 0, 1, 1)
         self.grid_shown = False
         self.grid_rect = pygame.Rect(0, 0, 1, 1)
+        self.grid_minus_rect = pygame.Rect(0, 0, 1, 1)
+        self.grid_plus_rect = pygame.Rect(0, 0, 1, 1)
         self.left_tab = "sheets"
         self.left_tabs = {}
         self.maps_rows = {}

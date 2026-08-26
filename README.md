@@ -1,5 +1,5 @@
 # LinSoTracker
-<img src="https://linsotracker.com/tracker/gitbanner.png"></img>
+<img src="http://linsotracker.com/tracker/gitbanner.png"></img>
 ## Installation
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install LinSoTracker.
@@ -55,7 +55,7 @@ Join our discord : https://discord.com/invite/5MQvh7MAGN
 Hello @everyone,
 
 ** LinSoTracker 2.4 is now release :  **
-    - Windows : https://linsotracker.com/tracker/downloads/LinSoTracker-win.zip
+    - Windows : http://linsotracker.com/tracker/downloads/LinSoTracker-win.zip
 
 🇫🇷 **Patch note 2.4 :**  
 - **Optimisation du code** permettant d'améliorer les performances des calculs de la logique des *Map Templates*.  
@@ -79,7 +79,8 @@ Il est désormais possible de placer les répertoires des templates en cours de 
 - Dans les *Actions*, il est possible de réinitialiser un objet avec l'action `ResetItem`.  
 
 ### Ajout de nouvelles conditions :  
-- `haveAlternateValue('Item Name')` → Permet de vérifier si l'objet dispose de sa valeur alternative.  
+- `haveAlternateValue('Item Name')` → Permet de vérifier si l'objet dispose de sa valeur alternative.
+- `labelIs('LabelItem Name', 'Value')` → Permet de vérifier la valeur actuellement sélectionnée d'un `LabelItem`.
 - `isChecked('Item Name')` → Permet de vérifier si l'objet est coché.  
 - `isVisible('Item Name')` → Permet de vérifier si l'objet est visible.  
 

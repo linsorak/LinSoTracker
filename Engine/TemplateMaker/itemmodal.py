@@ -975,6 +975,15 @@ class ItemModalMixin:
             y = round(y / self.snap_size) * self.snap_size
         return int(x), int(y)
 
+    def _adjust_grid_size(self, direction):
+        sizes = (1, 2, 4, 8, 16, 32, 64)
+        current = min(sizes, key=lambda value: abs(value - int(self.snap_size)))
+        index = sizes.index(current)
+        index = max(0, min(len(sizes) - 1, index + int(direction)))
+        self.snap_size = sizes[index]
+        self.grid_shown = True
+        self.message = f"Grid precision set to {self.snap_size}px."
+
     def _move_item_to_mouse(self, index, mouse_position):
         if index < 0 or index >= len(self.placed_items) or not self.last_bg_rect.w:
             return

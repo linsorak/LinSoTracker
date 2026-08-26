@@ -182,7 +182,7 @@ class TemplateChecker:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def __check_count_item(self, section, index):
-        if len(section.keys()) == 12:
+        if len(section.keys()) >= 12:
             self.__check_element_is_in_section_and_valid("valueMin", section, "Item ID = {}".format(index), int)
             self.__check_element_is_in_section_and_valid("valueMax", section, "Item ID = {}".format(index), int)
             self.__check_element_is_in_section_and_valid("valueIncrease", section, "Item ID = {}".format(index), int)
@@ -218,13 +218,13 @@ class TemplateChecker:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def _check_check_item(self, section, index):
-        if len(section.keys()) == 9:
+        if len(section.keys()) >= 9:
             self.__sheet_positions_check("CheckImageSheetInformation", section, "Item ID = {}".format(index))
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))
 
     def __check_go_mode_item(self, section, index):
-        if len(section.keys()) == 9:
+        if len(section.keys()) >= 9:
             self.__check_element_is_in_section_and_valid("BackgroundGlow", section, "Item ID = {}".format(index), str)
         else:
             self.errors.append(self.ERROR_THE_STRUCTURE_IS_NOT_VALID.format("Item ID = {}".format(index)))

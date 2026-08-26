@@ -39,3 +39,5 @@ website
 # MkDocs
 _site/
 site/
+_devtemplates
+docs
