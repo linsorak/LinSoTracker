@@ -11,7 +11,9 @@ class RulesOptionsListItem(CheckListItem):
                  can_be_clickable=True, exclusive_group=None):
         super().__init__(ident, name, position, None, tracker)
         self.checked = checked
-        self.base_checked = checked
+        # Default state comes from the template "Active" flag: presets reset the
+        # rules they share to that default, not to the pre-activation state.
+        self.base_checked = not active_on_start
         self.hide_checks = hide_checks
         self.actions = actions
         self.active_on_start = active_on_start

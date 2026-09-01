@@ -49,10 +49,11 @@ class CoreService(metaclass=Singleton):
         self.temp_dir_delete = None
         self.official_template = None
         self.new_version = None
+        self.update_manifest = None
         self.background_color = (0, 0, 0)
         self.tracker_temp_path = None
         self.app_name = "LinSoTracker"
-        self.version = "2.5.0.4"
+        self.version = "2.5.0.5"
         self.beta_version = "BETA" in self.version.upper()
         self.beta_lock_enabled = True
         self.beta_end_date = None
@@ -279,7 +280,8 @@ class CoreService(metaclass=Singleton):
 
         self.read_beta_configuration(data_json)
 
-        latest_version = data_json.get("lastest_version")
+        self.update_manifest = data_json
+        latest_version = self.resolve_latest_version(data_json)
         if isinstance(latest_version, str) and latest_version \
                 and latest_version != self.get_version() \
                 and self.detect_os() in ("win", "linux") \
@@ -385,6 +387,27 @@ class CoreService(metaclass=Singleton):
         if parsed_date:
             self.beta_end_date = parsed_date
         self.save_beta_configuration()
+
+    def resolve_latest_version(self, data_json):
+        """Prefer the per-OS version, fall back to the flat manifest key."""
+        per_os = data_json.get("latest_versions")
+        if isinstance(per_os, dict):
+            version = per_os.get(self.detect_os())
+            if isinstance(version, str) and version:
+                return version
+        version = data_json.get("lastest_version")
+        return version if isinstance(version, str) and version else None
+
+    def get_update_archive_url(self):
+        if not isinstance(self.update_manifest, dict) or not self.new_version:
+            return None
+        url_base = self.update_manifest.get("url_base")
+        if not isinstance(url_base, str) or url_base.count("{}") != 2:
+            return None
+        url = url_base.format(self.detect_os(), self.new_version)
+        if not url.startswith("https://"):
+            return None
+        return url
 
     def get_new_version(self):
         return self.new_version

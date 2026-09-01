@@ -17,6 +17,7 @@ from Tools import ptext
 from Tools.Bank import Bank
 from Tools.CoreService import CoreService
 from Tools.TemplateChecker import TemplateChecker
+from Tools.AutoUpdater import AutoUpdater, UpdateError
 
 
 class MainMenu:
@@ -36,6 +37,8 @@ class MainMenu:
         self.scroll_step = 94
         self.official_template = None
         self.new_version = None
+        self.update_banner_rect = None
+        self.update_prompt_done = False
         self.menu_content = []
         self.menu_a = None
         self.draw_templates = 0
@@ -221,6 +224,8 @@ class MainMenu:
                 session_font_color["Official"]["r"], session_font_color["Official"]["g"],
                 session_font_color["Official"]["b"])
         }
+
+        self.require_update()
 
     def get_dimension(self):
         dimension = self.menu_json_data[0]["Dimensions"]
@@ -670,6 +675,8 @@ class MainMenu:
                 position=(5, pos_dev_y),
                 outline=1)
 
+            self.update_banner_rect = Rect(pos_update[0], pos_update[1],
+                                           surf_update.get_rect().w, surf_update.get_rect().h)
             pos_dev_y = pos_dev_y + surf_update.get_rect().h + 5
 
         if self.core_service.dev_version:
@@ -973,6 +980,12 @@ class MainMenu:
         if self.donation_popup_click(mouse_position, button):
             return
 
+        if (button == 1 and not self.loaded_tracker and not self.template_maker
+                and self.new_version and self.update_banner_rect
+                and self.update_banner_rect.collidepoint(mouse_position)):
+            self.run_update()
+            return
+
         if self.template_maker:
             template_maker = self.template_maker
             template_maker.click(mouse_position, button)
@@ -1076,6 +1089,59 @@ class MainMenu:
         self.illustration = None
         self.selected_menu_index = None
         self.fade_engine.reset()
+
+    def require_update(self):
+        """Block startup until the advertised version is installed.
+
+        The update is mandatory: the only alternative offered is closing the
+        application, so an outdated build can never reach the menu.
+        """
+        if self.update_prompt_done or not self.new_version:
+            return
+        self.update_prompt_done = True
+
+        answer = messagebox.askquestion(
+            "Update required",
+            f"LinSoTracker {self.new_version} is required "
+            f"(you are running {self.core_service.get_version()}).\n\n"
+            "It will be installed now and the application will restart.\n\n"
+            "Choosing 'No' closes LinSoTracker.",
+            icon="warning")
+        if answer != "yes":
+            self.quit_application()
+
+        while True:
+            # run_update only returns when the update could not be applied.
+            self.run_update()
+            if not messagebox.askretrycancel(
+                    "Update required",
+                    "The update could not be installed.\n\n"
+                    "Check your internet connection and retry, or download "
+                    "the new version from linsotracker.com.\n\n"
+                    "Cancel closes LinSoTracker."):
+                self.quit_application()
+
+    @staticmethod
+    def quit_application():
+        pygame.quit()
+        os._exit(0)
+
+    def run_update(self):
+        """Hand over to updater.exe and quit, so it can overwrite our binary."""
+        updater = AutoUpdater(self.core_service)
+        if not updater.is_available():
+            messagebox.showerror(
+                "Updater missing",
+                f"{updater.updater_filename()} was not found next to the application.\n\n"
+                "Please download the latest release from linsotracker.com.")
+            return
+        try:
+            updater.launch()
+        except UpdateError as exc:
+            self.loading_active = False
+            messagebox.showerror("Update failed", str(exc))
+            return
+        self.quit_application()
 
     def set_tracker(self, tracker_name, is_dev_template=False):
         self.draw_loading_screen(0, "Starting template")
