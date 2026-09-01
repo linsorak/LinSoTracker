@@ -20,6 +20,7 @@ It resolves the platform itself (win / linux / macARM64 / macIntel) and reads
 import os
 import subprocess
 import sys
+import time
 
 from Tools.CoreService import UPDATE_CONFIGURATION_URL
 
@@ -78,4 +79,9 @@ class AutoUpdater:
                                  cwd=self.core_service.app_path)
         except OSError as exc:
             raise UpdateError(f"Cannot start the updater: {exc}")
+
+        # The updater inspects this process while starting up. Leave it alive
+        # for a moment, as the 2.5.0.2 implementation did, so the lookup does
+        # not race against our own exit.
+        time.sleep(1)
         return command
