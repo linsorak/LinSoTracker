@@ -101,12 +101,16 @@ class TimerItem(Item):
     def format_time(self):
         total_centiseconds = int(self.elapsed * 100)
         total_seconds = total_centiseconds // 100
-        minutes = total_seconds // 60
+        show_hours = self.timer_config.get("ShowHours", False)
+        hours = total_seconds // 3600
+        minutes = (total_seconds // 60) % 60 if show_hours else total_seconds // 60
         seconds = total_seconds % 60
         centiseconds = total_centiseconds % 100
+        time_parts = [hours, minutes, seconds] if show_hours else [minutes, seconds]
+        text = ":".join("{:02d}".format(value) for value in time_parts)
         if self.timer_config.get("ShowCentiseconds", True):
-            return "{:02d}:{:02d}.{:02d}".format(minutes, seconds, centiseconds)
-        return "{:02d}:{:02d}".format(minutes, seconds)
+            return "{}.{:02d}".format(text, centiseconds)
+        return text
 
     @staticmethod
     def render_fixed_width(text, font, color):

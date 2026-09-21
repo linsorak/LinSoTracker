@@ -127,14 +127,13 @@ class BlockChecks(SimpleCheck):
         self.set_current_block()
 
     def right_click(self, mouse_position):
-        tracker = None
+        checked = not self.checked
         for check in self.list_checks:
-            check.checked = not self.checked
-            check.update()
-            tracker = check.tracker
-        self.update()
-        if tracker:
-            tracker.current_map.update()
+            check.checked = checked
+            if check.group:
+                for group_check in self.map.get_all_group_checks(check, check.group):
+                    group_check.checked = checked
+        self.map.update()
 
     def wheel_click(self, mouse_position):
         tracker = None

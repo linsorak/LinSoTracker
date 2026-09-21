@@ -33,6 +33,7 @@ class TemplateMakerConstants:
             "Timer": {
                 "StartValue": 0,
                 "AutoStart": False,
+                "ShowHours": False,
                 "ShowCentiseconds": True,
                 "FixedWidthDigits": True,
                 "Rect": {"x": 0, "y": 0, "w": 230, "h": 42},
@@ -136,6 +137,7 @@ class TemplateMakerConstants:
             {"key": "Timer.Background.BorderColor", "type": "color", "label": "Timer border", "default": None},
             {"key": "Timer.Font.Color", "type": "color", "label": "Timer text", "default": {"r": 150, "g": 255, "b": 160}},
             {"key": "Timer.Font.Size", "type": "int", "label": "Timer font size", "default": 32},
+            {"key": "Timer.ShowHours", "type": "bool", "label": "Show hours (HH:MM:SS)", "default": False},
             {"key": "Timer.ShowCentiseconds", "type": "bool", "label": "Show centiseconds", "default": True},
             {"key": "Timer.FixedWidthDigits", "type": "bool", "label": "Fixed digits", "default": True},
             {"key": "Buttons.StartPause.Rect", "type": "rect", "label": "Start rect",

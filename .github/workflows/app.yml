@@ -76,8 +76,10 @@ jobs:
         run: |
           mkdir -p out
           if command -v python >/dev/null 2>&1; then
+            python_cmd="python"
             version="$(python Tools/sync_version.py --print-version)"
           else
+            python_cmd="python3"
             version="$(python3 Tools/sync_version.py --print-version)"
           fi
           [ -z "$version" ] && { echo "Could not read version"; exit 1; }
@@ -100,7 +102,13 @@ jobs:
             echo "No zip produced for ${{ matrix.target }}"
             exit 1
           }
-          cp "$source_zip" "out/${patch_name}"
+          "$python_cmd" Tools/filter_release_zip.py "$source_zip" "out/${patch_name}"
+          if "$python_cmd" -c "import sys, zipfile; sys.exit(any('templates' in [part.lower() for part in name.replace(chr(92), '/').split('/')] for name in zipfile.ZipFile(sys.argv[1]).namelist()))" "out/${patch_name}"; then
+            echo "Verified: templates excluded from ${patch_name}"
+          else
+            echo "Templates are still present in ${patch_name}"
+            exit 1
+          fi
           echo "Patch package: ${patch_name}"
           ls -l out
 

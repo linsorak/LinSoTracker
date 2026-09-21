@@ -300,8 +300,8 @@ class ProjectIOMixin:
         if not offset:
             return (0, 0)
         return (
-            int(item.get("x", 0)) + int(offset.get("x", 0)),
-            int(item.get("y", 0)) + int(offset.get("y", 0)),
+            int(offset.get("x", 0)),
+            int(offset.get("y", 0)),
         )
 
     def _build_items_list_json(self, parent, items):

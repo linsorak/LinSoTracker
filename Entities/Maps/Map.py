@@ -210,11 +210,13 @@ class Map:
             self.check_window.update()
 
     def update_after_check_click(self, check):
-        if check.group:
-            for group_check in self.grouped_checks.get(check.group, []):
-                group_check.update()
-        else:
-            check.update()
+        affected_checks = self.grouped_checks.get(check.group, []) if check.group else [check]
+        for affected_check in affected_checks:
+            affected_check.update()
+        affected_ids = {id(affected_check) for affected_check in affected_checks}
+        for block in self.block_checks:
+            if any(id(sub_check) in affected_ids for sub_check in block.list_checks):
+                block.update(update_children=False)
         self.tracker.update_cpt()
 
 
@@ -263,4 +265,3 @@ class Map:
             check = checks_by_identity.get((data.get("id"), data.get("name")))
             if check:
                 check.set_data(data)
-

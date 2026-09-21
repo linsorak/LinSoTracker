@@ -6,6 +6,18 @@ import queue
 import pygame
 
 
+def _format_timer_time(seconds, show_hours=False):
+    total_centiseconds = int(seconds * 100)
+    total_seconds = total_centiseconds // 100
+    hours = total_seconds // 3600
+    minutes = (total_seconds // 60) % 60 if show_hours else total_seconds // 60
+    secs = total_seconds % 60
+    centiseconds = total_centiseconds % 100
+    if show_hours:
+        return "{:02d}:{:02d}:{:02d}.{:02d}".format(hours, minutes, secs, centiseconds)
+    return "{:02d}:{:02d}.{:02d}".format(minutes, secs, centiseconds)
+
+
 def _timer_window_process(command_queue, state_queue, title, font_path, window_position, icon_path):
     if window_position:
         os.environ["SDL_VIDEO_WINDOW_POS"] = "{},{}".format(window_position[0], window_position[1])
@@ -32,6 +44,7 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
 
     running = False
     elapsed = 0.0
+    show_hours = False
     entries = []
     pending_entries = {}
     scroll = 0
@@ -41,17 +54,10 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
     start_button_rect = pygame.Rect(70, 154, 170, 42)
     reset_button_rect = pygame.Rect(280, 154, 170, 42)
     clear_button_rect = pygame.Rect(0, 0, 1, 1)
-
-    def format_time(seconds):
-        total_centiseconds = int(seconds * 100)
-        total_seconds = total_centiseconds // 100
-        minutes = total_seconds // 60
-        secs = total_seconds % 60
-        centiseconds = total_centiseconds % 100
-        return "{:02d}:{:02d}.{:02d}".format(minutes, secs, centiseconds)
+    format_button_rect = pygame.Rect(0, 0, 1, 1)
 
     def read_commands():
-        nonlocal loop, elapsed, running, scroll, entries, pending_entries, state_dirty
+        nonlocal loop, elapsed, running, show_hours, scroll, entries, pending_entries, state_dirty
         while True:
             try:
                 command = command_queue.get_nowait()
@@ -65,6 +71,7 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
                 state = command.get("state") or {}
                 elapsed = float(state.get("elapsed", 0.0))
                 running = bool(state.get("running", False))
+                show_hours = bool(state.get("show_hours", False))
                 scroll = int(state.get("scroll", 0))
                 entries = [build_entry_from_payload(entry) for entry in state.get("entries", [])]
                 pending_entries = {}
@@ -120,6 +127,7 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
             state_queue.put_nowait({
                 "elapsed": elapsed,
                 "running": running,
+                "show_hours": show_hours,
                 "scroll": scroll,
                 "entries": [serialize_entry(entry) for entry in entries],
             })
@@ -208,7 +216,7 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
             screen.blit(entry["icon"], icon_rect)
 
         action_column = pygame.Rect(x + 44, y, 68, 40)
-        time_column_width = 88
+        time_column_width = 116 if show_hours else 88
         time_x = x + width - time_column_width - 10
         name_x = x + 122
 
@@ -236,7 +244,7 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
             screen.blit(check_surface, (name_x + 14, check_y))
             check_y += 18
 
-        time_surface = render_fixed_width_entry_time(format_time(entry["time"]))
+        time_surface = render_fixed_width_entry_time(_format_timer_time(entry["time"], show_hours))
         screen.blit(time_surface, (x + width - time_surface.get_width() - 10,
                                    y + 20 - time_surface.get_height() // 2))
 
@@ -264,6 +272,9 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
                     entries.clear()
                     scroll = 0
                     state_dirty = True
+                elif format_button_rect.collidepoint(event.pos):
+                    show_hours = not show_hours
+                    state_dirty = True
             elif event.type == pygame.MOUSEWHEEL:
                 scroll = max(0, scroll - event.y)
                 state_dirty = True
@@ -283,7 +294,13 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
         screen.blit(title_surface, ((width - title_surface.get_width()) // 2, 22))
 
         timer_box = pygame.Rect(0, 58, width, 86)
-        timer_text = render_fixed_width_timer(format_time(elapsed))
+        timer_text = render_fixed_width_timer(_format_timer_time(elapsed, show_hours))
+        if timer_text.get_width() > width - 32:
+            scale = (width - 32) / timer_text.get_width()
+            timer_text = pygame.transform.smoothscale(
+                timer_text,
+                (width - 32, max(1, int(timer_text.get_height() * scale))),
+            )
         screen.blit(timer_text, (timer_box.centerx - timer_text.get_width() // 2,
                                  timer_box.centery - timer_text.get_height() // 2))
 
@@ -297,6 +314,8 @@ def _timer_window_process(command_queue, state_queue, title, font_path, window_p
         pygame.draw.line(screen, (70, 70, 80), (24, list_top - 16), (width - 24, list_top - 16), 1)
         header = font.render("Items log", True, (220, 220, 230))
         screen.blit(header, (24, list_top - 42))
+        format_button_rect = pygame.Rect(width - 274, list_top - 47, 168, 24)
+        draw_small_button(format_button_rect, "Format: HH:MM:SS" if show_hours else "Format: MM:SS")
         clear_button_rect = pygame.Rect(width - 94, list_top - 47, 70, 24)
         draw_small_button(clear_button_rect, "Clear")
 
@@ -334,6 +353,7 @@ class TimerWindow:
         self.state = {
             "elapsed": 0.0,
             "running": False,
+            "show_hours": False,
             "scroll": 0,
             "entries": [],
             "visible": bool(visible),
@@ -758,6 +778,7 @@ class TimerWindow:
         self.state.update({
             "elapsed": float(data.get("elapsed", 0.0)),
             "running": False,
+            "show_hours": bool(data.get("show_hours", False)),
             "scroll": int(data.get("scroll", 0)),
             "entries": [self.decode_entry_from_save(entry) for entry in data.get("entries", [])],
             "visible": bool(data.get("visible", True)),
@@ -779,6 +800,7 @@ class TimerWindow:
                 "state": {
                     "elapsed": self.state.get("elapsed", 0.0),
                     "running": self.state.get("running", False),
+                    "show_hours": self.state.get("show_hours", False),
                     "scroll": self.state.get("scroll", 0),
                     "entries": self.state.get("entries", []),
                 }

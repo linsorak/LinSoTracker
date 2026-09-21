@@ -31,8 +31,11 @@ class MultipleChoiceItem(Item):
         self.background_y = 0
         self.has_explicit_background_offset = background_offset is not None
         if self.has_explicit_background_offset:
-            self.background_x = position[0] + background_offset[0]
-            self.background_y = position[1] + background_offset[1]
+            # Choice coordinates belong to the popup canvas. The parent item's
+            # position only controls its icon on the main tracker and must not
+            # move the choices inside the popup.
+            self.background_x = background_offset[0]
+            self.background_y = background_offset[1]
         self.init_items()
         self._choice_base_positions = {}
         self.update_background()

@@ -254,7 +254,9 @@ class PreviewMixin:
         font_cfg = timer.get("Font", {})
         font = pygame.font.Font(None, int(font_cfg.get("Size", 32)))
         color = self._preview_color(font_cfg.get("Color"), self.COLORS["green"])
-        text = "00:00.00" if timer.get("ShowCentiseconds", True) else "00:00"
+        text = "00:00:00" if timer.get("ShowHours", False) else "00:00"
+        if timer.get("ShowCentiseconds", True):
+            text += ".00"
         surface = font.render(text, True, color)
         screen.blit(surface, (timer_rect.centerx - surface.get_width() // 2,
                               timer_rect.centery - surface.get_height() // 2))
