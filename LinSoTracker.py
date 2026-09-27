@@ -57,7 +57,7 @@ def main():
         pygame.mixer.init()
         main_menu = MainMenu()
         dimension = main_menu.get_dimension()
-        screen = pygame.display.set_mode(dimension)
+        screen = pygame.display.set_mode(dimension, pygame.DOUBLEBUF | pygame.HWSURFACE)
         pygame.display.set_caption(core_service.get_window_title())
         main_menu.initialization()
         pygame.display.set_icon(main_menu.get_icon())

@@ -627,7 +627,7 @@ class MainMenu:
         del self.loaded_tracker
         self.loaded_tracker = None
         dimension = self.get_dimension()
-        pygame.display.set_mode((dimension[0], dimension[1]))
+        pygame.display.set_mode((dimension[0], dimension[1]), pygame.DOUBLEBUF | pygame.HWSURFACE)
         self.core_service.setgamewindowcenter(x=dimension[0], y=dimension[1])
 
     def keyup(self, button, screen):

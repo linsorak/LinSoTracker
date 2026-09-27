@@ -181,7 +181,7 @@ class Tracker:
             zoom = self.core_service.zoom
             w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * zoom
             h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * zoom
-            pygame.display.set_mode((w, h))
+            pygame.display.set_mode((w, h), pygame.DOUBLEBUF | pygame.HWSURFACE)
             self.core_service.setgamewindowcenter(w, h)
             self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
             items_sheets = self.tracker_json_data[1]["Datas"]["Items"]
@@ -924,7 +924,7 @@ class Tracker:
         self.background_image = self.bank.addZoomImage(os.path.join(self.resources_path, json_data_background))
         w = self.tracker_json_data[1]["Datas"]["Dimensions"]["width"] * self.core_service.zoom
         h = self.tracker_json_data[1]["Datas"]["Dimensions"]["height"] * self.core_service.zoom
-        pygame.display.set_mode((w, h))
+        pygame.display.set_mode((w, h), pygame.DOUBLEBUF | pygame.HWSURFACE)
         self.init_items()
         self.menu.get_menu().resize(width=w, height=h)
         self.load_data(datas)
